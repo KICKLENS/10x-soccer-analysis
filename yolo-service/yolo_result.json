@@ -1,0 +1,6855 @@
+{
+  "success": true,
+  "source": "yolo",
+  "message": "YOLO video analysis completed.",
+  "fileName": "screen_recording_20260417_185708_kakaotalk-1777295327801-2ned98.mp4",
+  "videoPath": "../uploads/screen_recording_20260417_185708_kakaotalk-1777295327801-2ned98.mp4",
+  "summary": {
+    "durationSec": 1232.57,
+    "fps": 29.72,
+    "frameCount": 36635,
+    "width": 2316,
+    "height": 1080,
+    "sampleEveryFrames": 14,
+    "sampledFrames": 2614,
+    "ballDetectedFrames": 571,
+    "interactionFrames": 451
+  },
+  "detections": [
+    {
+      "timeSec": 0.0,
+      "time": "00:00",
+      "frameIndex": 0,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.267
+    },
+    {
+      "timeSec": 1.88,
+      "time": "00:01",
+      "frameIndex": 56,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.364
+    },
+    {
+      "timeSec": 2.36,
+      "time": "00:02",
+      "frameIndex": 70,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.616
+    },
+    {
+      "timeSec": 2.83,
+      "time": "00:02",
+      "frameIndex": 84,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.418
+    },
+    {
+      "timeSec": 3.3,
+      "time": "00:03",
+      "frameIndex": 98,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.438
+    },
+    {
+      "timeSec": 10.83,
+      "time": "00:10",
+      "frameIndex": 322,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.366
+    },
+    {
+      "timeSec": 21.67,
+      "time": "00:21",
+      "frameIndex": 644,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.396
+    },
+    {
+      "timeSec": 22.61,
+      "time": "00:22",
+      "frameIndex": 672,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.293
+    },
+    {
+      "timeSec": 24.02,
+      "time": "00:24",
+      "frameIndex": 714,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.74
+    },
+    {
+      "timeSec": 26.38,
+      "time": "00:26",
+      "frameIndex": 784,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.677
+    },
+    {
+      "timeSec": 32.03,
+      "time": "00:32",
+      "frameIndex": 952,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.405
+    },
+    {
+      "timeSec": 69.71,
+      "time": "01:09",
+      "frameIndex": 2072,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.592
+    },
+    {
+      "timeSec": 70.18,
+      "time": "01:10",
+      "frameIndex": 2086,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.765
+    },
+    {
+      "timeSec": 71.12,
+      "time": "01:11",
+      "frameIndex": 2114,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.342
+    },
+    {
+      "timeSec": 71.6,
+      "time": "01:11",
+      "frameIndex": 2128,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.811
+    },
+    {
+      "timeSec": 72.07,
+      "time": "01:12",
+      "frameIndex": 2142,
+      "ballCount": 2,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.782
+    },
+    {
+      "timeSec": 73.01,
+      "time": "01:13",
+      "frameIndex": 2170,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.346
+    },
+    {
+      "timeSec": 73.48,
+      "time": "01:13",
+      "frameIndex": 2184,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.405
+    },
+    {
+      "timeSec": 74.42,
+      "time": "01:14",
+      "frameIndex": 2212,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.894
+    },
+    {
+      "timeSec": 74.89,
+      "time": "01:14",
+      "frameIndex": 2226,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.666
+    },
+    {
+      "timeSec": 75.36,
+      "time": "01:15",
+      "frameIndex": 2240,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.662
+    },
+    {
+      "timeSec": 75.84,
+      "time": "01:15",
+      "frameIndex": 2254,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.52
+    },
+    {
+      "timeSec": 76.31,
+      "time": "01:16",
+      "frameIndex": 2268,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.272
+    },
+    {
+      "timeSec": 76.78,
+      "time": "01:16",
+      "frameIndex": 2282,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.311
+    },
+    {
+      "timeSec": 77.25,
+      "time": "01:17",
+      "frameIndex": 2296,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.244
+    },
+    {
+      "timeSec": 77.72,
+      "time": "01:17",
+      "frameIndex": 2310,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.344
+    },
+    {
+      "timeSec": 78.19,
+      "time": "01:18",
+      "frameIndex": 2324,
+      "ballCount": 1,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.312
+    },
+    {
+      "timeSec": 78.66,
+      "time": "01:18",
+      "frameIndex": 2338,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.698
+    },
+    {
+      "timeSec": 79.6,
+      "time": "01:19",
+      "frameIndex": 2366,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.338
+    },
+    {
+      "timeSec": 91.85,
+      "time": "01:31",
+      "frameIndex": 2730,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": false,
+      "topBallConfidence": 0.263
+    },
+    {
+      "timeSec": 97.97,
+      "time": "01:37",
+      "frameIndex": 2912,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.744
+    },
+    {
+      "timeSec": 98.44,
+      "time": "01:38",
+      "frameIndex": 2926,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.669
+    },
+    {
+      "timeSec": 98.92,
+      "time": "01:38",
+      "frameIndex": 2940,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.601
+    },
+    {
+      "timeSec": 101.27,
+      "time": "01:41",
+      "frameIndex": 3010,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.546
+    },
+    {
+      "timeSec": 102.21,
+      "time": "01:42",
+      "frameIndex": 3038,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.455
+    },
+    {
+      "timeSec": 122.0,
+      "time": "02:01",
+      "frameIndex": 3626,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.236
+    },
+    {
+      "timeSec": 122.47,
+      "time": "02:02",
+      "frameIndex": 3640,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.213
+    },
+    {
+      "timeSec": 129.06,
+      "time": "02:09",
+      "frameIndex": 3836,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.208
+    },
+    {
+      "timeSec": 129.53,
+      "time": "02:09",
+      "frameIndex": 3850,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.216
+    },
+    {
+      "timeSec": 130.95,
+      "time": "02:10",
+      "frameIndex": 3892,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.207
+    },
+    {
+      "timeSec": 131.42,
+      "time": "02:11",
+      "frameIndex": 3906,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.311
+    },
+    {
+      "timeSec": 131.89,
+      "time": "02:11",
+      "frameIndex": 3920,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.272
+    },
+    {
+      "timeSec": 132.36,
+      "time": "02:12",
+      "frameIndex": 3934,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.368
+    },
+    {
+      "timeSec": 132.83,
+      "time": "02:12",
+      "frameIndex": 3948,
+      "ballCount": 2,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.278
+    },
+    {
+      "timeSec": 133.3,
+      "time": "02:13",
+      "frameIndex": 3962,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.341
+    },
+    {
+      "timeSec": 133.77,
+      "time": "02:13",
+      "frameIndex": 3976,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.228
+    },
+    {
+      "timeSec": 134.24,
+      "time": "02:14",
+      "frameIndex": 3990,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.202
+    },
+    {
+      "timeSec": 136.13,
+      "time": "02:16",
+      "frameIndex": 4046,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.303
+    },
+    {
+      "timeSec": 136.6,
+      "time": "02:16",
+      "frameIndex": 4060,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.432
+    },
+    {
+      "timeSec": 137.07,
+      "time": "02:17",
+      "frameIndex": 4074,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.249
+    },
+    {
+      "timeSec": 137.54,
+      "time": "02:17",
+      "frameIndex": 4088,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.345
+    },
+    {
+      "timeSec": 138.01,
+      "time": "02:18",
+      "frameIndex": 4102,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.261
+    },
+    {
+      "timeSec": 138.48,
+      "time": "02:18",
+      "frameIndex": 4116,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.228
+    },
+    {
+      "timeSec": 141.31,
+      "time": "02:21",
+      "frameIndex": 4200,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.203
+    },
+    {
+      "timeSec": 166.27,
+      "time": "02:46",
+      "frameIndex": 4942,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.495
+    },
+    {
+      "timeSec": 183.7,
+      "time": "03:03",
+      "frameIndex": 5460,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.593
+    },
+    {
+      "timeSec": 185.58,
+      "time": "03:05",
+      "frameIndex": 5516,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.703
+    },
+    {
+      "timeSec": 186.06,
+      "time": "03:06",
+      "frameIndex": 5530,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.371
+    },
+    {
+      "timeSec": 186.53,
+      "time": "03:06",
+      "frameIndex": 5544,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.382
+    },
+    {
+      "timeSec": 187.0,
+      "time": "03:06",
+      "frameIndex": 5558,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.204
+    },
+    {
+      "timeSec": 218.56,
+      "time": "03:38",
+      "frameIndex": 6496,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.202
+    },
+    {
+      "timeSec": 233.16,
+      "time": "03:53",
+      "frameIndex": 6930,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.596
+    },
+    {
+      "timeSec": 234.57,
+      "time": "03:54",
+      "frameIndex": 6972,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.618
+    },
+    {
+      "timeSec": 235.04,
+      "time": "03:55",
+      "frameIndex": 6986,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.413
+    },
+    {
+      "timeSec": 235.51,
+      "time": "03:55",
+      "frameIndex": 7000,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.665
+    },
+    {
+      "timeSec": 236.46,
+      "time": "03:56",
+      "frameIndex": 7028,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.297
+    },
+    {
+      "timeSec": 237.4,
+      "time": "03:57",
+      "frameIndex": 7056,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.228
+    },
+    {
+      "timeSec": 239.28,
+      "time": "03:59",
+      "frameIndex": 7112,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.252
+    },
+    {
+      "timeSec": 239.75,
+      "time": "03:59",
+      "frameIndex": 7126,
+      "ballCount": 2,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.393
+    },
+    {
+      "timeSec": 240.22,
+      "time": "04:00",
+      "frameIndex": 7140,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.262
+    },
+    {
+      "timeSec": 242.11,
+      "time": "04:02",
+      "frameIndex": 7196,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.256
+    },
+    {
+      "timeSec": 244.93,
+      "time": "04:04",
+      "frameIndex": 7280,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.249
+    },
+    {
+      "timeSec": 245.4,
+      "time": "04:05",
+      "frameIndex": 7294,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.202
+    },
+    {
+      "timeSec": 245.88,
+      "time": "04:05",
+      "frameIndex": 7308,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.205
+    },
+    {
+      "timeSec": 246.35,
+      "time": "04:06",
+      "frameIndex": 7322,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.22
+    },
+    {
+      "timeSec": 247.29,
+      "time": "04:07",
+      "frameIndex": 7350,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.228
+    },
+    {
+      "timeSec": 261.42,
+      "time": "04:21",
+      "frameIndex": 7770,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.218
+    },
+    {
+      "timeSec": 269.9,
+      "time": "04:29",
+      "frameIndex": 8022,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.217
+    },
+    {
+      "timeSec": 282.62,
+      "time": "04:42",
+      "frameIndex": 8400,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.263
+    },
+    {
+      "timeSec": 284.97,
+      "time": "04:44",
+      "frameIndex": 8470,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": false,
+      "topBallConfidence": 0.365
+    },
+    {
+      "timeSec": 304.28,
+      "time": "05:04",
+      "frameIndex": 9044,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.262
+    },
+    {
+      "timeSec": 304.75,
+      "time": "05:04",
+      "frameIndex": 9058,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.528
+    },
+    {
+      "timeSec": 308.05,
+      "time": "05:08",
+      "frameIndex": 9156,
+      "ballCount": 1,
+      "personCount": 6,
+      "interaction": false,
+      "topBallConfidence": 0.433
+    },
+    {
+      "timeSec": 308.52,
+      "time": "05:08",
+      "frameIndex": 9170,
+      "ballCount": 1,
+      "personCount": 8,
+      "interaction": false,
+      "topBallConfidence": 0.234
+    },
+    {
+      "timeSec": 308.99,
+      "time": "05:08",
+      "frameIndex": 9184,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.817
+    },
+    {
+      "timeSec": 309.46,
+      "time": "05:09",
+      "frameIndex": 9198,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.341
+    },
+    {
+      "timeSec": 309.94,
+      "time": "05:09",
+      "frameIndex": 9212,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.254
+    },
+    {
+      "timeSec": 318.41,
+      "time": "05:18",
+      "frameIndex": 9464,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.762
+    },
+    {
+      "timeSec": 318.88,
+      "time": "05:18",
+      "frameIndex": 9478,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.776
+    },
+    {
+      "timeSec": 319.36,
+      "time": "05:19",
+      "frameIndex": 9492,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": false,
+      "topBallConfidence": 0.499
+    },
+    {
+      "timeSec": 319.83,
+      "time": "05:19",
+      "frameIndex": 9506,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.298
+    },
+    {
+      "timeSec": 320.3,
+      "time": "05:20",
+      "frameIndex": 9520,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.575
+    },
+    {
+      "timeSec": 320.77,
+      "time": "05:20",
+      "frameIndex": 9534,
+      "ballCount": 2,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.591
+    },
+    {
+      "timeSec": 321.24,
+      "time": "05:21",
+      "frameIndex": 9548,
+      "ballCount": 2,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.731
+    },
+    {
+      "timeSec": 321.71,
+      "time": "05:21",
+      "frameIndex": 9562,
+      "ballCount": 3,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.663
+    },
+    {
+      "timeSec": 322.18,
+      "time": "05:22",
+      "frameIndex": 9576,
+      "ballCount": 3,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.68
+    },
+    {
+      "timeSec": 322.65,
+      "time": "05:22",
+      "frameIndex": 9590,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.428
+    },
+    {
+      "timeSec": 323.59,
+      "time": "05:23",
+      "frameIndex": 9618,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.468
+    },
+    {
+      "timeSec": 324.07,
+      "time": "05:24",
+      "frameIndex": 9632,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.675
+    },
+    {
+      "timeSec": 324.54,
+      "time": "05:24",
+      "frameIndex": 9646,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.58
+    },
+    {
+      "timeSec": 325.01,
+      "time": "05:25",
+      "frameIndex": 9660,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.592
+    },
+    {
+      "timeSec": 325.48,
+      "time": "05:25",
+      "frameIndex": 9674,
+      "ballCount": 2,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.419
+    },
+    {
+      "timeSec": 325.95,
+      "time": "05:25",
+      "frameIndex": 9688,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.458
+    },
+    {
+      "timeSec": 326.42,
+      "time": "05:26",
+      "frameIndex": 9702,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.232
+    },
+    {
+      "timeSec": 326.89,
+      "time": "05:26",
+      "frameIndex": 9716,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.309
+    },
+    {
+      "timeSec": 327.36,
+      "time": "05:27",
+      "frameIndex": 9730,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.331
+    },
+    {
+      "timeSec": 327.83,
+      "time": "05:27",
+      "frameIndex": 9744,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.257
+    },
+    {
+      "timeSec": 328.31,
+      "time": "05:28",
+      "frameIndex": 9758,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.386
+    },
+    {
+      "timeSec": 328.78,
+      "time": "05:28",
+      "frameIndex": 9772,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.269
+    },
+    {
+      "timeSec": 329.25,
+      "time": "05:29",
+      "frameIndex": 9786,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.297
+    },
+    {
+      "timeSec": 329.72,
+      "time": "05:29",
+      "frameIndex": 9800,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.222
+    },
+    {
+      "timeSec": 346.68,
+      "time": "05:46",
+      "frameIndex": 10304,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.351
+    },
+    {
+      "timeSec": 348.09,
+      "time": "05:48",
+      "frameIndex": 10346,
+      "ballCount": 2,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.476
+    },
+    {
+      "timeSec": 348.56,
+      "time": "05:48",
+      "frameIndex": 10360,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.824
+    },
+    {
+      "timeSec": 349.03,
+      "time": "05:49",
+      "frameIndex": 10374,
+      "ballCount": 2,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.772
+    },
+    {
+      "timeSec": 349.5,
+      "time": "05:49",
+      "frameIndex": 10388,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.789
+    },
+    {
+      "timeSec": 351.39,
+      "time": "05:51",
+      "frameIndex": 10444,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.501
+    },
+    {
+      "timeSec": 373.99,
+      "time": "06:13",
+      "frameIndex": 11116,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.248
+    },
+    {
+      "timeSec": 381.53,
+      "time": "06:21",
+      "frameIndex": 11340,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.841
+    },
+    {
+      "timeSec": 382.0,
+      "time": "06:22",
+      "frameIndex": 11354,
+      "ballCount": 2,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.33
+    },
+    {
+      "timeSec": 382.94,
+      "time": "06:22",
+      "frameIndex": 11382,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.325
+    },
+    {
+      "timeSec": 383.42,
+      "time": "06:23",
+      "frameIndex": 11396,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.528
+    },
+    {
+      "timeSec": 383.89,
+      "time": "06:23",
+      "frameIndex": 11410,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.322
+    },
+    {
+      "timeSec": 384.36,
+      "time": "06:24",
+      "frameIndex": 11424,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.441
+    },
+    {
+      "timeSec": 389.54,
+      "time": "06:29",
+      "frameIndex": 11578,
+      "ballCount": 1,
+      "personCount": 23,
+      "interaction": true,
+      "topBallConfidence": 0.48
+    },
+    {
+      "timeSec": 391.42,
+      "time": "06:31",
+      "frameIndex": 11634,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.788
+    },
+    {
+      "timeSec": 391.89,
+      "time": "06:31",
+      "frameIndex": 11648,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.763
+    },
+    {
+      "timeSec": 392.36,
+      "time": "06:32",
+      "frameIndex": 11662,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.395
+    },
+    {
+      "timeSec": 392.84,
+      "time": "06:32",
+      "frameIndex": 11676,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.642
+    },
+    {
+      "timeSec": 393.31,
+      "time": "06:33",
+      "frameIndex": 11690,
+      "ballCount": 3,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.865
+    },
+    {
+      "timeSec": 393.78,
+      "time": "06:33",
+      "frameIndex": 11704,
+      "ballCount": 3,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.791
+    },
+    {
+      "timeSec": 394.25,
+      "time": "06:34",
+      "frameIndex": 11718,
+      "ballCount": 2,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.695
+    },
+    {
+      "timeSec": 394.72,
+      "time": "06:34",
+      "frameIndex": 11732,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.772
+    },
+    {
+      "timeSec": 395.19,
+      "time": "06:35",
+      "frameIndex": 11746,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.688
+    },
+    {
+      "timeSec": 395.66,
+      "time": "06:35",
+      "frameIndex": 11760,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.814
+    },
+    {
+      "timeSec": 397.08,
+      "time": "06:37",
+      "frameIndex": 11802,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.225
+    },
+    {
+      "timeSec": 398.02,
+      "time": "06:38",
+      "frameIndex": 11830,
+      "ballCount": 2,
+      "personCount": 7,
+      "interaction": true,
+      "topBallConfidence": 0.795
+    },
+    {
+      "timeSec": 398.49,
+      "time": "06:38",
+      "frameIndex": 11844,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.655
+    },
+    {
+      "timeSec": 398.96,
+      "time": "06:38",
+      "frameIndex": 11858,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.701
+    },
+    {
+      "timeSec": 399.43,
+      "time": "06:39",
+      "frameIndex": 11872,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.418
+    },
+    {
+      "timeSec": 415.45,
+      "time": "06:55",
+      "frameIndex": 12348,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.282
+    },
+    {
+      "timeSec": 416.86,
+      "time": "06:56",
+      "frameIndex": 12390,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.712
+    },
+    {
+      "timeSec": 417.33,
+      "time": "06:57",
+      "frameIndex": 12404,
+      "ballCount": 2,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.391
+    },
+    {
+      "timeSec": 418.27,
+      "time": "06:58",
+      "frameIndex": 12432,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.834
+    },
+    {
+      "timeSec": 418.74,
+      "time": "06:58",
+      "frameIndex": 12446,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.832
+    },
+    {
+      "timeSec": 419.21,
+      "time": "06:59",
+      "frameIndex": 12460,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.699
+    },
+    {
+      "timeSec": 419.68,
+      "time": "06:59",
+      "frameIndex": 12474,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.627
+    },
+    {
+      "timeSec": 420.16,
+      "time": "07:00",
+      "frameIndex": 12488,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.518
+    },
+    {
+      "timeSec": 420.63,
+      "time": "07:00",
+      "frameIndex": 12502,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.75
+    },
+    {
+      "timeSec": 421.57,
+      "time": "07:01",
+      "frameIndex": 12530,
+      "ballCount": 2,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.616
+    },
+    {
+      "timeSec": 422.04,
+      "time": "07:02",
+      "frameIndex": 12544,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.518
+    },
+    {
+      "timeSec": 422.51,
+      "time": "07:02",
+      "frameIndex": 12558,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.426
+    },
+    {
+      "timeSec": 422.98,
+      "time": "07:02",
+      "frameIndex": 12572,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.57
+    },
+    {
+      "timeSec": 423.45,
+      "time": "07:03",
+      "frameIndex": 12586,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.398
+    },
+    {
+      "timeSec": 423.92,
+      "time": "07:03",
+      "frameIndex": 12600,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.327
+    },
+    {
+      "timeSec": 427.22,
+      "time": "07:07",
+      "frameIndex": 12698,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.547
+    },
+    {
+      "timeSec": 432.87,
+      "time": "07:12",
+      "frameIndex": 12866,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.515
+    },
+    {
+      "timeSec": 433.82,
+      "time": "07:13",
+      "frameIndex": 12894,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.333
+    },
+    {
+      "timeSec": 437.11,
+      "time": "07:17",
+      "frameIndex": 12992,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.351
+    },
+    {
+      "timeSec": 439.0,
+      "time": "07:18",
+      "frameIndex": 13048,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.285
+    },
+    {
+      "timeSec": 439.47,
+      "time": "07:19",
+      "frameIndex": 13062,
+      "ballCount": 1,
+      "personCount": 25,
+      "interaction": true,
+      "topBallConfidence": 0.647
+    },
+    {
+      "timeSec": 440.41,
+      "time": "07:20",
+      "frameIndex": 13090,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.485
+    },
+    {
+      "timeSec": 440.88,
+      "time": "07:20",
+      "frameIndex": 13104,
+      "ballCount": 3,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.883
+    },
+    {
+      "timeSec": 441.35,
+      "time": "07:21",
+      "frameIndex": 13118,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.763
+    },
+    {
+      "timeSec": 443.24,
+      "time": "07:23",
+      "frameIndex": 13174,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.834
+    },
+    {
+      "timeSec": 443.71,
+      "time": "07:23",
+      "frameIndex": 13188,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.62
+    },
+    {
+      "timeSec": 444.18,
+      "time": "07:24",
+      "frameIndex": 13202,
+      "ballCount": 3,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.537
+    },
+    {
+      "timeSec": 444.65,
+      "time": "07:24",
+      "frameIndex": 13216,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.816
+    },
+    {
+      "timeSec": 445.12,
+      "time": "07:25",
+      "frameIndex": 13230,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.876
+    },
+    {
+      "timeSec": 445.59,
+      "time": "07:25",
+      "frameIndex": 13244,
+      "ballCount": 5,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.868
+    },
+    {
+      "timeSec": 446.06,
+      "time": "07:26",
+      "frameIndex": 13258,
+      "ballCount": 2,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.542
+    },
+    {
+      "timeSec": 447.0,
+      "time": "07:27",
+      "frameIndex": 13286,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.31
+    },
+    {
+      "timeSec": 447.47,
+      "time": "07:27",
+      "frameIndex": 13300,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.39
+    },
+    {
+      "timeSec": 447.95,
+      "time": "07:27",
+      "frameIndex": 13314,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.363
+    },
+    {
+      "timeSec": 448.42,
+      "time": "07:28",
+      "frameIndex": 13328,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.45
+    },
+    {
+      "timeSec": 448.89,
+      "time": "07:28",
+      "frameIndex": 13342,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.445
+    },
+    {
+      "timeSec": 450.3,
+      "time": "07:30",
+      "frameIndex": 13384,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.249
+    },
+    {
+      "timeSec": 450.77,
+      "time": "07:30",
+      "frameIndex": 13398,
+      "ballCount": 2,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.321
+    },
+    {
+      "timeSec": 451.71,
+      "time": "07:31",
+      "frameIndex": 13426,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.23
+    },
+    {
+      "timeSec": 452.19,
+      "time": "07:32",
+      "frameIndex": 13440,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.535
+    },
+    {
+      "timeSec": 489.87,
+      "time": "08:09",
+      "frameIndex": 14560,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.366
+    },
+    {
+      "timeSec": 490.34,
+      "time": "08:10",
+      "frameIndex": 14574,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.306
+    },
+    {
+      "timeSec": 492.69,
+      "time": "08:12",
+      "frameIndex": 14644,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.777
+    },
+    {
+      "timeSec": 494.58,
+      "time": "08:14",
+      "frameIndex": 14700,
+      "ballCount": 1,
+      "personCount": 25,
+      "interaction": true,
+      "topBallConfidence": 0.79
+    },
+    {
+      "timeSec": 495.05,
+      "time": "08:15",
+      "frameIndex": 14714,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.849
+    },
+    {
+      "timeSec": 495.52,
+      "time": "08:15",
+      "frameIndex": 14728,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.802
+    },
+    {
+      "timeSec": 495.99,
+      "time": "08:15",
+      "frameIndex": 14742,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.754
+    },
+    {
+      "timeSec": 496.46,
+      "time": "08:16",
+      "frameIndex": 14756,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": false,
+      "topBallConfidence": 0.707
+    },
+    {
+      "timeSec": 496.93,
+      "time": "08:16",
+      "frameIndex": 14770,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.813
+    },
+    {
+      "timeSec": 497.4,
+      "time": "08:17",
+      "frameIndex": 14784,
+      "ballCount": 1,
+      "personCount": 4,
+      "interaction": true,
+      "topBallConfidence": 0.413
+    },
+    {
+      "timeSec": 498.35,
+      "time": "08:18",
+      "frameIndex": 14812,
+      "ballCount": 1,
+      "personCount": 1,
+      "interaction": true,
+      "topBallConfidence": 0.675
+    },
+    {
+      "timeSec": 498.82,
+      "time": "08:18",
+      "frameIndex": 14826,
+      "ballCount": 1,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.833
+    },
+    {
+      "timeSec": 499.29,
+      "time": "08:19",
+      "frameIndex": 14840,
+      "ballCount": 1,
+      "personCount": 1,
+      "interaction": false,
+      "topBallConfidence": 0.898
+    },
+    {
+      "timeSec": 499.76,
+      "time": "08:19",
+      "frameIndex": 14854,
+      "ballCount": 1,
+      "personCount": 2,
+      "interaction": false,
+      "topBallConfidence": 0.88
+    },
+    {
+      "timeSec": 500.7,
+      "time": "08:20",
+      "frameIndex": 14882,
+      "ballCount": 2,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.472
+    },
+    {
+      "timeSec": 501.17,
+      "time": "08:21",
+      "frameIndex": 14896,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.25
+    },
+    {
+      "timeSec": 501.64,
+      "time": "08:21",
+      "frameIndex": 14910,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.261
+    },
+    {
+      "timeSec": 503.06,
+      "time": "08:23",
+      "frameIndex": 14952,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.235
+    },
+    {
+      "timeSec": 503.53,
+      "time": "08:23",
+      "frameIndex": 14966,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.283
+    },
+    {
+      "timeSec": 504.0,
+      "time": "08:23",
+      "frameIndex": 14980,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.378
+    },
+    {
+      "timeSec": 504.47,
+      "time": "08:24",
+      "frameIndex": 14994,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.469
+    },
+    {
+      "timeSec": 504.94,
+      "time": "08:24",
+      "frameIndex": 15008,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.493
+    },
+    {
+      "timeSec": 505.41,
+      "time": "08:25",
+      "frameIndex": 15022,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.432
+    },
+    {
+      "timeSec": 505.88,
+      "time": "08:25",
+      "frameIndex": 15036,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.402
+    },
+    {
+      "timeSec": 506.35,
+      "time": "08:26",
+      "frameIndex": 15050,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.298
+    },
+    {
+      "timeSec": 506.82,
+      "time": "08:26",
+      "frameIndex": 15064,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.251
+    },
+    {
+      "timeSec": 507.3,
+      "time": "08:27",
+      "frameIndex": 15078,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.3
+    },
+    {
+      "timeSec": 507.77,
+      "time": "08:27",
+      "frameIndex": 15092,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.297
+    },
+    {
+      "timeSec": 508.24,
+      "time": "08:28",
+      "frameIndex": 15106,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.405
+    },
+    {
+      "timeSec": 508.71,
+      "time": "08:28",
+      "frameIndex": 15120,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.327
+    },
+    {
+      "timeSec": 509.18,
+      "time": "08:29",
+      "frameIndex": 15134,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.324
+    },
+    {
+      "timeSec": 509.65,
+      "time": "08:29",
+      "frameIndex": 15148,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.356
+    },
+    {
+      "timeSec": 510.12,
+      "time": "08:30",
+      "frameIndex": 15162,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.365
+    },
+    {
+      "timeSec": 510.59,
+      "time": "08:30",
+      "frameIndex": 15176,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.322
+    },
+    {
+      "timeSec": 511.06,
+      "time": "08:31",
+      "frameIndex": 15190,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.415
+    },
+    {
+      "timeSec": 512.95,
+      "time": "08:32",
+      "frameIndex": 15246,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.249
+    },
+    {
+      "timeSec": 513.42,
+      "time": "08:33",
+      "frameIndex": 15260,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.275
+    },
+    {
+      "timeSec": 544.51,
+      "time": "09:04",
+      "frameIndex": 16184,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.516
+    },
+    {
+      "timeSec": 544.98,
+      "time": "09:04",
+      "frameIndex": 16198,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.61
+    },
+    {
+      "timeSec": 547.8,
+      "time": "09:07",
+      "frameIndex": 16282,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.657
+    },
+    {
+      "timeSec": 556.75,
+      "time": "09:16",
+      "frameIndex": 16548,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.716
+    },
+    {
+      "timeSec": 557.22,
+      "time": "09:17",
+      "frameIndex": 16562,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.266
+    },
+    {
+      "timeSec": 558.64,
+      "time": "09:18",
+      "frameIndex": 16604,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.261
+    },
+    {
+      "timeSec": 559.58,
+      "time": "09:19",
+      "frameIndex": 16632,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.535
+    },
+    {
+      "timeSec": 567.59,
+      "time": "09:27",
+      "frameIndex": 16870,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.262
+    },
+    {
+      "timeSec": 568.06,
+      "time": "09:28",
+      "frameIndex": 16884,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.201
+    },
+    {
+      "timeSec": 593.96,
+      "time": "09:53",
+      "frameIndex": 17654,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.323
+    },
+    {
+      "timeSec": 595.85,
+      "time": "09:55",
+      "frameIndex": 17710,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.255
+    },
+    {
+      "timeSec": 598.67,
+      "time": "09:58",
+      "frameIndex": 17794,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.235
+    },
+    {
+      "timeSec": 632.12,
+      "time": "10:32",
+      "frameIndex": 18788,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.231
+    },
+    {
+      "timeSec": 644.36,
+      "time": "10:44",
+      "frameIndex": 19152,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.227
+    },
+    {
+      "timeSec": 646.72,
+      "time": "10:46",
+      "frameIndex": 19222,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.285
+    },
+    {
+      "timeSec": 647.19,
+      "time": "10:47",
+      "frameIndex": 19236,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.327
+    },
+    {
+      "timeSec": 649.07,
+      "time": "10:49",
+      "frameIndex": 19292,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.33
+    },
+    {
+      "timeSec": 661.79,
+      "time": "11:01",
+      "frameIndex": 19670,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.239
+    },
+    {
+      "timeSec": 664.15,
+      "time": "11:04",
+      "frameIndex": 19740,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.244
+    },
+    {
+      "timeSec": 672.63,
+      "time": "11:12",
+      "frameIndex": 19992,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.343
+    },
+    {
+      "timeSec": 673.1,
+      "time": "11:13",
+      "frameIndex": 20006,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.295
+    },
+    {
+      "timeSec": 674.04,
+      "time": "11:14",
+      "frameIndex": 20034,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.561
+    },
+    {
+      "timeSec": 674.98,
+      "time": "11:14",
+      "frameIndex": 20062,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.646
+    },
+    {
+      "timeSec": 675.92,
+      "time": "11:15",
+      "frameIndex": 20090,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.24
+    },
+    {
+      "timeSec": 678.28,
+      "time": "11:18",
+      "frameIndex": 20160,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.794
+    },
+    {
+      "timeSec": 681.1,
+      "time": "11:21",
+      "frameIndex": 20244,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.715
+    },
+    {
+      "timeSec": 681.57,
+      "time": "11:21",
+      "frameIndex": 20258,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.755
+    },
+    {
+      "timeSec": 690.52,
+      "time": "11:30",
+      "frameIndex": 20524,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.417
+    },
+    {
+      "timeSec": 699.0,
+      "time": "11:39",
+      "frameIndex": 20776,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.251
+    },
+    {
+      "timeSec": 711.72,
+      "time": "11:51",
+      "frameIndex": 21154,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.399
+    },
+    {
+      "timeSec": 712.19,
+      "time": "11:52",
+      "frameIndex": 21168,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.386
+    },
+    {
+      "timeSec": 712.66,
+      "time": "11:52",
+      "frameIndex": 21182,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.454
+    },
+    {
+      "timeSec": 713.13,
+      "time": "11:53",
+      "frameIndex": 21196,
+      "ballCount": 2,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.632
+    },
+    {
+      "timeSec": 713.6,
+      "time": "11:53",
+      "frameIndex": 21210,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.36
+    },
+    {
+      "timeSec": 714.08,
+      "time": "11:54",
+      "frameIndex": 21224,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.347
+    },
+    {
+      "timeSec": 714.55,
+      "time": "11:54",
+      "frameIndex": 21238,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.378
+    },
+    {
+      "timeSec": 715.02,
+      "time": "11:55",
+      "frameIndex": 21252,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.422
+    },
+    {
+      "timeSec": 715.49,
+      "time": "11:55",
+      "frameIndex": 21266,
+      "ballCount": 2,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.388
+    },
+    {
+      "timeSec": 715.96,
+      "time": "11:55",
+      "frameIndex": 21280,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.335
+    },
+    {
+      "timeSec": 716.9,
+      "time": "11:56",
+      "frameIndex": 21308,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": false,
+      "topBallConfidence": 0.243
+    },
+    {
+      "timeSec": 717.37,
+      "time": "11:57",
+      "frameIndex": 21322,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.325
+    },
+    {
+      "timeSec": 717.84,
+      "time": "11:57",
+      "frameIndex": 21336,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.342
+    },
+    {
+      "timeSec": 718.31,
+      "time": "11:58",
+      "frameIndex": 21350,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.432
+    },
+    {
+      "timeSec": 718.79,
+      "time": "11:58",
+      "frameIndex": 21364,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.421
+    },
+    {
+      "timeSec": 719.26,
+      "time": "11:59",
+      "frameIndex": 21378,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": false,
+      "topBallConfidence": 0.401
+    },
+    {
+      "timeSec": 719.73,
+      "time": "11:59",
+      "frameIndex": 21392,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.441
+    },
+    {
+      "timeSec": 720.2,
+      "time": "12:00",
+      "frameIndex": 21406,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.428
+    },
+    {
+      "timeSec": 720.67,
+      "time": "12:00",
+      "frameIndex": 21420,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.442
+    },
+    {
+      "timeSec": 721.14,
+      "time": "12:01",
+      "frameIndex": 21434,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": false,
+      "topBallConfidence": 0.36
+    },
+    {
+      "timeSec": 721.61,
+      "time": "12:01",
+      "frameIndex": 21448,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.593
+    },
+    {
+      "timeSec": 722.08,
+      "time": "12:02",
+      "frameIndex": 21462,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.405
+    },
+    {
+      "timeSec": 722.55,
+      "time": "12:02",
+      "frameIndex": 21476,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.256
+    },
+    {
+      "timeSec": 723.03,
+      "time": "12:03",
+      "frameIndex": 21490,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.328
+    },
+    {
+      "timeSec": 723.5,
+      "time": "12:03",
+      "frameIndex": 21504,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.357
+    },
+    {
+      "timeSec": 728.21,
+      "time": "12:08",
+      "frameIndex": 21644,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.406
+    },
+    {
+      "timeSec": 728.68,
+      "time": "12:08",
+      "frameIndex": 21658,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.255
+    },
+    {
+      "timeSec": 734.33,
+      "time": "12:14",
+      "frameIndex": 21826,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.235
+    },
+    {
+      "timeSec": 735.74,
+      "time": "12:15",
+      "frameIndex": 21868,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.492
+    },
+    {
+      "timeSec": 736.21,
+      "time": "12:16",
+      "frameIndex": 21882,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.441
+    },
+    {
+      "timeSec": 736.68,
+      "time": "12:16",
+      "frameIndex": 21896,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.446
+    },
+    {
+      "timeSec": 737.16,
+      "time": "12:17",
+      "frameIndex": 21910,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.526
+    },
+    {
+      "timeSec": 738.57,
+      "time": "12:18",
+      "frameIndex": 21952,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.476
+    },
+    {
+      "timeSec": 739.04,
+      "time": "12:19",
+      "frameIndex": 21966,
+      "ballCount": 1,
+      "personCount": 25,
+      "interaction": false,
+      "topBallConfidence": 0.261
+    },
+    {
+      "timeSec": 743.75,
+      "time": "12:23",
+      "frameIndex": 22106,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.218
+    },
+    {
+      "timeSec": 746.11,
+      "time": "12:26",
+      "frameIndex": 22176,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.227
+    },
+    {
+      "timeSec": 746.58,
+      "time": "12:26",
+      "frameIndex": 22190,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.206
+    },
+    {
+      "timeSec": 778.61,
+      "time": "12:58",
+      "frameIndex": 23142,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.422
+    },
+    {
+      "timeSec": 788.5,
+      "time": "13:08",
+      "frameIndex": 23436,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.411
+    },
+    {
+      "timeSec": 794.15,
+      "time": "13:14",
+      "frameIndex": 23604,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.292
+    },
+    {
+      "timeSec": 795.09,
+      "time": "13:15",
+      "frameIndex": 23632,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.223
+    },
+    {
+      "timeSec": 795.56,
+      "time": "13:15",
+      "frameIndex": 23646,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.233
+    },
+    {
+      "timeSec": 796.03,
+      "time": "13:16",
+      "frameIndex": 23660,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.439
+    },
+    {
+      "timeSec": 796.51,
+      "time": "13:16",
+      "frameIndex": 23674,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.538
+    },
+    {
+      "timeSec": 796.98,
+      "time": "13:16",
+      "frameIndex": 23688,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.487
+    },
+    {
+      "timeSec": 798.86,
+      "time": "13:18",
+      "frameIndex": 23744,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.203
+    },
+    {
+      "timeSec": 799.33,
+      "time": "13:19",
+      "frameIndex": 23758,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.208
+    },
+    {
+      "timeSec": 803.57,
+      "time": "13:23",
+      "frameIndex": 23884,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.224
+    },
+    {
+      "timeSec": 805.45,
+      "time": "13:25",
+      "frameIndex": 23940,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.672
+    },
+    {
+      "timeSec": 805.93,
+      "time": "13:25",
+      "frameIndex": 23954,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.207
+    },
+    {
+      "timeSec": 806.87,
+      "time": "13:26",
+      "frameIndex": 23982,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.815
+    },
+    {
+      "timeSec": 807.34,
+      "time": "13:27",
+      "frameIndex": 23996,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.805
+    },
+    {
+      "timeSec": 807.81,
+      "time": "13:27",
+      "frameIndex": 24010,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.887
+    },
+    {
+      "timeSec": 808.28,
+      "time": "13:28",
+      "frameIndex": 24024,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.685
+    },
+    {
+      "timeSec": 808.75,
+      "time": "13:28",
+      "frameIndex": 24038,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.597
+    },
+    {
+      "timeSec": 809.22,
+      "time": "13:29",
+      "frameIndex": 24052,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.516
+    },
+    {
+      "timeSec": 809.69,
+      "time": "13:29",
+      "frameIndex": 24066,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.65
+    },
+    {
+      "timeSec": 833.25,
+      "time": "13:53",
+      "frameIndex": 24766,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.397
+    },
+    {
+      "timeSec": 839.37,
+      "time": "13:59",
+      "frameIndex": 24948,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.4
+    },
+    {
+      "timeSec": 842.19,
+      "time": "14:02",
+      "frameIndex": 25032,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.374
+    },
+    {
+      "timeSec": 844.08,
+      "time": "14:04",
+      "frameIndex": 25088,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.238
+    },
+    {
+      "timeSec": 844.55,
+      "time": "14:04",
+      "frameIndex": 25102,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": false,
+      "topBallConfidence": 0.222
+    },
+    {
+      "timeSec": 845.02,
+      "time": "14:05",
+      "frameIndex": 25116,
+      "ballCount": 2,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.371
+    },
+    {
+      "timeSec": 845.49,
+      "time": "14:05",
+      "frameIndex": 25130,
+      "ballCount": 2,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.861
+    },
+    {
+      "timeSec": 845.96,
+      "time": "14:05",
+      "frameIndex": 25144,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.544
+    },
+    {
+      "timeSec": 846.43,
+      "time": "14:06",
+      "frameIndex": 25158,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.912
+    },
+    {
+      "timeSec": 847.38,
+      "time": "14:07",
+      "frameIndex": 25186,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.832
+    },
+    {
+      "timeSec": 847.85,
+      "time": "14:07",
+      "frameIndex": 25200,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.741
+    },
+    {
+      "timeSec": 848.32,
+      "time": "14:08",
+      "frameIndex": 25214,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.743
+    },
+    {
+      "timeSec": 848.79,
+      "time": "14:08",
+      "frameIndex": 25228,
+      "ballCount": 1,
+      "personCount": 24,
+      "interaction": true,
+      "topBallConfidence": 0.388
+    },
+    {
+      "timeSec": 849.26,
+      "time": "14:09",
+      "frameIndex": 25242,
+      "ballCount": 2,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.344
+    },
+    {
+      "timeSec": 849.73,
+      "time": "14:09",
+      "frameIndex": 25256,
+      "ballCount": 2,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.724
+    },
+    {
+      "timeSec": 850.2,
+      "time": "14:10",
+      "frameIndex": 25270,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.783
+    },
+    {
+      "timeSec": 851.14,
+      "time": "14:11",
+      "frameIndex": 25298,
+      "ballCount": 2,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.482
+    },
+    {
+      "timeSec": 851.62,
+      "time": "14:11",
+      "frameIndex": 25312,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.368
+    },
+    {
+      "timeSec": 852.09,
+      "time": "14:12",
+      "frameIndex": 25326,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.824
+    },
+    {
+      "timeSec": 854.91,
+      "time": "14:14",
+      "frameIndex": 25410,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.753
+    },
+    {
+      "timeSec": 855.38,
+      "time": "14:15",
+      "frameIndex": 25424,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.767
+    },
+    {
+      "timeSec": 855.85,
+      "time": "14:15",
+      "frameIndex": 25438,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.501
+    },
+    {
+      "timeSec": 856.33,
+      "time": "14:16",
+      "frameIndex": 25452,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.653
+    },
+    {
+      "timeSec": 856.8,
+      "time": "14:16",
+      "frameIndex": 25466,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.251
+    },
+    {
+      "timeSec": 857.74,
+      "time": "14:17",
+      "frameIndex": 25494,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.437
+    },
+    {
+      "timeSec": 880.82,
+      "time": "14:40",
+      "frameIndex": 26180,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.229
+    },
+    {
+      "timeSec": 885.53,
+      "time": "14:45",
+      "frameIndex": 26320,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.459
+    },
+    {
+      "timeSec": 888.36,
+      "time": "14:48",
+      "frameIndex": 26404,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.229
+    },
+    {
+      "timeSec": 891.18,
+      "time": "14:51",
+      "frameIndex": 26488,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.241
+    },
+    {
+      "timeSec": 891.65,
+      "time": "14:51",
+      "frameIndex": 26502,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.257
+    },
+    {
+      "timeSec": 893.54,
+      "time": "14:53",
+      "frameIndex": 26558,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": true,
+      "topBallConfidence": 0.34
+    },
+    {
+      "timeSec": 894.01,
+      "time": "14:54",
+      "frameIndex": 26572,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.204
+    },
+    {
+      "timeSec": 894.48,
+      "time": "14:54",
+      "frameIndex": 26586,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.363
+    },
+    {
+      "timeSec": 896.36,
+      "time": "14:56",
+      "frameIndex": 26642,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.397
+    },
+    {
+      "timeSec": 896.83,
+      "time": "14:56",
+      "frameIndex": 26656,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.837
+    },
+    {
+      "timeSec": 897.3,
+      "time": "14:57",
+      "frameIndex": 26670,
+      "ballCount": 1,
+      "personCount": 5,
+      "interaction": true,
+      "topBallConfidence": 0.321
+    },
+    {
+      "timeSec": 897.78,
+      "time": "14:57",
+      "frameIndex": 26684,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": false,
+      "topBallConfidence": 0.718
+    },
+    {
+      "timeSec": 898.25,
+      "time": "14:58",
+      "frameIndex": 26698,
+      "ballCount": 2,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.783
+    },
+    {
+      "timeSec": 898.72,
+      "time": "14:58",
+      "frameIndex": 26712,
+      "ballCount": 2,
+      "personCount": 7,
+      "interaction": true,
+      "topBallConfidence": 0.774
+    },
+    {
+      "timeSec": 900.13,
+      "time": "15:00",
+      "frameIndex": 26754,
+      "ballCount": 2,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.508
+    },
+    {
+      "timeSec": 901.07,
+      "time": "15:01",
+      "frameIndex": 26782,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.34
+    },
+    {
+      "timeSec": 902.02,
+      "time": "15:02",
+      "frameIndex": 26810,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.256
+    },
+    {
+      "timeSec": 902.96,
+      "time": "15:02",
+      "frameIndex": 26838,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.248
+    },
+    {
+      "timeSec": 903.43,
+      "time": "15:03",
+      "frameIndex": 26852,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.216
+    },
+    {
+      "timeSec": 910.49,
+      "time": "15:10",
+      "frameIndex": 27062,
+      "ballCount": 1,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.609
+    },
+    {
+      "timeSec": 910.96,
+      "time": "15:10",
+      "frameIndex": 27076,
+      "ballCount": 1,
+      "personCount": 7,
+      "interaction": true,
+      "topBallConfidence": 0.237
+    },
+    {
+      "timeSec": 911.44,
+      "time": "15:11",
+      "frameIndex": 27090,
+      "ballCount": 1,
+      "personCount": 7,
+      "interaction": false,
+      "topBallConfidence": 0.794
+    },
+    {
+      "timeSec": 911.91,
+      "time": "15:11",
+      "frameIndex": 27104,
+      "ballCount": 2,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.552
+    },
+    {
+      "timeSec": 912.38,
+      "time": "15:12",
+      "frameIndex": 27118,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.88
+    },
+    {
+      "timeSec": 913.32,
+      "time": "15:13",
+      "frameIndex": 27146,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.681
+    },
+    {
+      "timeSec": 913.79,
+      "time": "15:13",
+      "frameIndex": 27160,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.747
+    },
+    {
+      "timeSec": 914.26,
+      "time": "15:14",
+      "frameIndex": 27174,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.91
+    },
+    {
+      "timeSec": 915.67,
+      "time": "15:15",
+      "frameIndex": 27216,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.505
+    },
+    {
+      "timeSec": 916.15,
+      "time": "15:16",
+      "frameIndex": 27230,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.571
+    },
+    {
+      "timeSec": 917.09,
+      "time": "15:17",
+      "frameIndex": 27258,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.598
+    },
+    {
+      "timeSec": 918.03,
+      "time": "15:18",
+      "frameIndex": 27286,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.903
+    },
+    {
+      "timeSec": 918.5,
+      "time": "15:18",
+      "frameIndex": 27300,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.755
+    },
+    {
+      "timeSec": 918.97,
+      "time": "15:18",
+      "frameIndex": 27314,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.808
+    },
+    {
+      "timeSec": 919.44,
+      "time": "15:19",
+      "frameIndex": 27328,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.797
+    },
+    {
+      "timeSec": 919.91,
+      "time": "15:19",
+      "frameIndex": 27342,
+      "ballCount": 2,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.711
+    },
+    {
+      "timeSec": 920.39,
+      "time": "15:20",
+      "frameIndex": 27356,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.271
+    },
+    {
+      "timeSec": 920.86,
+      "time": "15:20",
+      "frameIndex": 27370,
+      "ballCount": 3,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.698
+    },
+    {
+      "timeSec": 921.33,
+      "time": "15:21",
+      "frameIndex": 27384,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.239
+    },
+    {
+      "timeSec": 921.8,
+      "time": "15:21",
+      "frameIndex": 27398,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.375
+    },
+    {
+      "timeSec": 923.21,
+      "time": "15:23",
+      "frameIndex": 27440,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.59
+    },
+    {
+      "timeSec": 923.68,
+      "time": "15:23",
+      "frameIndex": 27454,
+      "ballCount": 2,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.634
+    },
+    {
+      "timeSec": 924.62,
+      "time": "15:24",
+      "frameIndex": 27482,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.708
+    },
+    {
+      "timeSec": 925.1,
+      "time": "15:25",
+      "frameIndex": 27496,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.523
+    },
+    {
+      "timeSec": 926.51,
+      "time": "15:26",
+      "frameIndex": 27538,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.27
+    },
+    {
+      "timeSec": 928.86,
+      "time": "15:28",
+      "frameIndex": 27608,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.558
+    },
+    {
+      "timeSec": 930.28,
+      "time": "15:30",
+      "frameIndex": 27650,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.221
+    },
+    {
+      "timeSec": 947.7,
+      "time": "15:47",
+      "frameIndex": 28168,
+      "ballCount": 1,
+      "personCount": 23,
+      "interaction": false,
+      "topBallConfidence": 0.299
+    },
+    {
+      "timeSec": 948.18,
+      "time": "15:48",
+      "frameIndex": 28182,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.232
+    },
+    {
+      "timeSec": 948.65,
+      "time": "15:48",
+      "frameIndex": 28196,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.24
+    },
+    {
+      "timeSec": 949.12,
+      "time": "15:49",
+      "frameIndex": 28210,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.33
+    },
+    {
+      "timeSec": 949.59,
+      "time": "15:49",
+      "frameIndex": 28224,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.366
+    },
+    {
+      "timeSec": 950.06,
+      "time": "15:50",
+      "frameIndex": 28238,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": false,
+      "topBallConfidence": 0.318
+    },
+    {
+      "timeSec": 950.53,
+      "time": "15:50",
+      "frameIndex": 28252,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.285
+    },
+    {
+      "timeSec": 951.0,
+      "time": "15:51",
+      "frameIndex": 28266,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.342
+    },
+    {
+      "timeSec": 951.47,
+      "time": "15:51",
+      "frameIndex": 28280,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.335
+    },
+    {
+      "timeSec": 951.94,
+      "time": "15:51",
+      "frameIndex": 28294,
+      "ballCount": 1,
+      "personCount": 23,
+      "interaction": false,
+      "topBallConfidence": 0.318
+    },
+    {
+      "timeSec": 952.41,
+      "time": "15:52",
+      "frameIndex": 28308,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.28
+    },
+    {
+      "timeSec": 952.89,
+      "time": "15:52",
+      "frameIndex": 28322,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.349
+    },
+    {
+      "timeSec": 953.36,
+      "time": "15:53",
+      "frameIndex": 28336,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.255
+    },
+    {
+      "timeSec": 953.83,
+      "time": "15:53",
+      "frameIndex": 28350,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": false,
+      "topBallConfidence": 0.44
+    },
+    {
+      "timeSec": 954.3,
+      "time": "15:54",
+      "frameIndex": 28364,
+      "ballCount": 2,
+      "personCount": 24,
+      "interaction": true,
+      "topBallConfidence": 0.545
+    },
+    {
+      "timeSec": 954.77,
+      "time": "15:54",
+      "frameIndex": 28378,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": false,
+      "topBallConfidence": 0.415
+    },
+    {
+      "timeSec": 956.65,
+      "time": "15:56",
+      "frameIndex": 28434,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.228
+    },
+    {
+      "timeSec": 957.13,
+      "time": "15:57",
+      "frameIndex": 28448,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.275
+    },
+    {
+      "timeSec": 957.6,
+      "time": "15:57",
+      "frameIndex": 28462,
+      "ballCount": 1,
+      "personCount": 25,
+      "interaction": false,
+      "topBallConfidence": 0.316
+    },
+    {
+      "timeSec": 958.07,
+      "time": "15:58",
+      "frameIndex": 28476,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.465
+    },
+    {
+      "timeSec": 958.54,
+      "time": "15:58",
+      "frameIndex": 28490,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.285
+    },
+    {
+      "timeSec": 959.01,
+      "time": "15:59",
+      "frameIndex": 28504,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": false,
+      "topBallConfidence": 0.242
+    },
+    {
+      "timeSec": 959.48,
+      "time": "15:59",
+      "frameIndex": 28518,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.25
+    },
+    {
+      "timeSec": 959.95,
+      "time": "15:59",
+      "frameIndex": 28532,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.419
+    },
+    {
+      "timeSec": 960.42,
+      "time": "16:00",
+      "frameIndex": 28546,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.863
+    },
+    {
+      "timeSec": 960.89,
+      "time": "16:00",
+      "frameIndex": 28560,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.884
+    },
+    {
+      "timeSec": 961.36,
+      "time": "16:01",
+      "frameIndex": 28574,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.78
+    },
+    {
+      "timeSec": 961.84,
+      "time": "16:01",
+      "frameIndex": 28588,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.381
+    },
+    {
+      "timeSec": 962.31,
+      "time": "16:02",
+      "frameIndex": 28602,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": false,
+      "topBallConfidence": 0.787
+    },
+    {
+      "timeSec": 962.78,
+      "time": "16:02",
+      "frameIndex": 28616,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.531
+    },
+    {
+      "timeSec": 963.25,
+      "time": "16:03",
+      "frameIndex": 28630,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.52
+    },
+    {
+      "timeSec": 963.72,
+      "time": "16:03",
+      "frameIndex": 28644,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": false,
+      "topBallConfidence": 0.21
+    },
+    {
+      "timeSec": 965.13,
+      "time": "16:05",
+      "frameIndex": 28686,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.248
+    },
+    {
+      "timeSec": 966.55,
+      "time": "16:06",
+      "frameIndex": 28728,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": false,
+      "topBallConfidence": 0.322
+    },
+    {
+      "timeSec": 967.02,
+      "time": "16:07",
+      "frameIndex": 28742,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.36
+    },
+    {
+      "timeSec": 967.49,
+      "time": "16:07",
+      "frameIndex": 28756,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": false,
+      "topBallConfidence": 0.271
+    },
+    {
+      "timeSec": 968.43,
+      "time": "16:08",
+      "frameIndex": 28784,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": false,
+      "topBallConfidence": 0.255
+    },
+    {
+      "timeSec": 973.14,
+      "time": "16:13",
+      "frameIndex": 28924,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.202
+    },
+    {
+      "timeSec": 975.02,
+      "time": "16:15",
+      "frameIndex": 28980,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.351
+    },
+    {
+      "timeSec": 1000.46,
+      "time": "16:40",
+      "frameIndex": 29736,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.368
+    },
+    {
+      "timeSec": 1000.93,
+      "time": "16:40",
+      "frameIndex": 29750,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.835
+    },
+    {
+      "timeSec": 1001.4,
+      "time": "16:41",
+      "frameIndex": 29764,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.642
+    },
+    {
+      "timeSec": 1001.87,
+      "time": "16:41",
+      "frameIndex": 29778,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.686
+    },
+    {
+      "timeSec": 1002.34,
+      "time": "16:42",
+      "frameIndex": 29792,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.812
+    },
+    {
+      "timeSec": 1002.81,
+      "time": "16:42",
+      "frameIndex": 29806,
+      "ballCount": 1,
+      "personCount": 4,
+      "interaction": true,
+      "topBallConfidence": 0.8
+    },
+    {
+      "timeSec": 1003.29,
+      "time": "16:43",
+      "frameIndex": 29820,
+      "ballCount": 1,
+      "personCount": 4,
+      "interaction": true,
+      "topBallConfidence": 0.617
+    },
+    {
+      "timeSec": 1003.76,
+      "time": "16:43",
+      "frameIndex": 29834,
+      "ballCount": 2,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.757
+    },
+    {
+      "timeSec": 1004.23,
+      "time": "16:44",
+      "frameIndex": 29848,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.642
+    },
+    {
+      "timeSec": 1004.7,
+      "time": "16:44",
+      "frameIndex": 29862,
+      "ballCount": 1,
+      "personCount": 5,
+      "interaction": true,
+      "topBallConfidence": 0.647
+    },
+    {
+      "timeSec": 1005.17,
+      "time": "16:45",
+      "frameIndex": 29876,
+      "ballCount": 1,
+      "personCount": 6,
+      "interaction": true,
+      "topBallConfidence": 0.248
+    },
+    {
+      "timeSec": 1006.11,
+      "time": "16:46",
+      "frameIndex": 29904,
+      "ballCount": 1,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.397
+    },
+    {
+      "timeSec": 1006.58,
+      "time": "16:46",
+      "frameIndex": 29918,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.456
+    },
+    {
+      "timeSec": 1007.52,
+      "time": "16:47",
+      "frameIndex": 29946,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.811
+    },
+    {
+      "timeSec": 1008.0,
+      "time": "16:47",
+      "frameIndex": 29960,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": false,
+      "topBallConfidence": 0.893
+    },
+    {
+      "timeSec": 1008.47,
+      "time": "16:48",
+      "frameIndex": 29974,
+      "ballCount": 1,
+      "personCount": 7,
+      "interaction": true,
+      "topBallConfidence": 0.268
+    },
+    {
+      "timeSec": 1008.94,
+      "time": "16:48",
+      "frameIndex": 29988,
+      "ballCount": 2,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.806
+    },
+    {
+      "timeSec": 1009.41,
+      "time": "16:49",
+      "frameIndex": 30002,
+      "ballCount": 2,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.772
+    },
+    {
+      "timeSec": 1009.88,
+      "time": "16:49",
+      "frameIndex": 30016,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.848
+    },
+    {
+      "timeSec": 1010.35,
+      "time": "16:50",
+      "frameIndex": 30030,
+      "ballCount": 1,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.832
+    },
+    {
+      "timeSec": 1010.82,
+      "time": "16:50",
+      "frameIndex": 30044,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.243
+    },
+    {
+      "timeSec": 1011.29,
+      "time": "16:51",
+      "frameIndex": 30058,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.656
+    },
+    {
+      "timeSec": 1011.76,
+      "time": "16:51",
+      "frameIndex": 30072,
+      "ballCount": 2,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.522
+    },
+    {
+      "timeSec": 1012.24,
+      "time": "16:52",
+      "frameIndex": 30086,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.886
+    },
+    {
+      "timeSec": 1012.71,
+      "time": "16:52",
+      "frameIndex": 30100,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.271
+    },
+    {
+      "timeSec": 1013.18,
+      "time": "16:53",
+      "frameIndex": 30114,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.771
+    },
+    {
+      "timeSec": 1013.65,
+      "time": "16:53",
+      "frameIndex": 30128,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.275
+    },
+    {
+      "timeSec": 1014.12,
+      "time": "16:54",
+      "frameIndex": 30142,
+      "ballCount": 2,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.818
+    },
+    {
+      "timeSec": 1014.59,
+      "time": "16:54",
+      "frameIndex": 30156,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.295
+    },
+    {
+      "timeSec": 1015.06,
+      "time": "16:55",
+      "frameIndex": 30170,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.697
+    },
+    {
+      "timeSec": 1017.89,
+      "time": "16:57",
+      "frameIndex": 30254,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": false,
+      "topBallConfidence": 0.701
+    },
+    {
+      "timeSec": 1019.77,
+      "time": "16:59",
+      "frameIndex": 30310,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.343
+    },
+    {
+      "timeSec": 1020.24,
+      "time": "17:00",
+      "frameIndex": 30324,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.387
+    },
+    {
+      "timeSec": 1037.2,
+      "time": "17:17",
+      "frameIndex": 30828,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.629
+    },
+    {
+      "timeSec": 1037.67,
+      "time": "17:17",
+      "frameIndex": 30842,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.253
+    },
+    {
+      "timeSec": 1038.14,
+      "time": "17:18",
+      "frameIndex": 30856,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.224
+    },
+    {
+      "timeSec": 1038.61,
+      "time": "17:18",
+      "frameIndex": 30870,
+      "ballCount": 1,
+      "personCount": 23,
+      "interaction": true,
+      "topBallConfidence": 0.271
+    },
+    {
+      "timeSec": 1039.08,
+      "time": "17:19",
+      "frameIndex": 30884,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.341
+    },
+    {
+      "timeSec": 1043.32,
+      "time": "17:23",
+      "frameIndex": 31010,
+      "ballCount": 2,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.607
+    },
+    {
+      "timeSec": 1055.1,
+      "time": "17:35",
+      "frameIndex": 31360,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.435
+    },
+    {
+      "timeSec": 1062.16,
+      "time": "17:42",
+      "frameIndex": 31570,
+      "ballCount": 2,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.575
+    },
+    {
+      "timeSec": 1062.64,
+      "time": "17:42",
+      "frameIndex": 31584,
+      "ballCount": 2,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.734
+    },
+    {
+      "timeSec": 1063.11,
+      "time": "17:43",
+      "frameIndex": 31598,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.305
+    },
+    {
+      "timeSec": 1064.05,
+      "time": "17:44",
+      "frameIndex": 31626,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": false,
+      "topBallConfidence": 0.348
+    },
+    {
+      "timeSec": 1064.52,
+      "time": "17:44",
+      "frameIndex": 31640,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": false,
+      "topBallConfidence": 0.379
+    },
+    {
+      "timeSec": 1064.99,
+      "time": "17:44",
+      "frameIndex": 31654,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": false,
+      "topBallConfidence": 0.302
+    },
+    {
+      "timeSec": 1065.46,
+      "time": "17:45",
+      "frameIndex": 31668,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.382
+    },
+    {
+      "timeSec": 1065.93,
+      "time": "17:45",
+      "frameIndex": 31682,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.547
+    },
+    {
+      "timeSec": 1066.4,
+      "time": "17:46",
+      "frameIndex": 31696,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.513
+    },
+    {
+      "timeSec": 1066.87,
+      "time": "17:46",
+      "frameIndex": 31710,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.49
+    },
+    {
+      "timeSec": 1067.35,
+      "time": "17:47",
+      "frameIndex": 31724,
+      "ballCount": 1,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.4
+    },
+    {
+      "timeSec": 1068.29,
+      "time": "17:48",
+      "frameIndex": 31752,
+      "ballCount": 2,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.332
+    },
+    {
+      "timeSec": 1068.76,
+      "time": "17:48",
+      "frameIndex": 31766,
+      "ballCount": 3,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.808
+    },
+    {
+      "timeSec": 1069.23,
+      "time": "17:49",
+      "frameIndex": 31780,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.226
+    },
+    {
+      "timeSec": 1069.7,
+      "time": "17:49",
+      "frameIndex": 31794,
+      "ballCount": 3,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.93
+    },
+    {
+      "timeSec": 1070.17,
+      "time": "17:50",
+      "frameIndex": 31808,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.273
+    },
+    {
+      "timeSec": 1071.11,
+      "time": "17:51",
+      "frameIndex": 31836,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.622
+    },
+    {
+      "timeSec": 1071.58,
+      "time": "17:51",
+      "frameIndex": 31850,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.49
+    },
+    {
+      "timeSec": 1072.06,
+      "time": "17:52",
+      "frameIndex": 31864,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.362
+    },
+    {
+      "timeSec": 1073.0,
+      "time": "17:52",
+      "frameIndex": 31892,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": false,
+      "topBallConfidence": 0.339
+    },
+    {
+      "timeSec": 1073.94,
+      "time": "17:53",
+      "frameIndex": 31920,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": false,
+      "topBallConfidence": 0.253
+    },
+    {
+      "timeSec": 1074.88,
+      "time": "17:54",
+      "frameIndex": 31948,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": false,
+      "topBallConfidence": 0.201
+    },
+    {
+      "timeSec": 1076.77,
+      "time": "17:56",
+      "frameIndex": 32004,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.212
+    },
+    {
+      "timeSec": 1082.42,
+      "time": "18:02",
+      "frameIndex": 32172,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.285
+    },
+    {
+      "timeSec": 1088.54,
+      "time": "18:08",
+      "frameIndex": 32354,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.295
+    },
+    {
+      "timeSec": 1089.48,
+      "time": "18:09",
+      "frameIndex": 32382,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.77
+    },
+    {
+      "timeSec": 1090.43,
+      "time": "18:10",
+      "frameIndex": 32410,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.764
+    },
+    {
+      "timeSec": 1090.9,
+      "time": "18:10",
+      "frameIndex": 32424,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.731
+    },
+    {
+      "timeSec": 1091.37,
+      "time": "18:11",
+      "frameIndex": 32438,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.497
+    },
+    {
+      "timeSec": 1091.84,
+      "time": "18:11",
+      "frameIndex": 32452,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.622
+    },
+    {
+      "timeSec": 1092.31,
+      "time": "18:12",
+      "frameIndex": 32466,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.602
+    },
+    {
+      "timeSec": 1092.78,
+      "time": "18:12",
+      "frameIndex": 32480,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.417
+    },
+    {
+      "timeSec": 1094.66,
+      "time": "18:14",
+      "frameIndex": 32536,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": true,
+      "topBallConfidence": 0.238
+    },
+    {
+      "timeSec": 1095.14,
+      "time": "18:15",
+      "frameIndex": 32550,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.204
+    },
+    {
+      "timeSec": 1095.61,
+      "time": "18:15",
+      "frameIndex": 32564,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.343
+    },
+    {
+      "timeSec": 1096.55,
+      "time": "18:16",
+      "frameIndex": 32592,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.426
+    },
+    {
+      "timeSec": 1101.73,
+      "time": "18:21",
+      "frameIndex": 32746,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.619
+    },
+    {
+      "timeSec": 1102.2,
+      "time": "18:22",
+      "frameIndex": 32760,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.338
+    },
+    {
+      "timeSec": 1102.67,
+      "time": "18:22",
+      "frameIndex": 32774,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.83
+    },
+    {
+      "timeSec": 1103.14,
+      "time": "18:23",
+      "frameIndex": 32788,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.225
+    },
+    {
+      "timeSec": 1103.61,
+      "time": "18:23",
+      "frameIndex": 32802,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.577
+    },
+    {
+      "timeSec": 1104.56,
+      "time": "18:24",
+      "frameIndex": 32830,
+      "ballCount": 1,
+      "personCount": 21,
+      "interaction": true,
+      "topBallConfidence": 0.37
+    },
+    {
+      "timeSec": 1113.51,
+      "time": "18:33",
+      "frameIndex": 33096,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.288
+    },
+    {
+      "timeSec": 1114.92,
+      "time": "18:34",
+      "frameIndex": 33138,
+      "ballCount": 2,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.738
+    },
+    {
+      "timeSec": 1115.86,
+      "time": "18:35",
+      "frameIndex": 33166,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.313
+    },
+    {
+      "timeSec": 1118.22,
+      "time": "18:38",
+      "frameIndex": 33236,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.254
+    },
+    {
+      "timeSec": 1118.69,
+      "time": "18:38",
+      "frameIndex": 33250,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.577
+    },
+    {
+      "timeSec": 1119.16,
+      "time": "18:39",
+      "frameIndex": 33264,
+      "ballCount": 2,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.569
+    },
+    {
+      "timeSec": 1119.63,
+      "time": "18:39",
+      "frameIndex": 33278,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.217
+    },
+    {
+      "timeSec": 1120.57,
+      "time": "18:40",
+      "frameIndex": 33306,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.351
+    },
+    {
+      "timeSec": 1123.87,
+      "time": "18:43",
+      "frameIndex": 33404,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.234
+    },
+    {
+      "timeSec": 1126.69,
+      "time": "18:46",
+      "frameIndex": 33488,
+      "ballCount": 1,
+      "personCount": 22,
+      "interaction": false,
+      "topBallConfidence": 0.208
+    },
+    {
+      "timeSec": 1127.64,
+      "time": "18:47",
+      "frameIndex": 33516,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.35
+    },
+    {
+      "timeSec": 1132.35,
+      "time": "18:52",
+      "frameIndex": 33656,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.273
+    },
+    {
+      "timeSec": 1132.82,
+      "time": "18:52",
+      "frameIndex": 33670,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.322
+    },
+    {
+      "timeSec": 1133.29,
+      "time": "18:53",
+      "frameIndex": 33684,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.34
+    },
+    {
+      "timeSec": 1134.23,
+      "time": "18:54",
+      "frameIndex": 33712,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.422
+    },
+    {
+      "timeSec": 1134.7,
+      "time": "18:54",
+      "frameIndex": 33726,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.413
+    },
+    {
+      "timeSec": 1135.17,
+      "time": "18:55",
+      "frameIndex": 33740,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.357
+    },
+    {
+      "timeSec": 1135.64,
+      "time": "18:55",
+      "frameIndex": 33754,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.474
+    },
+    {
+      "timeSec": 1136.12,
+      "time": "18:56",
+      "frameIndex": 33768,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.482
+    },
+    {
+      "timeSec": 1136.59,
+      "time": "18:56",
+      "frameIndex": 33782,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.481
+    },
+    {
+      "timeSec": 1137.06,
+      "time": "18:57",
+      "frameIndex": 33796,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.494
+    },
+    {
+      "timeSec": 1137.53,
+      "time": "18:57",
+      "frameIndex": 33810,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.322
+    },
+    {
+      "timeSec": 1138.0,
+      "time": "18:57",
+      "frameIndex": 33824,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.397
+    },
+    {
+      "timeSec": 1138.47,
+      "time": "18:58",
+      "frameIndex": 33838,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.448
+    },
+    {
+      "timeSec": 1138.94,
+      "time": "18:58",
+      "frameIndex": 33852,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.512
+    },
+    {
+      "timeSec": 1139.41,
+      "time": "18:59",
+      "frameIndex": 33866,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.404
+    },
+    {
+      "timeSec": 1139.88,
+      "time": "18:59",
+      "frameIndex": 33880,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.201
+    },
+    {
+      "timeSec": 1140.35,
+      "time": "19:00",
+      "frameIndex": 33894,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.295
+    },
+    {
+      "timeSec": 1140.83,
+      "time": "19:00",
+      "frameIndex": 33908,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.342
+    },
+    {
+      "timeSec": 1141.3,
+      "time": "19:01",
+      "frameIndex": 33922,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.401
+    },
+    {
+      "timeSec": 1141.77,
+      "time": "19:01",
+      "frameIndex": 33936,
+      "ballCount": 2,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.523
+    },
+    {
+      "timeSec": 1142.24,
+      "time": "19:02",
+      "frameIndex": 33950,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.337
+    },
+    {
+      "timeSec": 1145.54,
+      "time": "19:05",
+      "frameIndex": 34048,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.393
+    },
+    {
+      "timeSec": 1146.01,
+      "time": "19:06",
+      "frameIndex": 34062,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.644
+    },
+    {
+      "timeSec": 1146.48,
+      "time": "19:06",
+      "frameIndex": 34076,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.666
+    },
+    {
+      "timeSec": 1146.95,
+      "time": "19:06",
+      "frameIndex": 34090,
+      "ballCount": 1,
+      "personCount": 15,
+      "interaction": true,
+      "topBallConfidence": 0.528
+    },
+    {
+      "timeSec": 1147.42,
+      "time": "19:07",
+      "frameIndex": 34104,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.562
+    },
+    {
+      "timeSec": 1147.89,
+      "time": "19:07",
+      "frameIndex": 34118,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.426
+    },
+    {
+      "timeSec": 1148.36,
+      "time": "19:08",
+      "frameIndex": 34132,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.378
+    },
+    {
+      "timeSec": 1153.54,
+      "time": "19:13",
+      "frameIndex": 34286,
+      "ballCount": 1,
+      "personCount": 13,
+      "interaction": false,
+      "topBallConfidence": 0.203
+    },
+    {
+      "timeSec": 1155.43,
+      "time": "19:15",
+      "frameIndex": 34342,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.454
+    },
+    {
+      "timeSec": 1155.9,
+      "time": "19:15",
+      "frameIndex": 34356,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.325
+    },
+    {
+      "timeSec": 1161.08,
+      "time": "19:21",
+      "frameIndex": 34510,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.855
+    },
+    {
+      "timeSec": 1162.49,
+      "time": "19:22",
+      "frameIndex": 34552,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.77
+    },
+    {
+      "timeSec": 1162.96,
+      "time": "19:22",
+      "frameIndex": 34566,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.34
+    },
+    {
+      "timeSec": 1163.91,
+      "time": "19:23",
+      "frameIndex": 34594,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.444
+    },
+    {
+      "timeSec": 1164.38,
+      "time": "19:24",
+      "frameIndex": 34608,
+      "ballCount": 2,
+      "personCount": 11,
+      "interaction": true,
+      "topBallConfidence": 0.576
+    },
+    {
+      "timeSec": 1166.26,
+      "time": "19:26",
+      "frameIndex": 34664,
+      "ballCount": 1,
+      "personCount": 10,
+      "interaction": true,
+      "topBallConfidence": 0.404
+    },
+    {
+      "timeSec": 1186.04,
+      "time": "19:46",
+      "frameIndex": 35252,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.839
+    },
+    {
+      "timeSec": 1186.51,
+      "time": "19:46",
+      "frameIndex": 35266,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.287
+    },
+    {
+      "timeSec": 1186.99,
+      "time": "19:46",
+      "frameIndex": 35280,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.358
+    },
+    {
+      "timeSec": 1187.93,
+      "time": "19:47",
+      "frameIndex": 35308,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.621
+    },
+    {
+      "timeSec": 1189.34,
+      "time": "19:49",
+      "frameIndex": 35350,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.373
+    },
+    {
+      "timeSec": 1191.23,
+      "time": "19:51",
+      "frameIndex": 35406,
+      "ballCount": 1,
+      "personCount": 16,
+      "interaction": true,
+      "topBallConfidence": 0.239
+    },
+    {
+      "timeSec": 1193.11,
+      "time": "19:53",
+      "frameIndex": 35462,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.268
+    },
+    {
+      "timeSec": 1193.58,
+      "time": "19:53",
+      "frameIndex": 35476,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.207
+    },
+    {
+      "timeSec": 1194.52,
+      "time": "19:54",
+      "frameIndex": 35504,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.201
+    },
+    {
+      "timeSec": 1194.99,
+      "time": "19:54",
+      "frameIndex": 35518,
+      "ballCount": 1,
+      "personCount": 20,
+      "interaction": true,
+      "topBallConfidence": 0.398
+    },
+    {
+      "timeSec": 1195.46,
+      "time": "19:55",
+      "frameIndex": 35532,
+      "ballCount": 1,
+      "personCount": 17,
+      "interaction": true,
+      "topBallConfidence": 0.564
+    },
+    {
+      "timeSec": 1195.94,
+      "time": "19:55",
+      "frameIndex": 35546,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": true,
+      "topBallConfidence": 0.372
+    },
+    {
+      "timeSec": 1196.88,
+      "time": "19:56",
+      "frameIndex": 35574,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.444
+    },
+    {
+      "timeSec": 1198.76,
+      "time": "19:58",
+      "frameIndex": 35630,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": true,
+      "topBallConfidence": 0.315
+    },
+    {
+      "timeSec": 1199.7,
+      "time": "19:59",
+      "frameIndex": 35658,
+      "ballCount": 1,
+      "personCount": 18,
+      "interaction": false,
+      "topBallConfidence": 0.228
+    },
+    {
+      "timeSec": 1201.59,
+      "time": "20:01",
+      "frameIndex": 35714,
+      "ballCount": 1,
+      "personCount": 19,
+      "interaction": false,
+      "topBallConfidence": 0.213
+    },
+    {
+      "timeSec": 1203.47,
+      "time": "20:03",
+      "frameIndex": 35770,
+      "ballCount": 1,
+      "personCount": 12,
+      "interaction": true,
+      "topBallConfidence": 0.271
+    },
+    {
+      "timeSec": 1217.13,
+      "time": "20:17",
+      "frameIndex": 36176,
+      "ballCount": 1,
+      "personCount": 14,
+      "interaction": true,
+      "topBallConfidence": 0.616
+    },
+    {
+      "timeSec": 1218.54,
+      "time": "20:18",
+      "frameIndex": 36218,
+      "ballCount": 1,
+      "personCount": 9,
+      "interaction": true,
+      "topBallConfidence": 0.242
+    },
+    {
+      "timeSec": 1225.61,
+      "time": "20:25",
+      "frameIndex": 36428,
+      "ballCount": 2,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.632
+    },
+    {
+      "timeSec": 1226.08,
+      "time": "20:26",
+      "frameIndex": 36442,
+      "ballCount": 3,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.724
+    },
+    {
+      "timeSec": 1226.55,
+      "time": "20:26",
+      "frameIndex": 36456,
+      "ballCount": 3,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.705
+    },
+    {
+      "timeSec": 1227.02,
+      "time": "20:27",
+      "frameIndex": 36470,
+      "ballCount": 4,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.752
+    },
+    {
+      "timeSec": 1228.44,
+      "time": "20:28",
+      "frameIndex": 36512,
+      "ballCount": 1,
+      "personCount": 3,
+      "interaction": false,
+      "topBallConfidence": 0.32
+    },
+    {
+      "timeSec": 1228.91,
+      "time": "20:28",
+      "frameIndex": 36526,
+      "ballCount": 3,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.705
+    },
+    {
+      "timeSec": 1229.85,
+      "time": "20:29",
+      "frameIndex": 36554,
+      "ballCount": 4,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.749
+    },
+    {
+      "timeSec": 1230.32,
+      "time": "20:30",
+      "frameIndex": 36568,
+      "ballCount": 4,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.732
+    },
+    {
+      "timeSec": 1230.79,
+      "time": "20:30",
+      "frameIndex": 36582,
+      "ballCount": 4,
+      "personCount": 3,
+      "interaction": true,
+      "topBallConfidence": 0.732
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip-000000",
+      "startTime": "00:00",
+      "endTime": "00:02",
+      "startSec": 0.0,
+      "endSec": 2.0,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.267
+    },
+    {
+      "id": "clip-000000",
+      "startTime": "00:00",
+      "endTime": "00:05",
+      "startSec": 0.0,
+      "endSec": 5.3,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 4,
+      "interactionFrames": 4,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.459
+    },
+    {
+      "id": "clip-000883",
+      "startTime": "00:08",
+      "endTime": "00:12",
+      "startSec": 8.83,
+      "endSec": 12.83,
+      "label": "공 탐지 장면",
+      "score": 0.62,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.366
+    },
+    {
+      "id": "clip-001967",
+      "startTime": "00:19",
+      "endTime": "00:26",
+      "startSec": 19.67,
+      "endSec": 26.02,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 3,
+      "interactionFrames": 3,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.476
+    },
+    {
+      "id": "clip-002438",
+      "startTime": "00:24",
+      "endTime": "00:28",
+      "startSec": 24.38,
+      "endSec": 28.38,
+      "label": "공-선수 관여 장면",
+      "score": 0.81,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.677
+    },
+    {
+      "id": "clip-003003",
+      "startTime": "00:30",
+      "endTime": "00:34",
+      "startSec": 30.03,
+      "endSec": 34.03,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.405
+    },
+    {
+      "id": "clip-006770",
+      "startTime": "01:07",
+      "endTime": "01:21",
+      "startSec": 67.71,
+      "endSec": 81.6,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 18,
+      "interactionFrames": 18,
+      "avgBallCount": 1.11,
+      "avgBallConfidence": 0.517
+    },
+    {
+      "id": "clip-008985",
+      "startTime": "01:29",
+      "endTime": "01:33",
+      "startSec": 89.85,
+      "endSec": 93.85,
+      "label": "공 탐지 장면",
+      "score": 0.6,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.263
+    },
+    {
+      "id": "clip-009597",
+      "startTime": "01:35",
+      "endTime": "01:40",
+      "startSec": 95.97,
+      "endSec": 100.92,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 3,
+      "interactionFrames": 3,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.671
+    },
+    {
+      "id": "clip-009927",
+      "startTime": "01:39",
+      "endTime": "01:44",
+      "startSec": 99.27,
+      "endSec": 104.21,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.5,
+      "avgBallConfidence": 0.501
+    },
+    {
+      "id": "clip-012000",
+      "startTime": "02:00",
+      "endTime": "02:04",
+      "startSec": 120.0,
+      "endSec": 124.47,
+      "label": "공 탐지 장면",
+      "score": 0.69,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.224
+    },
+    {
+      "id": "clip-012706",
+      "startTime": "02:07",
+      "endTime": "02:16",
+      "startSec": 127.06,
+      "endSec": 136.24,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 10,
+      "interactionFrames": 2,
+      "avgBallCount": 1.1,
+      "avgBallConfidence": 0.263
+    },
+    {
+      "id": "clip-013413",
+      "startTime": "02:14",
+      "endTime": "02:20",
+      "startSec": 134.13,
+      "endSec": 140.48,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 6,
+      "interactionFrames": 6,
+      "avgBallCount": 1.17,
+      "avgBallConfidence": 0.303
+    },
+    {
+      "id": "clip-013931",
+      "startTime": "02:19",
+      "endTime": "02:23",
+      "startSec": 139.31,
+      "endSec": 143.31,
+      "label": "공-선수 관여 장면",
+      "score": 0.71,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.203
+    },
+    {
+      "id": "clip-016427",
+      "startTime": "02:44",
+      "endTime": "02:48",
+      "startSec": 164.27,
+      "endSec": 168.27,
+      "label": "공-선수 관여 장면",
+      "score": 0.77,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.495
+    },
+    {
+      "id": "clip-018170",
+      "startTime": "03:01",
+      "endTime": "03:05",
+      "startSec": 181.7,
+      "endSec": 185.7,
+      "label": "공-선수 관여 장면",
+      "score": 0.79,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.593
+    },
+    {
+      "id": "clip-018358",
+      "startTime": "03:03",
+      "endTime": "03:09",
+      "startSec": 183.58,
+      "endSec": 189.0,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 4,
+      "interactionFrames": 4,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.415
+    },
+    {
+      "id": "clip-021656",
+      "startTime": "03:36",
+      "endTime": "03:40",
+      "startSec": 216.56,
+      "endSec": 220.56,
+      "label": "공-선수 관여 장면",
+      "score": 0.71,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.202
+    },
+    {
+      "id": "clip-023116",
+      "startTime": "03:51",
+      "endTime": "03:59",
+      "startSec": 231.16,
+      "endSec": 239.4,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 6,
+      "interactionFrames": 6,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.47
+    },
+    {
+      "id": "clip-023728",
+      "startTime": "03:57",
+      "endTime": "04:02",
+      "startSec": 237.28,
+      "endSec": 242.22,
+      "label": "공-선수 관여 장면",
+      "score": 0.93,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 3,
+      "interactionFrames": 1,
+      "avgBallCount": 1.33,
+      "avgBallConfidence": 0.302
+    },
+    {
+      "id": "clip-024011",
+      "startTime": "04:00",
+      "endTime": "04:04",
+      "startSec": 240.11,
+      "endSec": 244.11,
+      "label": "공 탐지 장면",
+      "score": 0.6,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.256
+    },
+    {
+      "id": "clip-024293",
+      "startTime": "04:02",
+      "endTime": "04:09",
+      "startSec": 242.93,
+      "endSec": 249.29,
+      "label": "공 탐지 장면",
+      "score": 0.79,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.221
+    },
+    {
+      "id": "clip-025942",
+      "startTime": "04:19",
+      "endTime": "04:23",
+      "startSec": 259.42,
+      "endSec": 263.42,
+      "label": "공 탐지 장면",
+      "score": 0.59,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.218
+    },
+    {
+      "id": "clip-026789",
+      "startTime": "04:27",
+      "endTime": "04:31",
+      "startSec": 267.9,
+      "endSec": 271.9,
+      "label": "공 탐지 장면",
+      "score": 0.59,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.217
+    },
+    {
+      "id": "clip-028062",
+      "startTime": "04:40",
+      "endTime": "04:44",
+      "startSec": 280.62,
+      "endSec": 284.62,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.263
+    },
+    {
+      "id": "clip-028297",
+      "startTime": "04:42",
+      "endTime": "04:46",
+      "startSec": 282.97,
+      "endSec": 286.97,
+      "label": "공 탐지 장면",
+      "score": 0.62,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.365
+    },
+    {
+      "id": "clip-030227",
+      "startTime": "05:02",
+      "endTime": "05:06",
+      "startSec": 302.28,
+      "endSec": 306.75,
+      "label": "공-선수 관여 장면",
+      "score": 0.97,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.395
+    },
+    {
+      "id": "clip-030605",
+      "startTime": "05:06",
+      "endTime": "05:11",
+      "startSec": 306.05,
+      "endSec": 311.94,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 3,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.416
+    },
+    {
+      "id": "clip-031641",
+      "startTime": "05:16",
+      "endTime": "05:31",
+      "startSec": 316.41,
+      "endSec": 331.72,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 24,
+      "interactionFrames": 21,
+      "avgBallCount": 1.46,
+      "avgBallConfidence": 0.479
+    },
+    {
+      "id": "clip-034468",
+      "startTime": "05:44",
+      "endTime": "05:51",
+      "startSec": 344.68,
+      "endSec": 351.5,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 5,
+      "avgBallCount": 1.4,
+      "avgBallConfidence": 0.642
+    },
+    {
+      "id": "clip-034939",
+      "startTime": "05:49",
+      "endTime": "05:53",
+      "startSec": 349.39,
+      "endSec": 353.39,
+      "label": "공-선수 관여 장면",
+      "score": 0.77,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.501
+    },
+    {
+      "id": "clip-037199",
+      "startTime": "06:11",
+      "endTime": "06:15",
+      "startSec": 371.99,
+      "endSec": 375.99,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.248
+    },
+    {
+      "id": "clip-037953",
+      "startTime": "06:19",
+      "endTime": "06:26",
+      "startSec": 379.53,
+      "endSec": 386.36,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 6,
+      "interactionFrames": 6,
+      "avgBallCount": 1.17,
+      "avgBallConfidence": 0.464
+    },
+    {
+      "id": "clip-038754",
+      "startTime": "06:27",
+      "endTime": "06:31",
+      "startSec": 387.54,
+      "endSec": 391.54,
+      "label": "공-선수 관여 장면",
+      "score": 0.77,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.48
+    },
+    {
+      "id": "clip-038942",
+      "startTime": "06:29",
+      "endTime": "06:41",
+      "startSec": 389.42,
+      "endSec": 401.43,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 15,
+      "interactionFrames": 14,
+      "avgBallCount": 1.53,
+      "avgBallConfidence": 0.667
+    },
+    {
+      "id": "clip-041345",
+      "startTime": "06:53",
+      "endTime": "07:05",
+      "startSec": 413.45,
+      "endSec": 425.92,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 15,
+      "interactionFrames": 14,
+      "avgBallCount": 1.33,
+      "avgBallConfidence": 0.567
+    },
+    {
+      "id": "clip-042522",
+      "startTime": "07:05",
+      "endTime": "07:09",
+      "startSec": 425.22,
+      "endSec": 429.22,
+      "label": "공-선수 관여 장면",
+      "score": 0.78,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.547
+    },
+    {
+      "id": "clip-043087",
+      "startTime": "07:10",
+      "endTime": "07:15",
+      "startSec": 430.87,
+      "endSec": 435.82,
+      "label": "공-선수 관여 장면",
+      "score": 0.97,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.424
+    },
+    {
+      "id": "clip-043511",
+      "startTime": "07:15",
+      "endTime": "07:19",
+      "startSec": 435.11,
+      "endSec": 439.11,
+      "label": "공-선수 관여 장면",
+      "score": 0.74,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.351
+    },
+    {
+      "id": "clip-043700",
+      "startTime": "07:17",
+      "endTime": "07:23",
+      "startSec": 437.0,
+      "endSec": 443.35,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 4,
+      "avgBallCount": 1.4,
+      "avgBallConfidence": 0.613
+    },
+    {
+      "id": "clip-044124",
+      "startTime": "07:21",
+      "endTime": "07:34",
+      "startSec": 441.24,
+      "endSec": 454.19,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 16,
+      "interactionFrames": 16,
+      "avgBallCount": 1.56,
+      "avgBallConfidence": 0.524
+    },
+    {
+      "id": "clip-048787",
+      "startTime": "08:07",
+      "endTime": "08:12",
+      "startSec": 487.87,
+      "endSec": 492.34,
+      "label": "공-선수 관여 장면",
+      "score": 0.96,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.336
+    },
+    {
+      "id": "clip-049069",
+      "startTime": "08:10",
+      "endTime": "08:14",
+      "startSec": 490.69,
+      "endSec": 494.69,
+      "label": "공-선수 관여 장면",
+      "score": 0.83,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.777
+    },
+    {
+      "id": "clip-049258",
+      "startTime": "08:12",
+      "endTime": "08:33",
+      "startSec": 492.58,
+      "endSec": 513.06,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 32,
+      "interactionFrames": 22,
+      "avgBallCount": 1.12,
+      "avgBallConfidence": 0.492
+    },
+    {
+      "id": "clip-051095",
+      "startTime": "08:30",
+      "endTime": "08:35",
+      "startSec": 510.95,
+      "endSec": 515.42,
+      "label": "공 탐지 장면",
+      "score": 0.7,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.262
+    },
+    {
+      "id": "clip-054251",
+      "startTime": "09:02",
+      "endTime": "09:06",
+      "startSec": 542.51,
+      "endSec": 546.98,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.563
+    },
+    {
+      "id": "clip-054579",
+      "startTime": "09:05",
+      "endTime": "09:09",
+      "startSec": 545.8,
+      "endSec": 549.8,
+      "label": "공-선수 관여 장면",
+      "score": 0.8,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.657
+    },
+    {
+      "id": "clip-055475",
+      "startTime": "09:14",
+      "endTime": "09:21",
+      "startSec": 554.75,
+      "endSec": 561.58,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 4,
+      "interactionFrames": 4,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.445
+    },
+    {
+      "id": "clip-056559",
+      "startTime": "09:25",
+      "endTime": "09:30",
+      "startSec": 565.59,
+      "endSec": 570.06,
+      "label": "공-선수 관여 장면",
+      "score": 0.82,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.232
+    },
+    {
+      "id": "clip-059196",
+      "startTime": "09:51",
+      "endTime": "09:55",
+      "startSec": 591.96,
+      "endSec": 595.96,
+      "label": "공 탐지 장면",
+      "score": 0.61,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.323
+    },
+    {
+      "id": "clip-059385",
+      "startTime": "09:53",
+      "endTime": "09:57",
+      "startSec": 593.85,
+      "endSec": 597.85,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.255
+    },
+    {
+      "id": "clip-059666",
+      "startTime": "09:56",
+      "endTime": "10:00",
+      "startSec": 596.67,
+      "endSec": 600.67,
+      "label": "공 탐지 장면",
+      "score": 0.6,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.235
+    },
+    {
+      "id": "clip-063012",
+      "startTime": "10:30",
+      "endTime": "10:34",
+      "startSec": 630.12,
+      "endSec": 634.12,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.231
+    },
+    {
+      "id": "clip-064236",
+      "startTime": "10:42",
+      "endTime": "10:46",
+      "startSec": 642.36,
+      "endSec": 646.36,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.227
+    },
+    {
+      "id": "clip-064472",
+      "startTime": "10:44",
+      "endTime": "10:49",
+      "startSec": 644.72,
+      "endSec": 649.19,
+      "label": "공-선수 관여 장면",
+      "score": 0.95,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.306
+    },
+    {
+      "id": "clip-064707",
+      "startTime": "10:47",
+      "endTime": "10:51",
+      "startSec": 647.07,
+      "endSec": 651.07,
+      "label": "공 탐지 장면",
+      "score": 0.62,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.33
+    },
+    {
+      "id": "clip-065979",
+      "startTime": "10:59",
+      "endTime": "11:03",
+      "startSec": 659.79,
+      "endSec": 663.79,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.239
+    },
+    {
+      "id": "clip-066215",
+      "startTime": "11:02",
+      "endTime": "11:06",
+      "startSec": 662.15,
+      "endSec": 666.15,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.244
+    },
+    {
+      "id": "clip-067063",
+      "startTime": "11:10",
+      "endTime": "11:17",
+      "startSec": 670.63,
+      "endSec": 677.92,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 4,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.417
+    },
+    {
+      "id": "clip-067628",
+      "startTime": "11:16",
+      "endTime": "11:20",
+      "startSec": 676.28,
+      "endSec": 680.28,
+      "label": "공-선수 관여 장면",
+      "score": 0.83,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.794
+    },
+    {
+      "id": "clip-067910",
+      "startTime": "11:19",
+      "endTime": "11:23",
+      "startSec": 679.1,
+      "endSec": 683.57,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.5,
+      "avgBallConfidence": 0.735
+    },
+    {
+      "id": "clip-068852",
+      "startTime": "11:28",
+      "endTime": "11:32",
+      "startSec": 688.52,
+      "endSec": 692.52,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.417
+    },
+    {
+      "id": "clip-069700",
+      "startTime": "11:37",
+      "endTime": "11:41",
+      "startSec": 697.0,
+      "endSec": 701.0,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.251
+    },
+    {
+      "id": "clip-070972",
+      "startTime": "11:49",
+      "endTime": "12:05",
+      "startSec": 709.72,
+      "endSec": 725.5,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 25,
+      "interactionFrames": 9,
+      "avgBallCount": 1.2,
+      "avgBallConfidence": 0.395
+    },
+    {
+      "id": "clip-072621",
+      "startTime": "12:06",
+      "endTime": "12:10",
+      "startSec": 726.21,
+      "endSec": 730.68,
+      "label": "공-선수 관여 장면",
+      "score": 0.96,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.331
+    },
+    {
+      "id": "clip-073233",
+      "startTime": "12:12",
+      "endTime": "12:21",
+      "startSec": 732.33,
+      "endSec": 741.04,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 7,
+      "interactionFrames": 6,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.411
+    },
+    {
+      "id": "clip-074175",
+      "startTime": "12:21",
+      "endTime": "12:25",
+      "startSec": 741.75,
+      "endSec": 745.75,
+      "label": "공 탐지 장면",
+      "score": 0.59,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.218
+    },
+    {
+      "id": "clip-074411",
+      "startTime": "12:24",
+      "endTime": "12:28",
+      "startSec": 744.11,
+      "endSec": 748.58,
+      "label": "공 탐지 장면",
+      "score": 0.69,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.216
+    },
+    {
+      "id": "clip-077661",
+      "startTime": "12:56",
+      "endTime": "13:00",
+      "startSec": 776.61,
+      "endSec": 780.61,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.422
+    },
+    {
+      "id": "clip-078650",
+      "startTime": "13:06",
+      "endTime": "13:10",
+      "startSec": 786.5,
+      "endSec": 790.5,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.411
+    },
+    {
+      "id": "clip-079215",
+      "startTime": "13:12",
+      "endTime": "13:18",
+      "startSec": 792.15,
+      "endSec": 798.98,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 6,
+      "interactionFrames": 6,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.369
+    },
+    {
+      "id": "clip-079686",
+      "startTime": "13:16",
+      "endTime": "13:21",
+      "startSec": 796.86,
+      "endSec": 801.33,
+      "label": "공-선수 관여 장면",
+      "score": 0.93,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.206
+    },
+    {
+      "id": "clip-080157",
+      "startTime": "13:21",
+      "endTime": "13:25",
+      "startSec": 801.57,
+      "endSec": 805.57,
+      "label": "공-선수 관여 장면",
+      "score": 0.71,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.224
+    },
+    {
+      "id": "clip-080345",
+      "startTime": "13:23",
+      "endTime": "13:31",
+      "startSec": 803.45,
+      "endSec": 811.69,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 9,
+      "interactionFrames": 9,
+      "avgBallCount": 1.11,
+      "avgBallConfidence": 0.648
+    },
+    {
+      "id": "clip-083125",
+      "startTime": "13:51",
+      "endTime": "13:55",
+      "startSec": 831.25,
+      "endSec": 835.25,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.397
+    },
+    {
+      "id": "clip-083737",
+      "startTime": "13:57",
+      "endTime": "14:01",
+      "startSec": 837.37,
+      "endSec": 841.37,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.4
+    },
+    {
+      "id": "clip-084019",
+      "startTime": "14:00",
+      "endTime": "14:04",
+      "startSec": 840.19,
+      "endSec": 844.19,
+      "label": "공-선수 관여 장면",
+      "score": 0.74,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.374
+    },
+    {
+      "id": "clip-084208",
+      "startTime": "14:02",
+      "endTime": "14:14",
+      "startSec": 842.08,
+      "endSec": 854.09,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 16,
+      "interactionFrames": 14,
+      "avgBallCount": 1.31,
+      "avgBallConfidence": 0.586
+    },
+    {
+      "id": "clip-085291",
+      "startTime": "14:12",
+      "endTime": "14:19",
+      "startSec": 852.91,
+      "endSec": 859.74,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 6,
+      "interactionFrames": 6,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.56
+    },
+    {
+      "id": "clip-087882",
+      "startTime": "14:38",
+      "endTime": "14:42",
+      "startSec": 878.82,
+      "endSec": 882.82,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.229
+    },
+    {
+      "id": "clip-088353",
+      "startTime": "14:43",
+      "endTime": "14:47",
+      "startSec": 883.53,
+      "endSec": 887.53,
+      "label": "공-선수 관여 장면",
+      "score": 0.76,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.459
+    },
+    {
+      "id": "clip-088636",
+      "startTime": "14:46",
+      "endTime": "14:50",
+      "startSec": 886.36,
+      "endSec": 890.36,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.229
+    },
+    {
+      "id": "clip-088918",
+      "startTime": "14:49",
+      "endTime": "14:53",
+      "startSec": 889.18,
+      "endSec": 893.65,
+      "label": "공-선수 관여 장면",
+      "score": 0.94,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.249
+    },
+    {
+      "id": "clip-089154",
+      "startTime": "14:51",
+      "endTime": "14:56",
+      "startSec": 891.54,
+      "endSec": 896.48,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 3,
+      "interactionFrames": 3,
+      "avgBallCount": 1.33,
+      "avgBallConfidence": 0.302
+    },
+    {
+      "id": "clip-089436",
+      "startTime": "14:54",
+      "endTime": "15:05",
+      "startSec": 894.36,
+      "endSec": 905.43,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 11,
+      "interactionFrames": 8,
+      "avgBallCount": 1.36,
+      "avgBallConfidence": 0.491
+    },
+    {
+      "id": "clip-090849",
+      "startTime": "15:08",
+      "endTime": "15:28",
+      "startSec": 908.49,
+      "endSec": 928.51,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 25,
+      "interactionFrames": 24,
+      "avgBallCount": 1.24,
+      "avgBallConfidence": 0.615
+    },
+    {
+      "id": "clip-092686",
+      "startTime": "15:26",
+      "endTime": "15:32",
+      "startSec": 926.86,
+      "endSec": 932.28,
+      "label": "공-선수 관여 장면",
+      "score": 0.85,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.39
+    },
+    {
+      "id": "clip-094570",
+      "startTime": "15:45",
+      "endTime": "15:56",
+      "startSec": 945.7,
+      "endSec": 956.77,
+      "label": "공-선수 관여 장면",
+      "score": 0.94,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 16,
+      "interactionFrames": 1,
+      "avgBallCount": 1.06,
+      "avgBallConfidence": 0.334
+    },
+    {
+      "id": "clip-095465",
+      "startTime": "15:54",
+      "endTime": "16:10",
+      "startSec": 954.65,
+      "endSec": 970.43,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 21,
+      "interactionFrames": 9,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.423
+    },
+    {
+      "id": "clip-097114",
+      "startTime": "16:11",
+      "endTime": "16:15",
+      "startSec": 971.14,
+      "endSec": 975.14,
+      "label": "공 탐지 장면",
+      "score": 0.59,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.202
+    },
+    {
+      "id": "clip-097302",
+      "startTime": "16:13",
+      "endTime": "16:17",
+      "startSec": 973.02,
+      "endSec": 977.02,
+      "label": "공-선수 관여 장면",
+      "score": 0.74,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.351
+    },
+    {
+      "id": "clip-099846",
+      "startTime": "16:38",
+      "endTime": "16:57",
+      "startSec": 998.46,
+      "endSec": 1017.06,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 30,
+      "interactionFrames": 29,
+      "avgBallCount": 1.2,
+      "avgBallConfidence": 0.619
+    },
+    {
+      "id": "clip-101589",
+      "startTime": "16:55",
+      "endTime": "16:59",
+      "startSec": 1015.89,
+      "endSec": 1019.89,
+      "label": "공 탐지 장면",
+      "score": 0.69,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.701
+    },
+    {
+      "id": "clip-101777",
+      "startTime": "16:57",
+      "endTime": "17:02",
+      "startSec": 1017.77,
+      "endSec": 1022.24,
+      "label": "공-선수 관여 장면",
+      "score": 0.96,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.365
+    },
+    {
+      "id": "clip-103520",
+      "startTime": "17:15",
+      "endTime": "17:21",
+      "startSec": 1035.2,
+      "endSec": 1041.08,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 5,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.344
+    },
+    {
+      "id": "clip-104132",
+      "startTime": "17:21",
+      "endTime": "17:25",
+      "startSec": 1041.32,
+      "endSec": 1045.32,
+      "label": "공-선수 관여 장면",
+      "score": 0.79,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 2.0,
+      "avgBallConfidence": 0.607
+    },
+    {
+      "id": "clip-105309",
+      "startTime": "17:33",
+      "endTime": "17:37",
+      "startSec": 1053.1,
+      "endSec": 1057.1,
+      "label": "공-선수 관여 장면",
+      "score": 0.76,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.435
+    },
+    {
+      "id": "clip-106016",
+      "startTime": "17:40",
+      "endTime": "17:56",
+      "startSec": 1060.16,
+      "endSec": 1076.88,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 22,
+      "interactionFrames": 14,
+      "avgBallCount": 1.32,
+      "avgBallConfidence": 0.446
+    },
+    {
+      "id": "clip-107477",
+      "startTime": "17:54",
+      "endTime": "17:58",
+      "startSec": 1074.77,
+      "endSec": 1078.77,
+      "label": "공-선수 관여 장면",
+      "score": 0.71,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.212
+    },
+    {
+      "id": "clip-108042",
+      "startTime": "18:00",
+      "endTime": "18:04",
+      "startSec": 1080.42,
+      "endSec": 1084.42,
+      "label": "공-선수 관여 장면",
+      "score": 0.73,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.285
+    },
+    {
+      "id": "clip-108654",
+      "startTime": "18:06",
+      "endTime": "18:14",
+      "startSec": 1086.54,
+      "endSec": 1094.78,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 8,
+      "interactionFrames": 8,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.587
+    },
+    {
+      "id": "clip-109266",
+      "startTime": "18:12",
+      "endTime": "18:18",
+      "startSec": 1092.66,
+      "endSec": 1098.55,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 4,
+      "interactionFrames": 4,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.303
+    },
+    {
+      "id": "clip-109973",
+      "startTime": "18:19",
+      "endTime": "18:26",
+      "startSec": 1099.73,
+      "endSec": 1106.56,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 6,
+      "interactionFrames": 6,
+      "avgBallCount": 1.17,
+      "avgBallConfidence": 0.493
+    },
+    {
+      "id": "clip-111151",
+      "startTime": "18:31",
+      "endTime": "18:37",
+      "startSec": 1111.51,
+      "endSec": 1117.86,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 3,
+      "interactionFrames": 2,
+      "avgBallCount": 1.33,
+      "avgBallConfidence": 0.446
+    },
+    {
+      "id": "clip-111622",
+      "startTime": "18:36",
+      "endTime": "18:42",
+      "startSec": 1116.22,
+      "endSec": 1122.57,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 5,
+      "avgBallCount": 1.4,
+      "avgBallConfidence": 0.394
+    },
+    {
+      "id": "clip-112186",
+      "startTime": "18:41",
+      "endTime": "18:45",
+      "startSec": 1121.87,
+      "endSec": 1125.87,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.234
+    },
+    {
+      "id": "clip-112469",
+      "startTime": "18:44",
+      "endTime": "18:49",
+      "startSec": 1124.69,
+      "endSec": 1129.64,
+      "label": "공-선수 관여 장면",
+      "score": 0.83,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.279
+    },
+    {
+      "id": "clip-113034",
+      "startTime": "18:50",
+      "endTime": "19:04",
+      "startSec": 1130.35,
+      "endSec": 1144.24,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 21,
+      "interactionFrames": 21,
+      "avgBallCount": 1.05,
+      "avgBallConfidence": 0.392
+    },
+    {
+      "id": "clip-114354",
+      "startTime": "19:03",
+      "endTime": "19:10",
+      "startSec": 1143.54,
+      "endSec": 1150.36,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 7,
+      "interactionFrames": 7,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.514
+    },
+    {
+      "id": "clip-115154",
+      "startTime": "19:11",
+      "endTime": "19:15",
+      "startSec": 1151.54,
+      "endSec": 1155.54,
+      "label": "공 탐지 장면",
+      "score": 0.59,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.203
+    },
+    {
+      "id": "clip-115343",
+      "startTime": "19:13",
+      "endTime": "19:17",
+      "startSec": 1153.43,
+      "endSec": 1157.9,
+      "label": "공-선수 관여 장면",
+      "score": 0.97,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.39
+    },
+    {
+      "id": "clip-115908",
+      "startTime": "19:19",
+      "endTime": "19:26",
+      "startSec": 1159.08,
+      "endSec": 1166.38,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 5,
+      "avgBallCount": 1.2,
+      "avgBallConfidence": 0.597
+    },
+    {
+      "id": "clip-116426",
+      "startTime": "19:24",
+      "endTime": "19:28",
+      "startSec": 1164.26,
+      "endSec": 1168.26,
+      "label": "공-선수 관여 장면",
+      "score": 0.75,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.404
+    },
+    {
+      "id": "clip-118404",
+      "startTime": "19:44",
+      "endTime": "19:51",
+      "startSec": 1184.04,
+      "endSec": 1191.34,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 5,
+      "interactionFrames": 5,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.496
+    },
+    {
+      "id": "clip-118923",
+      "startTime": "19:49",
+      "endTime": "19:53",
+      "startSec": 1189.23,
+      "endSec": 1193.23,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.239
+    },
+    {
+      "id": "clip-119110",
+      "startTime": "19:51",
+      "endTime": "19:58",
+      "startSec": 1191.11,
+      "endSec": 1198.88,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 7,
+      "interactionFrames": 6,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.351
+    },
+    {
+      "id": "clip-119676",
+      "startTime": "19:56",
+      "endTime": "20:01",
+      "startSec": 1196.76,
+      "endSec": 1201.7,
+      "label": "공-선수 관여 장면",
+      "score": 0.82,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.272
+    },
+    {
+      "id": "clip-119958",
+      "startTime": "19:59",
+      "endTime": "20:03",
+      "startSec": 1199.59,
+      "endSec": 1203.59,
+      "label": "공 탐지 장면",
+      "score": 0.59,
+      "reason": "공이 반복적으로 탐지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 0,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.213
+    },
+    {
+      "id": "clip-120147",
+      "startTime": "20:01",
+      "endTime": "20:05",
+      "startSec": 1201.47,
+      "endSec": 1205.47,
+      "label": "공-선수 관여 장면",
+      "score": 0.72,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 1,
+      "interactionFrames": 1,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.271
+    },
+    {
+      "id": "clip-121513",
+      "startTime": "20:15",
+      "endTime": "20:20",
+      "startSec": 1215.13,
+      "endSec": 1220.54,
+      "label": "공-선수 관여 장면",
+      "score": 0.98,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 2,
+      "interactionFrames": 2,
+      "avgBallCount": 1.0,
+      "avgBallConfidence": 0.429
+    },
+    {
+      "id": "clip-122360",
+      "startTime": "20:23",
+      "endTime": "20:32",
+      "startSec": 1223.61,
+      "endSec": 1232.57,
+      "label": "공-선수 관여 장면",
+      "score": 0.99,
+      "reason": "공과 선수의 근접 상호작용이 감지된 구간",
+      "framesMatched": 9,
+      "interactionFrames": 8,
+      "avgBallCount": 3.11,
+      "avgBallConfidence": 0.672
+    }
+  ]
+}
