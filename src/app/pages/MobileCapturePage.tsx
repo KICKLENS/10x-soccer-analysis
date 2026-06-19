@@ -124,6 +124,7 @@ export default function MobileCapturePage() {
   const [isLandscape, setIsLandscape] = useState(
     typeof window !== 'undefined' ? window.innerWidth >= window.innerHeight : true,
   );
+  const [allowPortrait, setAllowPortrait] = useState(false);
 
   const hasRecordedVideo = useMemo(() => Boolean(recordedBlob && recordedPreviewUrl), [recordedBlob, recordedPreviewUrl]);
   const isPipelineRunning = pipelineStep === 'uploading' || pipelineStep === 'analyzing';
@@ -234,6 +235,35 @@ export default function MobileCapturePage() {
       }
     } catch {
       // ignore
+    }
+  };
+
+  const requestLandscape = async () => {
+    try {
+      const docEl = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void> | void;
+      };
+
+      if (docEl.requestFullscreen) {
+        await docEl.requestFullscreen().catch(() => undefined);
+      } else if (docEl.webkitRequestFullscreen) {
+        await docEl.webkitRequestFullscreen();
+      }
+
+      const orientationApi = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: string) => Promise<void>;
+      };
+
+      if (orientationApi?.lock) {
+        await orientationApi.lock('landscape');
+        setStatusMessage('가로 모드로 전환했습니다. 선수를 중앙 가이드 안에 맞춘 뒤 녹화하세요.');
+      } else {
+        setAllowPortrait(true);
+        setStatusMessage('이 기기는 자동 가로 전환을 지원하지 않습니다. 휴대폰을 옆으로 돌리거나, 이대로 촬영해 주세요.');
+      }
+    } catch {
+      setAllowPortrait(true);
+      setStatusMessage('자동 가로 전환이 차단되었습니다. 휴대폰을 옆으로 돌리거나, 이대로 촬영해 주세요.');
     }
   };
 
@@ -571,13 +601,32 @@ export default function MobileCapturePage() {
                 선수를 중앙 가이드 안에 맞춰 주세요
               </div>
 
-              {!isLandscape && (
+              {!isLandscape && !allowPortrait && (
                 <div style={rotateOverlayStyle}>
                   <div style={rotateCardStyle}>
                     <div style={rotateIconStyle}>↻</div>
-                    <div style={rotateTitleStyle}>휴대폰을 가로로 돌려 주세요</div>
+                    <div style={rotateTitleStyle}>가로 모드로 촬영해 주세요</div>
                     <div style={rotateDescStyle}>
                       가로 촬영이 선수 중심 추적과 경기 좌우 흐름 확인에 더 유리합니다.
+                    </div>
+                    <div style={rotateButtonRowStyle}>
+                      <button
+                        type="button"
+                        onClick={requestLandscape}
+                        style={rotatePrimaryButtonStyle}
+                      >
+                        가로 모드로 전환
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAllowPortrait(true);
+                          setStatusMessage('세로 모드로 촬영합니다. 선수가 화면 중앙에 오도록 유지해 주세요.');
+                        }}
+                        style={rotateGhostButtonStyle}
+                      >
+                        이대로 세로로 촬영
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1004,6 +1053,36 @@ const rotateOverlayStyle: CSSProperties = {
   background: 'rgba(6, 8, 14, 0.64)',
   backdropFilter: 'blur(10px)',
   padding: 20,
+  pointerEvents: 'auto',
+};
+
+const rotateButtonRowStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+  marginTop: 18,
+};
+
+const rotatePrimaryButtonStyle: CSSProperties = {
+  minHeight: 48,
+  borderRadius: 14,
+  border: 'none',
+  background: '#FF9F02',
+  color: '#171717',
+  fontSize: 15,
+  fontWeight: 800,
+  cursor: 'pointer',
+};
+
+const rotateGhostButtonStyle: CSSProperties = {
+  minHeight: 44,
+  borderRadius: 14,
+  background: 'transparent',
+  color: 'rgba(255,255,255,0.78)',
+  border: '1px solid rgba(255,255,255,0.2)',
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: 'pointer',
 };
 
 const rotateCardStyle: CSSProperties = {
