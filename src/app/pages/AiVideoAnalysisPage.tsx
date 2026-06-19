@@ -89,14 +89,14 @@ export default function AiVideoAnalysisPage() {
 
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-8 md:px-6 md:py-10">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1200px] px-3 py-5 md:px-6 md:py-10 pb-[calc(28px+env(safe-area-inset-bottom))]">
+        <div className="mb-5 flex flex-col gap-3 md:mb-8 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-white/48">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/48 md:text-[12px] md:tracking-[0.32em]">
               AI COACH ANALYSIS
             </p>
-            <h1 className="mt-3 text-3xl font-extrabold text-white md:text-4xl">AI 코치 분석 리포트</h1>
-            <p className="mt-3 max-w-[760px] text-sm leading-7 md:text-[15px]" style={{ color: TEXT_SUB }}>
+            <h1 className="mt-2 text-2xl font-extrabold text-white md:mt-3 md:text-4xl">AI 코치 분석 리포트</h1>
+            <p className="mt-2 max-w-[760px] text-[13px] leading-6 md:mt-3 md:text-[15px] md:leading-7" style={{ color: TEXT_SUB }}>
               등록한 선수 정보를 바탕으로 AI 코치가 경기 영상을 분석하고, 장면별 코칭 피드백을 정리했습니다.
             </p>
           </div>
@@ -104,7 +104,7 @@ export default function AiVideoAnalysisPage() {
           <button
             type="button"
             onClick={() => navigate('/video-analysis')}
-            className="inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/5"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:w-auto md:px-5"
             style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
           >
             <ArrowLeft size={16} />
@@ -125,39 +125,39 @@ export default function AiVideoAnalysisPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <div
-              className="grid gap-4 md:grid-cols-3"
+              className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
             >
-              <div className="rounded-2xl border p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
+              <div className="rounded-2xl border p-3 md:p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
                 <div className="text-xs text-white/48">분석 포지션</div>
-                <div className="mt-2 text-lg font-bold">{payload.position || '골키퍼'}</div>
+                <div className="mt-1 text-base font-bold md:mt-2 md:text-lg">{payload.position || '골키퍼'}</div>
               </div>
-              <div className="rounded-2xl border p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
+              <div className="rounded-2xl border p-3 md:p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
                 <div className="text-xs text-white/48">유니폼 색상</div>
-                <div className="mt-2 text-lg font-bold">{payload.player?.uniformColor || '-'}</div>
+                <div className="mt-1 text-base font-bold md:mt-2 md:text-lg">{payload.player?.uniformColor || '-'}</div>
               </div>
-              <div className="rounded-2xl border p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
+              <div className="rounded-2xl border p-3 md:p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
                 <div className="text-xs text-white/48">하이라이트 클립</div>
-                <div className="mt-2 text-lg font-bold">{clips.length}개</div>
+                <div className="mt-1 text-base font-bold md:mt-2 md:text-lg">{clips.length}개</div>
               </div>
-              <div className="rounded-2xl border p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
+              <div className="rounded-2xl border p-3 md:p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
                 <div className="text-xs text-white/48">원본 파일</div>
-                <div className="mt-2 truncate text-sm font-semibold">{payload.uploadedVideoFileName || '-'}</div>
+                <div className="mt-1 truncate text-sm font-semibold md:mt-2">{payload.uploadedVideoFileName || '-'}</div>
               </div>
             </div>
 
             {highlightUrl ? (
-              <div className="rounded-[28px] border p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
-                <h2 className="mb-4 text-lg font-bold">최종 하이라이트 영상</h2>
+              <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
+                <h2 className="mb-3 text-base font-bold md:mb-4 md:text-lg">최종 하이라이트 영상</h2>
                 <video src={highlightUrl} controls playsInline className="w-full rounded-2xl border border-white/10 bg-black" />
               </div>
             ) : null}
 
-            <div className="rounded-[28px] border p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
-              <h2 className="mb-4 text-lg font-bold">AI 코치 종합 분석</h2>
+            <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
+              <h2 className="mb-3 text-base font-bold md:mb-4 md:text-lg">AI 코치 종합 분석</h2>
               {summary ? (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-2 md:gap-4">
                   <SummaryCard title="눈에 띄는 장면" value={summary.noticeableScene} tone="rgba(59,130,246,0.12)" />
                   <SummaryCard title="잘한 점" value={summary.strength} tone="rgba(34,197,94,0.12)" />
                   <SummaryCard title="아쉬운 점" value={summary.weakness} tone="rgba(245,158,11,0.12)" />
@@ -168,14 +168,14 @@ export default function AiVideoAnalysisPage() {
               )}
             </div>
 
-            <div className="rounded-[28px] border p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
-              <h2 className="mb-4 text-lg font-bold">장면별 코치 코멘트</h2>
+            <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
+              <h2 className="mb-3 text-base font-bold md:mb-4 md:text-lg">장면별 코치 코멘트</h2>
               {clips.length ? (
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {clips.map((clip, index) => {
                     const clipUrl = toAbsoluteUrl(clip.url || clip.clipUrl || clip.outputUrl || '');
                     return (
-                      <div key={clip.id || index} className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+                      <div key={clip.id || index} className="rounded-2xl border border-white/8 bg-white/[0.02] p-3 md:p-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <div className="text-base font-bold">{clip.label || `장면 ${index + 1}`}</div>

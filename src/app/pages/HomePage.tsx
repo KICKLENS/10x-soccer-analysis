@@ -239,7 +239,9 @@ function particleGlow(size: number, multiplier: number) {
 
 function FloatingParticles() {
   const particles = useMemo<Particle[]>(() => {
-    return Array.from({ length: 240 }, (_, index) => {
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+    const particleCount = isMobile ? 70 : 240;
+    return Array.from({ length: particleCount }, (_, index) => {
       const isWhite = Math.random() < 0.64;
       const size = Math.floor(Math.random() * 6) + 2;
 
@@ -571,16 +573,16 @@ export default function HomePage() {
             </button>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <MetallicButton variant="outline" onClick={() => scrollToId('showcase')}>
-              쇼케이스 보기
-            </MetallicButton>
-            <div className="hidden md:block">
-              <MetallicButton variant="primary" onClick={handleStartClick}>
-                시작하기
-                <ArrowRight size={16} />
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="hidden sm:block">
+              <MetallicButton variant="outline" onClick={() => scrollToId('showcase')}>
+                쇼케이스 보기
               </MetallicButton>
             </div>
+            <MetallicButton variant="primary" onClick={handleStartClick}>
+              시작하기
+              <ArrowRight size={16} />
+            </MetallicButton>
           </div>
         </div>
       </header>
@@ -619,14 +621,14 @@ export default function HomePage() {
                 and turn it into better training.
               </p>
 
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-4 md:mt-8">
-                <MetallicButton variant="dark" onClick={() => scrollToId('services')}>
-                  서비스 보기
+              <div className="mt-7 flex w-full flex-wrap items-center justify-center gap-3 md:mt-8 md:gap-4">
+                <MetallicButton variant="dark" onClick={handleStartClick}>
+                  지금 시작하기
                   <ArrowRight size={16} />
                 </MetallicButton>
 
-                <MetallicButton variant="outline" onClick={() => scrollToId('showcase')}>
-                  쇼케이스 보기
+                <MetallicButton variant="outline" onClick={() => scrollToId('services')}>
+                  서비스 보기
                 </MetallicButton>
               </div>
             </div>

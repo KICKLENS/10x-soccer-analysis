@@ -285,7 +285,7 @@ export default function PlayerRegistrationPage() {
           </div>
 
           <div style={formGridStyle}>
-            <div style={fieldStyle}>
+            <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>선수 이름</label>
               <input
                 value={name}
@@ -368,6 +368,7 @@ export default function PlayerRegistrationPage() {
               disabled={!canSubmit}
               style={{
                 ...primaryButtonStyle,
+                gridColumn: '1 / -1',
                 ...(!canSubmit ? disabledButtonStyle : null),
               }}
             >
@@ -452,59 +453,58 @@ const pageStyle: CSSProperties = {
   background:
     'radial-gradient(circle at top, rgba(255,159,2,0.10), transparent 28%), linear-gradient(180deg, #0a0a0d 0%, #111216 100%)',
   color: '#f7f7f8',
-  padding: '32px 20px 80px',
+  padding: '14px 12px calc(28px + env(safe-area-inset-bottom))',
 };
 
 const containerStyle: CSSProperties = {
-  maxWidth: 1180,
+  maxWidth: 520,
   margin: '0 auto',
   display: 'flex',
   flexDirection: 'column',
-  gap: 20,
+  gap: 12,
 };
 
 const heroCardStyle: CSSProperties = {
   background: 'linear-gradient(135deg, rgba(255,159,2,0.12), rgba(255,255,255,0.04))',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 24,
-  padding: '28px 24px',
-  boxShadow: '0 18px 40px rgba(0,0,0,0.25)',
+  borderRadius: 18,
+  padding: '16px 16px',
+  boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
 };
 
 const eyebrowStyle: CSSProperties = {
   display: 'inline-block',
-  padding: '6px 12px',
+  padding: '4px 10px',
   borderRadius: 999,
   background: 'rgba(255,159,2,0.14)',
   color: '#FF9F02',
-  fontSize: 12,
+  fontSize: 10,
   fontWeight: 700,
   letterSpacing: '0.08em',
-  marginBottom: 14,
+  marginBottom: 8,
 };
 
 const heroTitleStyle: CSSProperties = {
   margin: 0,
-  fontSize: 'clamp(28px, 4vw, 44px)',
-  lineHeight: 1.1,
+  fontSize: 22,
+  lineHeight: 1.15,
   fontWeight: 800,
 };
 
 const heroDescriptionStyle: CSSProperties = {
-  marginTop: 12,
+  marginTop: 8,
   marginBottom: 0,
-  color: 'rgba(255,255,255,0.74)',
-  fontSize: 15,
-  lineHeight: 1.7,
-  maxWidth: 820,
+  color: 'rgba(255,255,255,0.7)',
+  fontSize: 13,
+  lineHeight: 1.6,
 };
 
 const panelStyle: CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 22,
-  padding: 22,
-  boxShadow: '0 16px 32px rgba(0,0,0,0.20)',
+  borderRadius: 16,
+  padding: 14,
+  boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
 };
 
 const sectionHeaderStyle: CSSProperties = {
@@ -518,7 +518,7 @@ const sectionHeaderStyle: CSSProperties = {
 
 const sectionTitleStyle: CSSProperties = {
   margin: 0,
-  fontSize: 22,
+  fontSize: 17,
   fontWeight: 800,
 };
 
@@ -529,8 +529,8 @@ const sectionHintStyle: CSSProperties = {
 
 const formGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-  gap: 14,
+  gridTemplateColumns: '1fr 1fr',
+  gap: 10,
 };
 
 const fieldStyle: CSSProperties = {
@@ -546,28 +546,32 @@ const labelStyle: CSSProperties = {
 };
 
 const inputStyle: CSSProperties = {
-  height: 46,
+  height: 48,
   borderRadius: 12,
   border: '1px solid rgba(255,255,255,0.10)',
   background: 'rgba(255,255,255,0.04)',
   color: '#fff',
   padding: '0 14px',
-  fontSize: 14,
+  fontSize: 16,
   outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
 };
 
 const textareaStyle: CSSProperties = {
-  minHeight: 96,
+  minHeight: 88,
   borderRadius: 12,
   border: '1px solid rgba(255,255,255,0.10)',
   background: 'rgba(255,255,255,0.04)',
   color: '#fff',
   padding: '12px 14px',
-  fontSize: 14,
+  fontSize: 16,
   outline: 'none',
   resize: 'vertical',
   fontFamily: 'inherit',
   lineHeight: 1.6,
+  width: '100%',
+  boxSizing: 'border-box',
 };
 
 const fieldHelpStyle: CSSProperties = {
@@ -577,20 +581,21 @@ const fieldHelpStyle: CSSProperties = {
 };
 
 const buttonRowStyle: CSSProperties = {
-  display: 'flex',
-  gap: 12,
-  flexWrap: 'wrap',
-  marginTop: 18,
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: 10,
+  marginTop: 14,
 };
 
 const baseButtonStyle: CSSProperties = {
   minHeight: 50,
   borderRadius: 14,
   border: 'none',
-  padding: '0 18px',
+  padding: '0 14px',
   fontSize: 15,
   fontWeight: 800,
   cursor: 'pointer',
+  width: '100%',
 };
 
 const primaryButtonStyle: CSSProperties = {

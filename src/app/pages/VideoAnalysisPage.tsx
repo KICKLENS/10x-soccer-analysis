@@ -137,7 +137,7 @@ function ActionButton({
   disabled?: boolean;
 }) {
   const className =
-    'inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-[15px] font-semibold transition-all duration-300';
+    'inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-[15px] font-semibold transition-all duration-300';
 
   let style: CSSProperties = {
     borderColor: 'rgba(255,255,255,0.12)',
@@ -191,17 +191,17 @@ function SectionCard({
 }) {
   return (
     <div
-      className="rounded-[30px] border p-5 md:p-6"
+      className="rounded-3xl border p-4 md:rounded-[30px] md:p-6"
       style={{
         borderColor: STROKE,
         background: CARD_BG,
         boxShadow: '0 22px 48px rgba(0,0,0,0.24)',
       }}
     >
-      <div className="mb-5">
-        <h2 className="text-xl font-bold text-white">{title}</h2>
+      <div className="mb-4 md:mb-5">
+        <h2 className="text-lg font-bold text-white md:text-xl">{title}</h2>
         {description ? (
-          <p className="mt-2 text-sm leading-7" style={{ color: TEXT_SUB }}>
+          <p className="mt-2 text-[13px] leading-6 md:text-sm md:leading-7" style={{ color: TEXT_SUB }}>
             {description}
           </p>
         ) : null}
@@ -478,23 +478,23 @@ export default function VideoAnalysisPage() {
 
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
-      <div className="mx-auto w-full max-w-[1480px] px-4 py-8 md:px-6 md:py-10 lg:px-10 lg:py-12">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1480px] px-3 py-5 md:px-6 md:py-10 lg:px-10 lg:py-12 pb-[calc(28px+env(safe-area-inset-bottom))]">
+        <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-white/48">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/48 md:text-[12px] md:tracking-[0.32em]">
               VIDEO HIGHLIGHT STUDIO
             </p>
-            <h1 className="mt-3 text-3xl font-extrabold leading-[1.08] text-white md:text-5xl">
+            <h1 className="mt-2 text-2xl font-extrabold leading-[1.12] text-white md:mt-3 md:text-5xl">
               경기 영상을 하이라이트와 분석으로 연결하세요
             </h1>
-            <p className="mt-4 max-w-[860px] text-[15px] leading-7 md:text-[16px]" style={{ color: TEXT_SUB }}>
+            <p className="mt-3 max-w-[860px] text-[13px] leading-6 md:mt-4 md:text-[16px] md:leading-7" style={{ color: TEXT_SUB }}>
               경기 영상을 업로드하면 AI가 주요 이벤트 구간을 자동으로 선별해 하이라이트를 구성하고,
               이어서 분석 흐름까지 자연스럽게 연결해줍니다. 복잡한 설정 없이 빠르게 핵심 장면을
               확인하고 인사이트를 정리할 수 있도록 설계했습니다.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap">
             <ActionButton onClick={() => navigate('/')}>
               <ArrowLeft size={16} />
               홈으로
