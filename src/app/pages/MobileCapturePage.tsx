@@ -516,12 +516,10 @@ export default function MobileCapturePage() {
       <style>{'@keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }'}</style>
       <div style={containerStyle}>
         <section style={heroCardStyle}>
-          <div style={eyebrowStyle}>MOBILE LANDSCAPE CAPTURE</div>
-          <h1 style={heroTitleStyle}>가로 선수 촬영</h1>
+          <div style={eyebrowStyle}>선수 촬영</div>
+          <h1 style={heroTitleStyle}>경기 촬영하기</h1>
           <p style={heroDescriptionStyle}>
-            선수는 <strong>중앙 가이드 박스</strong> 안에 두고,
-            화면은 <strong>가로 프레임</strong>으로 넓게 확보해 경기 좌우 흐름까지 함께 담도록 설계했습니다.
-            이렇게 촬영하면 이후 AI 분석에서 선수 움직임과 주변 전개를 함께 보기 더 좋습니다.
+            선수를 화면 중앙에 두고 촬영하세요. 녹화를 마치면 AI가 자동으로 하이라이트와 코치 피드백을 만들어 줍니다.
           </p>
         </section>
 
@@ -805,75 +803,74 @@ const pageStyle: CSSProperties = {
   background:
     'radial-gradient(circle at top, rgba(255,159,2,0.10), transparent 28%), linear-gradient(180deg, #0a0a0d 0%, #111216 100%)',
   color: '#f7f7f8',
-  padding: '24px 16px 80px',
+  padding: '14px 12px calc(28px + env(safe-area-inset-bottom))',
 };
 
 const containerStyle: CSSProperties = {
-  maxWidth: 1240,
+  maxWidth: 520,
   margin: '0 auto',
   display: 'flex',
   flexDirection: 'column',
-  gap: 20,
+  gap: 12,
 };
 
 const heroCardStyle: CSSProperties = {
   background: 'linear-gradient(135deg, rgba(255,159,2,0.12), rgba(255,255,255,0.04))',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 24,
-  padding: '28px 24px',
-  boxShadow: '0 18px 40px rgba(0,0,0,0.25)',
+  borderRadius: 18,
+  padding: '16px 16px',
+  boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
 };
 
 const eyebrowStyle: CSSProperties = {
   display: 'inline-block',
-  padding: '6px 12px',
+  padding: '4px 10px',
   borderRadius: 999,
   background: 'rgba(255,159,2,0.14)',
   color: '#FF9F02',
-  fontSize: 12,
+  fontSize: 10,
   fontWeight: 700,
   letterSpacing: '0.08em',
-  marginBottom: 14,
+  marginBottom: 8,
 };
 
 const heroTitleStyle: CSSProperties = {
   margin: 0,
-  fontSize: 'clamp(28px, 4vw, 44px)',
-  lineHeight: 1.1,
+  fontSize: 22,
+  lineHeight: 1.15,
   fontWeight: 800,
 };
 
 const heroDescriptionStyle: CSSProperties = {
-  marginTop: 12,
+  marginTop: 8,
   marginBottom: 0,
-  color: 'rgba(255,255,255,0.74)',
-  fontSize: 15,
-  lineHeight: 1.7,
-  maxWidth: 900,
+  color: 'rgba(255,255,255,0.7)',
+  fontSize: 13,
+  lineHeight: 1.6,
 };
 
 const playerPanelStyle: CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 22,
-  padding: 22,
-  boxShadow: '0 16px 32px rgba(0,0,0,0.20)',
+  borderRadius: 16,
+  padding: 14,
+  boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
 };
 
 const capturePanelStyle: CSSProperties = {
   background: 'linear-gradient(180deg, rgba(17,20,30,0.96) 0%, rgba(11,13,21,0.98) 100%)',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 24,
-  padding: 20,
-  boxShadow: '0 24px 60px rgba(0,0,0,0.28)',
+  borderRadius: 18,
+  padding: 14,
+  boxShadow: '0 12px 30px rgba(0,0,0,0.26)',
 };
 
 const previewPanelStyle: CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 22,
-  padding: 22,
-  boxShadow: '0 16px 32px rgba(0,0,0,0.20)',
+  borderRadius: 16,
+  padding: 14,
+  boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
 };
 
 const sectionHeaderStyle: CSSProperties = {
@@ -887,7 +884,7 @@ const sectionHeaderStyle: CSSProperties = {
 
 const sectionTitleStyle: CSSProperties = {
   margin: 0,
-  fontSize: 22,
+  fontSize: 17,
   fontWeight: 800,
 };
 
@@ -920,8 +917,8 @@ const playerNameStyle: CSSProperties = {
 
 const playerMetaGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-  gap: 12,
+  gridTemplateColumns: '1fr 1fr',
+  gap: 8,
 };
 
 const playerMetaItemStyle: CSSProperties = {
@@ -956,17 +953,16 @@ const captureTopRowStyle: CSSProperties = {
 };
 
 const captureTitleStyle: CSSProperties = {
-  margin: '0 0 8px 0',
-  fontSize: 'clamp(24px, 3vw, 32px)',
+  margin: '0 0 4px 0',
+  fontSize: 18,
   fontWeight: 800,
 };
 
 const captureDescStyle: CSSProperties = {
   margin: 0,
-  color: 'rgba(255,255,255,0.72)',
-  fontSize: 15,
-  lineHeight: 1.7,
-  maxWidth: 760,
+  color: 'rgba(255,255,255,0.7)',
+  fontSize: 13,
+  lineHeight: 1.55,
 };
 
 const badgeRowStyle: CSSProperties = {
@@ -1162,20 +1158,21 @@ const bottomGuideTextStyle: CSSProperties = {
 };
 
 const controlRowStyle: CSSProperties = {
-  display: 'flex',
-  gap: 12,
-  flexWrap: 'wrap',
-  marginTop: 18,
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: 10,
+  marginTop: 14,
 };
 
 const baseButtonStyle: CSSProperties = {
-  minHeight: 50,
+  minHeight: 52,
   borderRadius: 14,
   border: 'none',
-  padding: '0 18px',
+  padding: '0 14px',
   fontSize: 15,
   fontWeight: 800,
   cursor: 'pointer',
+  width: '100%',
 };
 
 const primaryButtonStyle: CSSProperties = {
@@ -1276,10 +1273,10 @@ const previewVideoStyle: CSSProperties = {
 };
 
 const uploadButtonRowStyle: CSSProperties = {
-  display: 'flex',
-  gap: 12,
-  flexWrap: 'wrap',
-  marginTop: 16,
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: 10,
+  marginTop: 14,
 };
 
 const emptyStateStyle: CSSProperties = {
