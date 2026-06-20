@@ -352,18 +352,6 @@ export default function PlayerRegistrationPage() {
           <div style={buttonRowStyle}>
             <button
               type="button"
-              onClick={handleRegisterOnly}
-              disabled={!canSubmit}
-              style={{
-                ...secondaryButtonStyle,
-                ...(!canSubmit ? disabledButtonStyle : null),
-              }}
-            >
-              선수 정보 저장
-            </button>
-
-            <button
-              type="button"
               onClick={handleRegisterAndGo}
               disabled={!canSubmit}
               style={{
@@ -373,6 +361,18 @@ export default function PlayerRegistrationPage() {
               }}
             >
               저장 후 촬영하기
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRegisterOnly}
+              disabled={!canSubmit}
+              style={{
+                ...secondaryButtonStyle,
+                ...(!canSubmit ? disabledButtonStyle : null),
+              }}
+            >
+              선수 정보 저장
             </button>
 
             <button
@@ -390,7 +390,7 @@ export default function PlayerRegistrationPage() {
             <button
               type="button"
               onClick={resetForm}
-              style={secondaryButtonStyle}
+              style={{ ...secondaryButtonStyle, gridColumn: '1 / -1' }}
             >
               입력 초기화
             </button>

@@ -52,6 +52,12 @@ const GLOBAL_STYLES = [
   '  50% { filter: brightness(1.38); }',
   '  100% { filter: brightness(1.02); }',
   '}',
+  /* Tailwind preflight forces img { height: auto }, which breaks fixed-height */
+  /* image layouts. These unlayered rules win and restore intended sizing. */
+  '.brand-logo { height: 22px; width: auto; object-fit: contain; }',
+  '@media (min-width: 768px) { .brand-logo { height: 26px; } }',
+  '.cover-img { display: block; height: 100%; width: 100%; object-fit: cover; }',
+  '.fill-img { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; }',
 ].join('\n');
 
 type Particle = {
@@ -136,8 +142,8 @@ function SectionHeading({
 }) {
   return (
     <div className={align === 'center' ? 'mx-auto max-w-[860px] text-center' : 'max-w-[760px]'}>
-      <h2 className="text-3xl font-extrabold leading-[1.08] text-white md:text-5xl">{title}</h2>
-      <p className="mt-6 text-base leading-8 md:text-[17px]" style={{ color: TEXT_SUB }}>
+      <h2 className="text-[22px] font-extrabold leading-[1.18] text-white md:text-5xl md:leading-[1.08]">{title}</h2>
+      <p className="mt-3 text-[14px] leading-7 md:mt-6 md:text-[17px] md:leading-8" style={{ color: TEXT_SUB }}>
         {description}
       </p>
     </div>
@@ -240,10 +246,10 @@ function particleGlow(size: number, multiplier: number) {
 function FloatingParticles() {
   const particles = useMemo<Particle[]>(() => {
     const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
-    const particleCount = isMobile ? 70 : 240;
+    const particleCount = isMobile ? 44 : 240;
     return Array.from({ length: particleCount }, (_, index) => {
       const isWhite = Math.random() < 0.64;
-      const size = Math.floor(Math.random() * 6) + 2;
+      const size = isMobile ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 6) + 2;
 
       const whitePalette = [
         'rgba(255,255,255,0.98)',
@@ -276,8 +282,8 @@ function FloatingParticles() {
         pulseDuration: 1.5 + Math.random() * 1.4,
         twinkleDuration: 0.9 + Math.random() * 1.2,
         delay: Math.random() * 3.6,
-        driftX: -28 + Math.random() * 56,
-        driftY: -34 + Math.random() * 68,
+        driftX: isMobile ? -14 + Math.random() * 28 : -28 + Math.random() * 56,
+        driftY: isMobile ? -18 + Math.random() * 36 : -34 + Math.random() * 68,
         opacity: isWhite ? 0.5 + Math.random() * 0.34 : 0.24 + Math.random() * 0.28,
         glow,
         isWhite,
@@ -378,17 +384,16 @@ function ServiceCard({
 
       <div className="relative z-10">
         <div
-          className="relative mb-6 overflow-hidden rounded-[22px] border"
+          className="relative mb-5 h-[180px] overflow-hidden rounded-[22px] border md:mb-6 md:h-[190px]"
           style={{
             borderColor: 'rgba(255,255,255,0.08)',
             background: 'rgba(255,255,255,0.03)',
-            minHeight: '190px',
           }}
         >
           <SafeImage
             src={image}
             alt={title}
-            className="h-[190px] w-full object-cover"
+            className="cover-img"
             fallbackTitle={title}
             fallbackDesc="서비스 카드용 PNG 썸네일 파일을 public 폴더에 넣어주세요."
           />
@@ -530,8 +535,8 @@ export default function HomePage() {
             <img
               src={LOGO_SRC}
               alt="10X AI Sports"
-              className="block h-6 w-auto object-contain md:h-7"
-              style={{ width: 'auto', maxWidth: '180px' }}
+              className="brand-logo block"
+              style={{ maxWidth: '160px' }}
             />
           </button>
 
@@ -597,7 +602,7 @@ export default function HomePage() {
           }}
         >
           <div
-            className="relative flex h-[400px] flex-col items-center justify-center px-8 py-10 text-center md:h-[500px] md:px-14 md:py-12 lg:h-[560px] lg:px-16 lg:py-14"
+            className="relative flex flex-col items-center justify-center px-6 py-12 text-center md:h-[500px] md:px-14 md:py-12 lg:h-[560px] lg:px-16 lg:py-14"
             style={{
               background: `linear-gradient(180deg, ${POINT_COLOR} 0%, #f19300 100%)`,
             }}
@@ -634,12 +639,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative h-[400px] overflow-hidden md:h-[500px] lg:h-[560px]">
+          <div className="relative h-[240px] overflow-hidden md:h-[500px] lg:h-[560px]">
             <SafeImage
               src={HERO_IMAGE}
               alt="AI soccer hero"
-              className="absolute inset-0 h-full w-full scale-[1.1] object-cover"
-              objectPosition="center 0%"
+              className="fill-img scale-[1.05]"
+              objectPosition="center 35%"
               fallbackTitle="Hero Image"
               fallbackDesc="public/hero-ai-soccer.png 파일을 넣으면 히어로 이미지가 표시됩니다."
             />
@@ -655,8 +660,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1480px] px-4 pb-10 pt-20 md:px-6 md:pb-12 md:pt-24 lg:px-10 lg:pb-14 lg:pt-28">
-        <div className="grid gap-4 md:grid-cols-3">
+      <section className="mx-auto w-full max-w-[1480px] px-4 pb-8 pt-12 md:px-6 md:pb-12 md:pt-24 lg:px-10 lg:pb-14 lg:pt-28">
+        <div className="grid gap-3 md:grid-cols-3 md:gap-4">
           <BenefitItem
             icon={<PlayCircle size={18} className="text-[#FFB648]" />}
             title="핵심 장면을 빠르게 포착"
@@ -677,9 +682,9 @@ export default function HomePage() {
 
       <section
         id="services"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-20 md:px-6 md:py-24 lg:px-10"
+        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
       >
-        <div className="mb-12 md:mb-16">
+        <div className="mb-8 md:mb-16">
           <SectionBadge>Core Services</SectionBadge>
           <div className="mt-6">
             <SectionHeading
@@ -730,7 +735,7 @@ export default function HomePage() {
 
       <section
         id="analysis"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-20 md:px-6 md:py-24 lg:px-10"
+        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
       >
         <div
           className="relative overflow-hidden rounded-[38px] border px-6 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10"
@@ -821,18 +826,17 @@ export default function HomePage() {
             </div>
 
             <div
-              className="relative overflow-hidden rounded-[30px] border"
+              className="relative h-[230px] overflow-hidden rounded-[24px] border md:h-[420px] md:rounded-[30px] lg:h-[560px]"
               style={{
                 borderColor: 'rgba(255,255,255,0.08)',
                 background: 'rgba(255,255,255,0.02)',
-                minHeight: '460px',
                 boxShadow: '0 22px 50px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)',
               }}
             >
               <SafeImage
                 src={ANALYSIS_DASHBOARD_IMAGE}
                 alt="AI analysis dashboard"
-                className="h-[460px] w-full object-cover lg:h-[560px]"
+                className="fill-img"
                 fallbackTitle="Analysis Dashboard"
                 fallbackDesc="public/analysis-dashboard.png 파일을 넣으면 AI 분석 대형 이미지가 표시됩니다."
               />
@@ -844,9 +848,9 @@ export default function HomePage() {
 
       <section
         id="reports"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-20 md:px-6 md:py-24 lg:px-10"
+        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
       >
-        <div className="mb-12 md:mb-16">
+        <div className="mb-8 md:mb-16">
           <SectionBadge>Reports</SectionBadge>
           <div className="mt-6">
             <SectionHeading
@@ -874,7 +878,7 @@ export default function HomePage() {
 
       <section
         id="journal"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-20 md:px-6 md:py-24 lg:px-10"
+        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
       >
         <div
           className="rounded-[36px] border px-6 py-8 md:px-8 md:py-10 lg:px-10"
@@ -930,7 +934,7 @@ export default function HomePage() {
 
       <section id="showcase" className="scroll-mt-28 w-full px-0 pt-8 md:pt-10 lg:pt-12">
         <div
-          className="grid min-h-[620px] overflow-hidden border-y md:min-h-[720px] lg:min-h-[780px] lg:grid-cols-2"
+          className="grid overflow-hidden border-y md:min-h-[720px] lg:min-h-[780px] lg:grid-cols-2"
           style={{
             background:
               'linear-gradient(135deg, rgba(19,23,35,0.98) 0%, rgba(11,15,28,0.99) 55%, rgba(9,12,22,1) 100%)',
@@ -938,11 +942,11 @@ export default function HomePage() {
             boxShadow: '0 30px 80px rgba(0,0,0,0.28)',
           }}
         >
-          <div className="relative min-h-[360px] overflow-hidden md:min-h-[720px] lg:order-1">
+          <div className="relative h-[240px] overflow-hidden md:min-h-[720px] lg:order-1">
             <SafeImage
               src={SHOWCASE_IMAGE}
               alt="AI sports analysis showcase"
-              className="absolute inset-0 h-full w-full object-cover"
+              className="fill-img"
               fallbackTitle="Showcase Image"
               fallbackDesc="public/showcase-ai-vision.jpg 파일을 넣으면 쇼케이스 이미지가 표시됩니다."
             />
@@ -950,25 +954,25 @@ export default function HomePage() {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_40%,rgba(255,255,255,0.10),transparent_16%),radial-gradient(circle_at_80%_62%,rgba(255,159,2,0.12),transparent_18%)]" />
           </div>
 
-          <div className="flex items-center px-8 py-14 md:px-14 lg:order-2 lg:px-20">
+          <div className="flex items-center px-6 py-10 md:px-14 md:py-14 lg:order-2 lg:px-20">
             <div className="max-w-[560px]">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-white/56">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/56 md:text-[12px] md:tracking-[0.32em]">
                 AI Match Insight
               </p>
 
-              <h2 className="mt-6 text-4xl font-extrabold leading-[1.08] text-white md:text-5xl lg:text-[60px]">
+              <h2 className="mt-4 text-[26px] font-extrabold leading-[1.12] text-white md:mt-6 md:text-5xl lg:text-[60px]">
                 경기를 다시 보면,
                 <br />
                 훈련이 더 선명해집니다.
               </h2>
 
-              <p className="mt-7 text-base leading-8 md:text-[17px]" style={{ color: TEXT_SUB }}>
+              <p className="mt-4 text-[14px] leading-7 md:mt-7 md:text-[17px] md:leading-8" style={{ color: TEXT_SUB }}>
                 중요한 장면을 빠르게 이해하고,
                 <br />
                 다음 훈련 포인트로 자연스럽게 연결하세요.
               </p>
 
-              <div className="mt-10 flex flex-wrap gap-4">
+              <div className="mt-7 flex flex-wrap gap-3 md:mt-10 md:gap-4">
                 <MetallicButton onClick={() => scrollToId('reports')} variant="primary">
                   샘플 리포트 보기
                   <ArrowRight size={17} />
@@ -995,8 +999,8 @@ export default function HomePage() {
             <img
               src={LOGO_SRC}
               alt="10X AI Sports"
-              className="block h-6 w-auto shrink-0 object-contain md:h-7"
-              style={{ width: 'auto', maxWidth: '180px' }}
+              className="brand-logo block shrink-0"
+              style={{ maxWidth: '160px' }}
             />
             <p className="min-w-0 text-sm leading-6 text-white/52">
               AI 기반 경기 분석과 훈련 연결을 위한 스포츠 인사이트 플랫폼
