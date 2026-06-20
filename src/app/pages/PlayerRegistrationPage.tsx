@@ -140,8 +140,8 @@ export default function PlayerRegistrationPage() {
   const [position, setPosition] = useState('');
   const [teamName, setTeamName] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
-  const [uniformColor, setUniformColor] = useState('');
   const [traits, setTraits] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -164,21 +164,47 @@ export default function PlayerRegistrationPage() {
     setPosition('');
     setTeamName('');
     setJerseyNumber('');
-    setUniformColor('');
     setTraits('');
+    setEditingId(null);
     clearMessages();
   };
 
-  const handleSelectSavedPlayer = (player: PlayerRecord) => {
+  const handleEditSavedPlayer = (player: PlayerRecord) => {
     clearMessages();
     setName(player.name ?? '');
     setPosition(player.position ?? '');
     setTeamName(player.teamName ?? '');
     setJerseyNumber(player.jerseyNumber ?? '');
-    setUniformColor(player.uniformColor ?? '');
     setTraits(player.traits ?? '');
+    setEditingId(player.id);
+    setStatusMessage(`"${player.name}" 선수 정보를 수정하고 있습니다. 변경 후 "수정 내용 저장"을 눌러 주세요.`);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleUseSavedPlayer = (player: PlayerRecord) => {
+    clearMessages();
     saveSelectedPlayer(player);
-    setStatusMessage(`저장된 선수 "${player.name}" 정보를 불러왔습니다. 이제 촬영하기 버튼으로 이동할 수 있습니다.`);
+    setStatusMessage(`"${player.name}" 선수로 촬영을 시작합니다.`);
+    navigate(CAPTURE_PATH);
+  };
+
+  const handleDeleteSavedPlayer = (player: PlayerRecord) => {
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm(`"${player.name}" 선수를 삭제할까요? 되돌릴 수 없습니다.`);
+      if (!ok) return;
+    }
+
+    const remaining = loadAllPlayers().filter((item) => item.id !== player.id);
+    savePlayersToAllKeys(remaining);
+    setSavedPlayers(remaining);
+
+    if (editingId === player.id) {
+      resetForm();
+    }
+
+    setStatusMessage(`"${player.name}" 선수를 삭제했습니다.`);
   };
 
   const upsertCurrentPlayer = () => {
@@ -188,6 +214,31 @@ export default function PlayerRegistrationPage() {
     }
 
     const now = new Date().toISOString();
+    const existing = loadAllPlayers();
+
+    if (editingId) {
+      let updated: PlayerRecord | null = null;
+      const next = existing.map((item) => {
+        if (item.id !== editingId) return item;
+        updated = {
+          ...item,
+          name: name.trim(),
+          position: position.trim(),
+          teamName: teamName.trim(),
+          jerseyNumber: jerseyNumber.trim(),
+          traits: traits.trim(),
+          updatedAt: now,
+        };
+        return updated;
+      });
+
+      if (updated) {
+        savePlayersToAllKeys(next);
+        saveSelectedPlayer(updated);
+        setSavedPlayers(next);
+        return updated;
+      }
+    }
 
     const newPlayer: PlayerRecord = {
       id: createPlayerId(),
@@ -195,13 +246,12 @@ export default function PlayerRegistrationPage() {
       position: position.trim(),
       teamName: teamName.trim(),
       jerseyNumber: jerseyNumber.trim(),
-      uniformColor: uniformColor.trim(),
+      uniformColor: '',
       traits: traits.trim(),
       createdAt: now,
       updatedAt: now,
     };
 
-    const existing = loadAllPlayers();
     const mergedMap = new Map<string, PlayerRecord>();
 
     existing.forEach((player) => {
@@ -238,12 +288,18 @@ export default function PlayerRegistrationPage() {
   };
 
   const handleRegisterOnly = () => {
+    const wasEditing = Boolean(editingId);
     clearMessages();
 
     const finalPlayer = upsertCurrentPlayer();
     if (!finalPlayer) return;
 
-    setStatusMessage(`"${finalPlayer.name}" 선수 정보를 저장했습니다.`);
+    setEditingId(null);
+    setStatusMessage(
+      wasEditing
+        ? `"${finalPlayer.name}" 선수 정보를 수정했습니다.`
+        : `"${finalPlayer.name}" 선수 정보를 저장했습니다.`,
+    );
   };
 
   const handleRegisterAndGo = () => {
@@ -325,16 +381,6 @@ export default function PlayerRegistrationPage() {
               />
             </div>
 
-            <div style={fieldStyle}>
-              <label style={labelStyle}>유니폼 색상</label>
-              <input
-                value={uniformColor}
-                onChange={(event) => setUniformColor(event.target.value)}
-                placeholder="예: 빨강, 파랑, 흰색, 검정"
-                style={inputStyle}
-              />
-            </div>
-
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>선수 특징</label>
               <textarea
@@ -344,7 +390,8 @@ export default function PlayerRegistrationPage() {
                 style={textareaStyle}
               />
               <div style={fieldHelpStyle}>
-                등번호·유니폼 색상·포지션·활동 구역을 구체적으로 입력할수록 해당 선수 중심 분석 정확도가 높아집니다.
+                등번호·포지션·활동 구역을 구체적으로 입력할수록 해당 선수 중심 분석 정확도가 높아집니다.
+                유니폼 색상은 경기마다 달라질 수 있어, 촬영 화면에서 그날의 유니폼을 입력합니다.
               </div>
             </div>
           </div>
@@ -360,7 +407,7 @@ export default function PlayerRegistrationPage() {
                 ...(!canSubmit ? disabledButtonStyle : null),
               }}
             >
-              저장 후 촬영하기
+              {editingId ? '수정 내용 저장 후 촬영하기' : '저장 후 촬영하기'}
             </button>
 
             <button
@@ -372,28 +419,40 @@ export default function PlayerRegistrationPage() {
                 ...(!canSubmit ? disabledButtonStyle : null),
               }}
             >
-              선수 정보 저장
+              {editingId ? '수정 내용 저장' : '선수 정보 저장'}
             </button>
 
-            <button
-              type="button"
-              onClick={handleGoToAnalysis}
-              disabled={!canSubmit}
-              style={{
-                ...outlineButtonStyle,
-                ...(!canSubmit ? disabledButtonStyle : null),
-              }}
-            >
-              촬영하기
-            </button>
+            {editingId ? (
+              <button
+                type="button"
+                onClick={resetForm}
+                style={outlineButtonStyle}
+              >
+                수정 취소
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleGoToAnalysis}
+                disabled={!canSubmit}
+                style={{
+                  ...outlineButtonStyle,
+                  ...(!canSubmit ? disabledButtonStyle : null),
+                }}
+              >
+                촬영하기
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={resetForm}
-              style={{ ...secondaryButtonStyle, gridColumn: '1 / -1' }}
-            >
-              입력 초기화
-            </button>
+            {!editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                style={{ ...secondaryButtonStyle, gridColumn: '1 / -1' }}
+              >
+                입력 초기화
+              </button>
+            )}
           </div>
         </section>
 
@@ -413,7 +472,7 @@ export default function PlayerRegistrationPage() {
           <div style={sectionHeaderStyle}>
             <h2 style={sectionTitleStyle}>저장된 선수 목록</h2>
             <span style={sectionHintStyle}>
-              저장된 선수를 눌러서 입력칸에 다시 불러올 수 있습니다.
+              촬영·수정·삭제를 선택할 수 있습니다.
             </span>
           </div>
 
@@ -424,21 +483,45 @@ export default function PlayerRegistrationPage() {
           ) : (
             <div style={cardGridStyle}>
               {savedPlayers.map((player) => (
-                <button
+                <div
                   key={player.id}
-                  type="button"
-                  onClick={() => handleSelectSavedPlayer(player)}
-                  style={playerCardStyle}
+                  style={{
+                    ...playerCardStyle,
+                    ...(editingId === player.id ? playerCardActiveStyle : null),
+                  }}
                 >
                   <div style={playerCardTitleStyle}>{player.name}</div>
                   <div style={playerMetaStyle}>포지션: {player.position || '-'}</div>
                   <div style={playerMetaStyle}>팀명: {player.teamName || '-'}</div>
                   <div style={playerMetaStyle}>등번호: {player.jerseyNumber || '-'}</div>
-                  <div style={playerMetaStyle}>유니폼: {player.uniformColor || '-'}</div>
                   <div style={playerTraitsStyle}>
                     특징: {player.traits || '-'}
                   </div>
-                </button>
+
+                  <div style={cardActionRowStyle}>
+                    <button
+                      type="button"
+                      onClick={() => handleUseSavedPlayer(player)}
+                      style={cardPrimaryActionStyle}
+                    >
+                      이 선수로 촬영
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleEditSavedPlayer(player)}
+                      style={cardGhostActionStyle}
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSavedPlayer(player)}
+                      style={cardDangerActionStyle}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -678,7 +761,48 @@ const playerCardStyle: CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.08)',
   color: '#fff',
+};
+
+const playerCardActiveStyle: CSSProperties = {
+  border: '1px solid rgba(255,159,2,0.55)',
+  background: 'rgba(255,159,2,0.10)',
+};
+
+const cardActionRowStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '1.4fr 0.8fr 0.8fr',
+  gap: 8,
+  marginTop: 14,
+};
+
+const cardActionBaseStyle: CSSProperties = {
+  minHeight: 42,
+  borderRadius: 11,
+  border: 'none',
+  padding: '0 10px',
+  fontSize: 13,
+  fontWeight: 800,
   cursor: 'pointer',
+};
+
+const cardPrimaryActionStyle: CSSProperties = {
+  ...cardActionBaseStyle,
+  background: '#FF9F02',
+  color: '#171717',
+};
+
+const cardGhostActionStyle: CSSProperties = {
+  ...cardActionBaseStyle,
+  background: 'rgba(255,255,255,0.08)',
+  color: '#fff',
+  border: '1px solid rgba(255,255,255,0.12)',
+};
+
+const cardDangerActionStyle: CSSProperties = {
+  ...cardActionBaseStyle,
+  background: 'rgba(255,90,80,0.14)',
+  color: '#ff8d84',
+  border: '1px solid rgba(255,90,80,0.30)',
 };
 
 const playerCardTitleStyle: CSSProperties = {

@@ -13,6 +13,8 @@ const SELECTED_PLAYER_STORAGE_KEYS = [
   'selected-highlight-player',
 ];
 
+const MATCH_UNIFORM_KEY = 'match-uniform-color';
+
 interface PlayerRecord extends SelectedPlayer {
   id?: string;
   createdAt?: string;
@@ -125,6 +127,7 @@ export default function MobileCapturePage() {
     typeof window !== 'undefined' ? window.innerWidth >= window.innerHeight : true,
   );
   const [allowPortrait, setAllowPortrait] = useState(false);
+  const [todayUniform, setTodayUniform] = useState('');
 
   const hasRecordedVideo = useMemo(() => Boolean(recordedBlob && recordedPreviewUrl), [recordedBlob, recordedPreviewUrl]);
   const isPipelineRunning = pipelineStep === 'uploading' || pipelineStep === 'analyzing';
@@ -140,7 +143,19 @@ export default function MobileCapturePage() {
       return;
     }
     setSelectedPlayer(player);
+
+    const savedUniform = safeReadJSON<string>(sessionStorage, MATCH_UNIFORM_KEY, '');
+    setTodayUniform(savedUniform || player.uniformColor || '');
   }, [navigate]);
+
+  const handleTodayUniformChange = (value: string) => {
+    setTodayUniform(value);
+    try {
+      sessionStorage.setItem(MATCH_UNIFORM_KEY, JSON.stringify(value));
+    } catch {
+      // ignore storage failures
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -465,12 +480,18 @@ export default function MobileCapturePage() {
       setErrorMessage('');
       setStatusMessage(PIPELINE_LABELS.uploading);
 
+      const matchPlayer: PlayerRecord = {
+        ...selectedPlayer,
+        uniformColor: todayUniform.trim(),
+      };
+
       const payload: AiAnalysisPayload = await runMobileAnalysisPipeline(
         file,
-        selectedPlayer,
+        matchPlayer,
         {
           captureMode: 'landscape-player-focus',
           deviceOrientation: isLandscape ? 'landscape' : 'portrait',
+          matchUniformColor: todayUniform.trim(),
         },
         (step) => {
           setPipelineStep(step);
@@ -545,13 +566,22 @@ export default function MobileCapturePage() {
                   <div style={metaLabelStyle}>등번호</div>
                   <div style={metaValueStyle}>{selectedPlayer.jerseyNumber || '-'}</div>
                 </div>
-                <div style={playerMetaItemStyle}>
-                  <div style={metaLabelStyle}>유니폼 색</div>
-                  <div style={metaValueStyle}>{selectedPlayer.uniformColor || '-'}</div>
-                </div>
-                <div style={playerMetaItemStyle}>
+                <div style={{ ...playerMetaItemStyle, gridColumn: '1 / -1' }}>
                   <div style={metaLabelStyle}>식별 힌트</div>
                   <div style={metaValueStyle}>{selectedPlayer.traits || '-'}</div>
+                </div>
+              </div>
+
+              <div style={uniformFieldStyle}>
+                <label style={uniformLabelStyle}>오늘 경기 유니폼 색상</label>
+                <input
+                  value={todayUniform}
+                  onChange={(event) => handleTodayUniformChange(event.target.value)}
+                  placeholder="예: 빨강 상의 / 검정 하의, 흰색, 형광 노랑"
+                  style={uniformInputStyle}
+                />
+                <div style={uniformHelpStyle}>
+                  유니폼은 경기마다 달라질 수 있어요. 오늘 입은 색을 입력하면 해당 선수를 더 정확히 추적합니다.
                 </div>
               </div>
             </div>
@@ -936,6 +966,42 @@ const playerMetaGridStyle: CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
   gap: 8,
+};
+
+const uniformFieldStyle: CSSProperties = {
+  marginTop: 12,
+  padding: 14,
+  borderRadius: 14,
+  background: 'rgba(255,159,2,0.10)',
+  border: '1px solid rgba(255,159,2,0.26)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+};
+
+const uniformLabelStyle: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: '#FFB648',
+};
+
+const uniformInputStyle: CSSProperties = {
+  height: 48,
+  borderRadius: 12,
+  border: '1px solid rgba(255,255,255,0.14)',
+  background: 'rgba(0,0,0,0.25)',
+  color: '#fff',
+  padding: '0 14px',
+  fontSize: 16,
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+};
+
+const uniformHelpStyle: CSSProperties = {
+  fontSize: 12,
+  lineHeight: 1.55,
+  color: 'rgba(255,255,255,0.7)',
 };
 
 const playerMetaItemStyle: CSSProperties = {
