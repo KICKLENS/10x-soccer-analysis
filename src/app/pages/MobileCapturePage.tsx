@@ -585,6 +585,23 @@ export default function MobileCapturePage() {
             </div>
           </div>
 
+          {!isLandscape && (
+            <div style={landscapeHelperStyle}>
+              <button
+                type="button"
+                onClick={requestLandscape}
+                style={landscapeHelperButtonStyle}
+              >
+                <span style={{ fontSize: 18, lineHeight: 1 }}>↻</span>
+                가로 모드로 전환
+              </button>
+              <div style={landscapeHelperTextStyle}>
+                버튼이 안 먹히는 기종이면, 휴대폰의 <strong>화면 자동 회전</strong>을 켠 뒤
+                기기를 옆으로 돌려 가로로 촬영해 주세요. 가로 촬영이 선수 추적·좌우 흐름 분석에 가장 정확합니다.
+              </div>
+            </div>
+          )}
+
           <div style={cameraFrameStyle}>
             <video
               ref={videoRef}
@@ -989,6 +1006,40 @@ const badgeStyle: CSSProperties = {
 const landscapeBadgeStyle: CSSProperties = {
   background: 'rgba(80, 200, 120, 0.14)',
   border: '1px solid rgba(80, 200, 120, 0.28)',
+};
+
+const landscapeHelperStyle: CSSProperties = {
+  marginTop: 14,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+  padding: 14,
+  borderRadius: 16,
+  background: 'rgba(255,159,2,0.10)',
+  border: '1px solid rgba(255,159,2,0.26)',
+};
+
+const landscapeHelperButtonStyle: CSSProperties = {
+  width: '100%',
+  minHeight: 50,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  borderRadius: 14,
+  border: 'none',
+  background: '#FF9F02',
+  color: '#171717',
+  fontSize: 16,
+  fontWeight: 800,
+  cursor: 'pointer',
+};
+
+const landscapeHelperTextStyle: CSSProperties = {
+  margin: 0,
+  color: 'rgba(255,255,255,0.78)',
+  fontSize: 12.5,
+  lineHeight: 1.6,
 };
 
 const portraitBadgeStyle: CSSProperties = {
