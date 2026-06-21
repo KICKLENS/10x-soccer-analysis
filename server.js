@@ -48,6 +48,10 @@ const r2Client = R2_ENABLED
       // R2 와일드카드 인증서(*.r2.cloudflarestorage.com)는 버킷 서브도메인을 커버하지 못하므로
       // 가상호스팅 방식 대신 경로 방식(path-style)을 사용해야 브라우저 직접 업로드 TLS가 통과됨
       forcePathStyle: true,
+      // AWS SDK v3 기본 무결성 체크섬(x-amz-checksum-crc32)이 presign에 빈 본문 기준으로 붙어
+      // 브라우저가 실제 파일을 올리면 체크섬 불일치로 R2가 거부함 → 필요할 때만 계산하도록 비활성화
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
       credentials: {
         accessKeyId: R2_ACCESS_KEY_ID,
         secretAccessKey: R2_SECRET_ACCESS_KEY,
