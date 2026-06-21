@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, Trash2, Star, Trophy } from 'lucide-react';
+import { ArrowLeft, Trash2, Star, Trophy, Video, X, Play } from 'lucide-react';
+import { isTrainingUploadEnabled, uploadTrainingVideo } from '../lib/trainingVideo';
 
 const STORAGE_KEY = 'training-journal-entries';
 
@@ -48,6 +49,7 @@ type JournalEntry = {
   toImprove: string;
   rating: number;
   coachNote: string;
+  videoUrl?: string;
   xp: number;
   createdAt: string;
 };
@@ -128,9 +130,50 @@ export default function TrainingJournalPage() {
   const [coachNote, setCoachNote] = useState('');
   const [savedXp, setSavedXp] = useState<number | null>(null);
 
+  const [videoUrl, setVideoUrl] = useState('');
+  const [uploadEnabled, setUploadEnabled] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoError, setVideoError] = useState('');
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setEntries(loadEntries());
+    isTrainingUploadEnabled().then(setUploadEnabled);
   }, []);
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      setVideoError('영상 파일만 올릴 수 있어요.');
+      return;
+    }
+    if (file.size > 300 * 1024 * 1024) {
+      setVideoError('영상이 너무 커요 (최대 300MB). 더 짧게 촬영하거나 화질을 낮춰 주세요.');
+      return;
+    }
+
+    setVideoError('');
+    setUploadingVideo(true);
+    setVideoProgress(0);
+    try {
+      const url = await uploadTrainingVideo(file, setVideoProgress);
+      setVideoUrl(url);
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : '영상 업로드에 실패했어요.');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const removeVideo = () => {
+    setVideoUrl('');
+    setVideoError('');
+    setVideoProgress(0);
+  };
 
   const xp = useMemo(() => {
     let total = 0;
@@ -142,8 +185,9 @@ export default function TrainingJournalPage() {
     if (toImprove.trim()) total += 15;
     if (rating > 0) total += 10;
     if (coachNote.trim()) total += 10;
+    if (videoUrl) total += 20;
     return total;
-  }, [mood, goal, learned, skills, wentWell, toImprove, rating, coachNote]);
+  }, [mood, goal, learned, skills, wentWell, toImprove, rating, coachNote, videoUrl]);
 
   const totalXp = useMemo(() => entries.reduce((sum, e) => sum + (e.xp || 0), 0), [entries]);
   const level = Math.floor(totalXp / 100) + 1;
@@ -168,6 +212,9 @@ export default function TrainingJournalPage() {
     setToImprove('');
     setRating(0);
     setCoachNote('');
+    setVideoUrl('');
+    setVideoError('');
+    setVideoProgress(0);
   };
 
   const loadEntryToForm = (entry: JournalEntry) => {
@@ -180,6 +227,9 @@ export default function TrainingJournalPage() {
     setToImprove(entry.toImprove);
     setRating(entry.rating || 0);
     setCoachNote(entry.coachNote || '');
+    setVideoUrl(entry.videoUrl || '');
+    setVideoError('');
+    setVideoProgress(0);
     setSavedXp(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -192,6 +242,10 @@ export default function TrainingJournalPage() {
   };
 
   const handleSave = () => {
+    if (uploadingVideo) {
+      window.alert('영상 업로드가 끝난 뒤 저장해 주세요! ⏳');
+      return;
+    }
     if (xp === 0) {
       window.alert('한 가지라도 기록해 주세요! 😊');
       return;
@@ -207,6 +261,7 @@ export default function TrainingJournalPage() {
       toImprove: toImprove.trim(),
       rating,
       coachNote: coachNote.trim(),
+      videoUrl: videoUrl || undefined,
       xp,
       createdAt: new Date().toISOString(),
     };
@@ -348,6 +403,49 @@ export default function TrainingJournalPage() {
           </div>
         </Card>
 
+        {/* 오늘 훈련 영상 */}
+        <Card title="오늘 훈련 영상" emoji="🎬" hint={uploadEnabled ? '+20 XP' : undefined}>
+          {!uploadEnabled ? (
+            <div style={videoDisabledStyle}>
+              영상 업로드는 곧 열려요! 조금만 기다려 주세요 🙂
+            </div>
+          ) : videoUrl ? (
+            <div>
+              <video src={videoUrl} controls playsInline style={videoPlayerStyle} />
+              <button type="button" onClick={removeVideo} style={videoRemoveBtnStyle}>
+                <X size={15} /> 영상 빼기
+              </button>
+            </div>
+          ) : uploadingVideo ? (
+            <div style={uploadingBoxStyle}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+                영상 올리는 중… {videoProgress}%
+              </div>
+              <div style={progressTrackStyle}>
+                <div style={{ ...progressFillStyle, width: `${Math.max(4, videoProgress)}%` }} />
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => videoInputRef.current?.click()}
+              style={videoUploadBtnStyle}
+            >
+              <Video size={20} />
+              오늘 한 훈련 영상 올리기
+              <span style={videoUploadHintStyle}>고배속 영상도 OK · 최대 300MB</span>
+            </button>
+          )}
+          {videoError ? <div style={videoErrorStyle}>{videoError}</div> : null}
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleVideoSelect}
+            style={{ display: 'none' }}
+          />
+        </Card>
+
         {/* 잘한 점 / 아쉬운 점 */}
         <Card title="오늘 잘한 점" emoji="👍">
           <textarea
@@ -424,7 +522,14 @@ export default function TrainingJournalPage() {
                   <button type="button" onClick={() => loadEntryToForm(e)} style={historyMainBtnStyle}>
                     <span style={{ fontSize: 28 }}>{e.mood || '⚽'}</span>
                     <span style={{ minWidth: 0 }}>
-                      <span style={historyDateStyle}>{prettyDate(e.date)}</span>
+                      <span style={historyDateStyle}>
+                        {prettyDate(e.date)}
+                        {e.videoUrl ? (
+                          <span style={historyVideoBadgeStyle}>
+                            <Play size={10} /> 영상
+                          </span>
+                        ) : null}
+                      </span>
                       <span style={historyGoalStyle}>{e.goal || e.learned || '훈련 기록'}</span>
                     </span>
                     <span style={historyXpStyle}>+{e.xp}XP</span>
@@ -832,4 +937,87 @@ const historyDelBtnStyle: CSSProperties = {
   background: 'rgba(255,90,80,0.12)',
   color: '#ff8d84',
   cursor: 'pointer',
+};
+
+const historyVideoBadgeStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 3,
+  marginLeft: 7,
+  padding: '1px 7px',
+  borderRadius: 999,
+  fontSize: 10.5,
+  fontWeight: 700,
+  color: NAVY,
+  background: YELLOW,
+  verticalAlign: 'middle',
+};
+
+const videoUploadBtnStyle: CSSProperties = {
+  width: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 5,
+  padding: '20px 14px',
+  borderRadius: 15,
+  border: `1.5px dashed ${STROKE}`,
+  background: 'rgba(255,255,255,0.03)',
+  color: '#fff',
+  fontSize: 15,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const videoUploadHintStyle: CSSProperties = {
+  fontSize: 11.5,
+  fontWeight: 500,
+  color: 'rgba(214,228,247,0.55)',
+};
+
+const videoPlayerStyle: CSSProperties = {
+  width: '100%',
+  borderRadius: 13,
+  border: `1px solid ${STROKE}`,
+  background: '#000',
+};
+
+const videoRemoveBtnStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  marginTop: 9,
+  padding: '8px 13px',
+  borderRadius: 11,
+  border: '1px solid rgba(255,90,80,0.3)',
+  background: 'rgba(255,90,80,0.12)',
+  color: '#ff8d84',
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const uploadingBoxStyle: CSSProperties = {
+  borderRadius: 14,
+  border: `1px solid ${STROKE}`,
+  background: 'rgba(8,15,28,0.6)',
+  padding: '16px 15px',
+};
+
+const videoDisabledStyle: CSSProperties = {
+  borderRadius: 13,
+  border: `1px dashed ${STROKE}`,
+  background: 'rgba(255,255,255,0.02)',
+  padding: '16px 14px',
+  textAlign: 'center',
+  fontSize: 13,
+  color: TEXT_SUB,
+};
+
+const videoErrorStyle: CSSProperties = {
+  marginTop: 9,
+  fontSize: 12.5,
+  fontWeight: 600,
+  color: '#ff9a90',
+  lineHeight: 1.5,
 };

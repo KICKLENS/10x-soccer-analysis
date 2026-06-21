@@ -6,7 +6,10 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import multer from 'multer';
 import { spawn } from 'child_process';
+import crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +31,26 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0
 const QC_FRAME_WIDTH = Number(process.env.QC_FRAME_WIDTH) || 768;
 const QC_FRAMES_PER_CLIP = Math.max(1, Math.min(2, Number(process.env.QC_FRAMES_PER_CLIP) || 2));
 const QC_MAX_CLIPS = Math.max(1, Number(process.env.QC_MAX_CLIPS) || 8);
+
+// Cloudflare R2 (훈련일지 영상 저장용) 설정
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_BUCKET = process.env.R2_BUCKET || 'training-videos';
+const R2_PUBLIC_BASE = (process.env.R2_PUBLIC_BASE || '').replace(/\/$/, '');
+const R2_ENABLED = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_PUBLIC_BASE);
+const R2_MAX_UPLOAD_MB = Number(process.env.R2_MAX_UPLOAD_MB) || 300;
+
+const r2Client = R2_ENABLED
+  ? new S3Client({
+      region: 'auto',
+      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: R2_ACCESS_KEY_ID,
+        secretAccessKey: R2_SECRET_ACCESS_KEY,
+      },
+    })
+  : null;
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '500mb' }));
@@ -765,8 +788,62 @@ app.get('/api/health', (_req, res) => {
     geminiKey: Boolean(process.env.GEMINI_API_KEY),
     geminiModels: GEMINI_MODELS,
     yoloScript: fs.existsSync(YOLO_SCRIPT),
+    r2Enabled: R2_ENABLED,
     timestamp: new Date().toISOString(),
   });
+});
+
+function sanitizeExt(name = '') {
+  const match = String(name).toLowerCase().match(/\.([a-z0-9]{1,5})$/);
+  return match ? match[1] : 'mp4';
+}
+
+// 훈련일지 영상 업로드용 presigned URL 발급 (영상은 R2로 직접 업로드 → 서버 트래픽 0)
+app.post('/api/training-journal/presign-upload', async (req, res) => {
+  try {
+    if (!R2_ENABLED || !r2Client) {
+      res.status(503).json({ success: false, error: '영상 저장소(R2)가 아직 설정되지 않았습니다.' });
+      return;
+    }
+
+    const { fileName, contentType, fileSize } = req.body || {};
+    const ct = String(contentType || '').toLowerCase();
+    if (!ct.startsWith('video/')) {
+      res.status(400).json({ success: false, error: '영상 파일만 업로드할 수 있습니다.' });
+      return;
+    }
+
+    const sizeMb = Number(fileSize) / (1024 * 1024);
+    if (Number.isFinite(sizeMb) && sizeMb > R2_MAX_UPLOAD_MB) {
+      res.status(413).json({
+        success: false,
+        error: `영상 용량이 너무 큽니다. (최대 ${R2_MAX_UPLOAD_MB}MB) 더 짧게 촬영하거나 화질을 낮춰 주세요.`,
+      });
+      return;
+    }
+
+    const ext = sanitizeExt(fileName);
+    const now = new Date();
+    const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const key = `training/${datePart}/${crypto.randomUUID()}.${ext}`;
+
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+      ContentType: ct,
+    });
+    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 });
+
+    res.json({
+      success: true,
+      uploadUrl,
+      publicUrl: `${R2_PUBLIC_BASE}/${key}`,
+      key,
+    });
+  } catch (error) {
+    console.error('[R2] presign 실패:', error);
+    res.status(500).json({ success: false, error: '업로드 주소 발급에 실패했습니다.' });
+  }
 });
 
 app.get('/api/lab/health', (_req, res) => {
