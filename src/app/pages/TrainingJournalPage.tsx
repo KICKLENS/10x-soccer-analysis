@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, Trash2, Star, Trophy, Video, X, Play } from 'lucide-react';
+import { Trash2, Star, Trophy, Video, X, Play } from 'lucide-react';
 import { isTrainingUploadEnabled, uploadTrainingVideo } from '../lib/trainingVideo';
 import TacticalBoard, { type BoardToken } from '../components/TacticalBoard';
+import PageNav from '../components/PageNav';
 
 const STORAGE_KEY = 'training-journal-entries';
 
@@ -130,7 +130,6 @@ function computeStreak(entries: JournalEntry[]): number {
 }
 
 export default function TrainingJournalPage() {
-  const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const learnedRef = useRef<HTMLTextAreaElement>(null);
 
@@ -309,10 +308,8 @@ export default function TrainingJournalPage() {
 
       <div style={{ ...containerStyle, maxWidth: isDesktop ? 1080 : 560 }}>
         {/* 상단 바 */}
-        <div style={topBarStyle}>
-          <button type="button" onClick={() => navigate('/')} style={backBtnStyle}>
-            <ArrowLeft size={16} /> 홈
-          </button>
+        <PageNav />
+        <div style={{ ...topBarStyle, justifyContent: 'flex-end' }}>
           <div style={dateChipStyle}>
             <input
               type="date"
@@ -657,20 +654,6 @@ const topBarStyle: CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
   marginBottom: 10,
-};
-
-const backBtnStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '9px 14px',
-  borderRadius: 12,
-  border: `1px solid ${STROKE}`,
-  background: 'rgba(255,255,255,0.04)',
-  color: '#fff',
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: 'pointer',
 };
 
 const dateChipStyle: CSSProperties = {

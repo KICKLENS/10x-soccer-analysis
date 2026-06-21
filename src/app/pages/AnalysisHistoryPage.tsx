@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Clapperboard, Trash2 } from 'lucide-react';
+import { Clapperboard, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PageNav from '../components/PageNav';
 import {
   deleteAnalysisHistoryItem,
   formatHistoryDate,
@@ -39,6 +40,9 @@ export default function AnalysisHistoryPage() {
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
       <div className="mx-auto w-full max-w-[900px] px-3 py-5 md:px-6 md:py-10 pb-[calc(28px+env(safe-area-inset-bottom))]">
+        <div className="mb-4">
+          <PageNav />
+        </div>
         <div className="mb-5 flex flex-col gap-3 md:mb-8 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/48 md:text-[12px]">
@@ -49,16 +53,6 @@ export default function AnalysisHistoryPage() {
               지금까지 분석한 경기 리포트를 다시 볼 수 있습니다. (이 기기에만 저장됩니다)
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:w-auto md:px-5"
-            style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
-          >
-            <ArrowLeft size={16} />
-            홈으로
-          </button>
         </div>
 
         {items.length === 0 ? (

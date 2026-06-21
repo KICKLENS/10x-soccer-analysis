@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PageNav from '../components/PageNav';
 
 const CAPTURE_PATH = '/mobile-capture';
 
@@ -325,6 +326,7 @@ export default function PlayerRegistrationPage() {
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
+        <PageNav />
         <section style={heroCardStyle}>
           <div style={eyebrowStyle}>PLAYER REGISTRATION</div>
           <h1 style={heroTitleStyle}>선수 등록</h1>

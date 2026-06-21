@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchJson, readSelectedPlayer, readSelectedPlayerPosition, toAbsoluteUrl } from '../lib/api';
 import { saveAnalysisToHistory } from '../lib/analysisHistory';
 import type { AiAnalysisPayload as HistoryAiAnalysisPayload } from '../lib/analysisFlow';
+import PageNav from '../components/PageNav';
 
 const UPLOAD_ENDPOINT = '/api/upload';
 const EXTRACT_ENDPOINT = '/api/extract-highlights';
@@ -483,6 +484,9 @@ export default function VideoAnalysisPage() {
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
       <div className="mx-auto w-full max-w-[1480px] px-3 py-5 md:px-6 md:py-10 lg:px-10 lg:py-12 pb-[calc(28px+env(safe-area-inset-bottom))]">
+        <div className="mb-4">
+          <PageNav />
+        </div>
         <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/48 md:text-[12px] md:tracking-[0.32em]">

@@ -8,6 +8,7 @@ import {
 } from '../lib/analysisFlow';
 import { saveAnalysisToHistory } from '../lib/analysisHistory';
 import { type SelectedPlayer } from '../lib/api';
+import PageNav from '../components/PageNav';
 
 const SELECTED_PLAYER_STORAGE_KEYS = [
   'highlight-selected-player',
@@ -574,6 +575,7 @@ export default function MobileCapturePage() {
     <div style={pageStyle}>
       <style>{'@keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }'}</style>
       <div style={containerStyle}>
+        <PageNav />
         <section style={heroCardStyle}>
           <div style={eyebrowStyle}>선수 촬영</div>
           <h1 style={heroTitleStyle}>경기 촬영하기</h1>

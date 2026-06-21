@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Download, History, Share2, Sparkles } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toAbsoluteUrl, type SelectedPlayer } from '../lib/api';
+import PageNav from '../components/PageNav';
 
 const STORAGE_KEY = 'ai-analysis-payload';
 
@@ -132,6 +133,9 @@ export default function AiVideoAnalysisPage() {
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
       <div className="mx-auto w-full max-w-[1200px] px-3 py-5 md:px-6 md:py-10 pb-[calc(28px+env(safe-area-inset-bottom))]">
+        <div className="mb-4">
+          <PageNav />
+        </div>
         <div className="mb-5 flex flex-col gap-3 md:mb-8 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/48 md:text-[12px] md:tracking-[0.32em]">
