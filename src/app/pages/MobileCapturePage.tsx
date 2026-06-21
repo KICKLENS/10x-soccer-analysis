@@ -282,6 +282,37 @@ export default function MobileCapturePage() {
     }
   };
 
+  const exitLandscape = async () => {
+    try {
+      const orientationApi = screen.orientation as ScreenOrientation & {
+        unlock?: () => void;
+      };
+      orientationApi?.unlock?.();
+    } catch {
+      // ignore
+    }
+
+    try {
+      const doc = document as Document & {
+        webkitExitFullscreen?: () => Promise<void> | void;
+        webkitFullscreenElement?: Element | null;
+      };
+
+      if (document.fullscreenElement || doc.webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen().catch(() => undefined);
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    setAllowPortrait(false);
+    setStatusMessage('세로 모드로 돌아왔습니다. 필요하면 다시 "가로 모드로 전환"을 눌러 주세요.');
+  };
+
   const stopTimer = () => {
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
@@ -645,6 +676,16 @@ export default function MobileCapturePage() {
               <div style={topHintPillStyle}>
                 선수를 중앙 가이드 안에 맞춰 주세요
               </div>
+
+              {isLandscape && (
+                <button
+                  type="button"
+                  onClick={exitLandscape}
+                  style={landscapeExitButtonStyle}
+                >
+                  ✕ 가로 종료
+                </button>
+              )}
 
               {!isLandscape && !allowPortrait && (
                 <div style={rotateOverlayStyle}>
@@ -1154,6 +1195,27 @@ const topHintPillStyle: CSSProperties = {
   color: '#fff',
   fontSize: 13,
   fontWeight: 700,
+  backdropFilter: 'blur(8px)',
+};
+
+const landscapeExitButtonStyle: CSSProperties = {
+  position: 'absolute',
+  top: 12,
+  right: 12,
+  zIndex: 5,
+  pointerEvents: 'auto',
+  minHeight: 40,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '0 14px',
+  borderRadius: 999,
+  background: 'rgba(0,0,0,0.62)',
+  border: '1px solid rgba(255,255,255,0.28)',
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: 800,
+  cursor: 'pointer',
   backdropFilter: 'blur(8px)',
 };
 
