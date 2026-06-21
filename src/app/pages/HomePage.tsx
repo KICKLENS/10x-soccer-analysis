@@ -566,7 +566,7 @@ export default function HomePage() {
             </button>
             <button
               type="button"
-              onClick={() => scrollToId('journal')}
+              onClick={() => goToPage('/training-journal')}
               className="transition hover:text-white"
             >
               훈련일지
@@ -906,8 +906,8 @@ export default function HomePage() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-4">
-                <MetallicButton variant="primary" onClick={() => scrollToId('journal')}>
-                  훈련일지 보기
+                <MetallicButton variant="primary" onClick={() => goToPage('/training-journal')}>
+                  훈련일지 쓰러 가기
                   <ArrowRight size={16} />
                 </MetallicButton>
                 <MetallicButton variant="outline" onClick={() => scrollToId('analysis')}>
