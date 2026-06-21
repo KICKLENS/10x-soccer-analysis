@@ -50,6 +50,9 @@ const GLOBAL_STYLES = [
   /* image layouts. These unlayered rules win and restore intended sizing. */
   '.brand-logo { height: 22px; width: auto; object-fit: contain; }',
   '@media (min-width: 768px) { .brand-logo { height: 26px; } }',
+  '.brand-logo-lg { height: 30px; width: auto; object-fit: contain; }',
+  '@media (min-width: 768px) { .brand-logo-lg { height: 46px; } }',
+  '@media (min-width: 1024px) { .brand-logo-lg { height: 54px; } }',
   '.cover-img { display: block; height: 100%; width: 100%; object-fit: cover; }',
   '.fill-img { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; }',
 ].join('\n');
@@ -447,8 +450,8 @@ export default function HomePage() {
             <img
               src={LOGO_SRC}
               alt="10X AI Sports"
-              className="brand-logo block"
-              style={{ maxWidth: '160px' }}
+              className="brand-logo-lg block"
+              style={{ maxWidth: '280px' }}
             />
           </button>
 
