@@ -74,6 +74,19 @@ function prettyDate(iso: string): string {
   }
 }
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(min-width: 900px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return isDesktop;
+}
+
 function loadEntries(): JournalEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -118,6 +131,7 @@ function computeStreak(entries: JournalEntry[]): number {
 
 export default function TrainingJournalPage() {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const learnedRef = useRef<HTMLTextAreaElement>(null);
 
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -285,11 +299,15 @@ export default function TrainingJournalPage() {
     setTimeout(() => setSavedXp(null), 6000);
   };
 
+  const cardsWrapStyle: CSSProperties = isDesktop
+    ? { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16, rowGap: 0, alignItems: 'start' }
+    : { display: 'grid', gridTemplateColumns: '1fr', columnGap: 0, rowGap: 0 };
+
   return (
     <div style={pageStyle}>
       <div style={pitchBgStyle} />
 
-      <div style={containerStyle}>
+      <div style={{ ...containerStyle, maxWidth: isDesktop ? 1080 : 560 }}>
         {/* 상단 바 */}
         <div style={topBarStyle}>
           <button type="button" onClick={() => navigate('/')} style={backBtnStyle}>
@@ -341,6 +359,7 @@ export default function TrainingJournalPage() {
           </div>
         )}
 
+        <div style={cardsWrapStyle}>
         {/* 오늘의 기분 */}
         <Card title="오늘 기분은 어때요?" emoji="💛">
           <div style={moodRowStyle}>
@@ -372,11 +391,18 @@ export default function TrainingJournalPage() {
         </Card>
 
         {/* 전술판 복습 */}
-        <Card title="전술판으로 복습하기" emoji="📋" hint="배치하면 +10 XP">
+        <Card
+          title="전술판으로 복습하기"
+          emoji="📋"
+          hint="배치하면 +10 XP"
+          style={isDesktop ? { gridColumn: '1 / -1' } : undefined}
+        >
           <p style={boardDescStyle}>
             오늘 배운 훈련이나 경기 중 중요한 순간을 필드 위에 직접 배치해 복습해 봐요.
           </p>
-          <TacticalBoard value={board} onChange={setBoard} />
+          <div style={isDesktop ? { maxWidth: 860, margin: '0 auto' } : undefined}>
+            <TacticalBoard value={board} onChange={setBoard} />
+          </div>
         </Card>
 
         {/* 기본기 훈련 체크 */}
@@ -511,6 +537,8 @@ export default function TrainingJournalPage() {
           />
         </Card>
 
+        </div>
+
         {/* 저장 */}
         <div style={saveBarStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -531,7 +559,7 @@ export default function TrainingJournalPage() {
           {entries.length === 0 ? (
             <div style={emptyHistoryStyle}>아직 저장된 일지가 없어요. 첫 일지를 써볼까요? ✍️</div>
           ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr' }}>
               {entries.map((e) => (
                 <div key={e.id} style={historyCardStyle}>
                   <button type="button" onClick={() => loadEntryToForm(e)} style={historyMainBtnStyle}>
@@ -575,14 +603,16 @@ function Card({
   emoji,
   hint,
   children,
+  style,
 }: {
   title: string;
   emoji: string;
   hint?: string;
   children: React.ReactNode;
+  style?: CSSProperties;
 }) {
   return (
-    <section style={cardStyle}>
+    <section style={{ ...cardStyle, ...style }}>
       <div style={cardHeaderStyle}>
         <span style={{ fontSize: 20 }}>{emoji}</span>
         <h3 style={cardTitleStyle}>{title}</h3>
