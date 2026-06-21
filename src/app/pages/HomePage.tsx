@@ -130,7 +130,7 @@ function SectionHeading({
   description,
   align = 'left',
 }: {
-  title: string;
+  title: ReactNode;
   description: string;
   align?: 'left' | 'center';
 }) {
@@ -582,13 +582,17 @@ export default function HomePage() {
       >
         <div className="mb-7 text-center md:mb-12">
           <div className="flex justify-center">
-            <SectionBadge>How it works</SectionBadge>
+            <SectionBadge>10X Growth Path</SectionBadge>
           </div>
           <div className="mt-5 flex justify-center">
             <SectionHeading
               align="center"
-              title="필요한 기능만, 한눈에"
-              description="촬영부터 훈련일지까지 6단계 흐름입니다. 원하는 단계를 눌러 바로 시작하세요."
+              title={
+                <>
+                  지금보다 <span style={{ color: POINT_COLOR }}>10배</span> 빠르게 성장하는 길
+                </>
+              }
+              description="촬영 → 업로드 → 하이라이트 → 보관 → AI 분석 → 훈련일지. 이 6단계 흐름이 실력을 10배로 끌어올립니다. 원하는 단계를 눌러 지금 시작하세요."
             />
           </div>
         </div>
