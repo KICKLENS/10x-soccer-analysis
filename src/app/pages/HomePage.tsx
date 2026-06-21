@@ -3,10 +3,16 @@ import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import {
   ArrowRight,
   Archive,
+  BarChart3,
   Brain,
+  CheckCircle2,
+  ClipboardList,
   NotebookPen,
+  PlayCircle,
+  Radar,
   Scissors,
   Sparkles,
+  Target,
   Upload,
   Video,
 } from 'lucide-react';
@@ -23,6 +29,11 @@ const PAGE_LINKS = {
 const LOGO_SRC = '/10x-ai-sports-logo.png';
 const HERO_IMAGE = '/hero-ai-soccer.png';
 const SHOWCASE_IMAGE = '/showcase-ai-vision.jpg';
+
+const SERVICE_THUMB_HIGHLIGHT = '/service-thumb-highlight.png';
+const SERVICE_THUMB_ANALYSIS = '/service-thumb-analysis.png';
+const SERVICE_THUMB_JOURNAL = '/service-thumb-journal.png';
+const ANALYSIS_DASHBOARD_IMAGE = '/analysis-dashboard.png';
 
 const PAGE_BG = '#070b14';
 const CARD_BG_SOLID = '#0d1220';
@@ -315,6 +326,109 @@ function FloatingParticles() {
   );
 }
 
+function BenefitItem({
+  icon,
+  title,
+  desc,
+}: {
+  icon: ReactNode;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-[24px] border p-5 md:p-6"
+      style={{
+        borderColor: STROKE,
+        background:
+          'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(255,159,2,0.12),transparent_24%)]" />
+      <div className="relative z-10">
+        <div
+          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border"
+          style={{
+            borderColor: 'rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.04)',
+          }}
+        >
+          {icon}
+        </div>
+        <h3 className="mt-5 text-lg font-bold text-white">{title}</h3>
+        <p className="mt-3 text-sm leading-7" style={{ color: TEXT_SUB }}>
+          {desc}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ServiceCard({
+  image,
+  eyebrow,
+  title,
+  desc,
+  bullets,
+}: {
+  image: string;
+  eyebrow: string;
+  title: string;
+  desc: string;
+  bullets: string[];
+}) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-[30px] border p-5 md:p-6"
+      style={{
+        borderColor: STROKE,
+        background:
+          'linear-gradient(180deg, rgba(14,19,33,0.96) 0%, rgba(10,14,26,0.98) 100%)',
+        boxShadow: '0 22px 48px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05)',
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(255,159,2,0.10),transparent_22%),radial-gradient(circle_at_84%_80%,rgba(255,255,255,0.04),transparent_18%)]" />
+
+      <div className="relative z-10">
+        <div
+          className="relative mb-5 h-[170px] overflow-hidden rounded-[22px] border md:mb-6 md:h-[180px]"
+          style={{
+            borderColor: 'rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.03)',
+          }}
+        >
+          <SafeImage
+            src={image}
+            alt={title}
+            className="cover-img"
+            fallbackTitle={title}
+            fallbackDesc="서비스 카드용 PNG 썸네일 파일을 public 폴더에 넣어주세요."
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,18,0.04)_0%,rgba(8,10,18,0.26)_100%)]" />
+        </div>
+
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/54">
+          {eyebrow}
+        </p>
+        <h3 className="mt-3 text-xl font-bold text-white md:text-2xl">{title}</h3>
+        <p className="mt-3 text-sm leading-7 md:text-[15px]" style={{ color: TEXT_SUB }}>
+          {desc}
+        </p>
+
+        <div className="mt-5 space-y-3">
+          {bullets.map((item) => (
+            <div key={item} className="flex items-start gap-3">
+              <CheckCircle2 size={18} className="mt-[2px] text-[#FFB648]" />
+              <p className="text-sm leading-7 text-white/76">{item}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FeatureTile({
   step,
   icon,
@@ -600,32 +714,164 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="relative">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
-            {FEATURES.map((feature) => (
-              <FeatureTile
-                key={feature.title}
-                step={feature.step}
-                icon={feature.icon}
-                title={feature.title}
-                desc={feature.desc}
-                onClick={feature.onClick}
-              />
-            ))}
-          </div>
-
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
-            <img
-              src="/10x-mark.png"
-              alt="10X"
-              className="w-[82%] max-w-[720px]"
-              style={{
-                opacity: 0.28,
-                mixBlendMode: 'screen',
-                filter: 'drop-shadow(0 0 18px rgba(255,159,2,0.18))',
-              }}
-              draggable={false}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
+          {FEATURES.map((feature) => (
+            <FeatureTile
+              key={feature.title}
+              step={feature.step}
+              icon={feature.icon}
+              title={feature.title}
+              desc={feature.desc}
+              onClick={feature.onClick}
             />
+          ))}
+        </div>
+
+        <div className="mt-10 grid gap-3 md:mt-16 md:grid-cols-3 md:gap-4">
+          <BenefitItem
+            icon={<PlayCircle size={18} className="text-[#FFB648]" />}
+            title="핵심 장면을 빠르게 포착"
+            desc="긴 경기 영상에서 중요한 순간만 더 빠르게 확인하고, 다시 봐야 할 포인트를 선명하게 정리합니다."
+          />
+          <BenefitItem
+            icon={<Target size={18} className="text-[#FFB648]" />}
+            title="훈련 포인트로 즉시 연결"
+            desc="좋았던 장면과 아쉬운 장면을 단순 기록에서 끝내지 않고, 다음 훈련 액션으로 바로 이어줍니다."
+          />
+          <BenefitItem
+            icon={<ClipboardList size={18} className="text-[#FFB648]" />}
+            title="리포트와 일지를 한 흐름으로"
+            desc="분석, 리포트, 훈련일지가 끊기지 않도록 연결해 코치와 선수 모두 보기 쉬운 구조를 만듭니다."
+          />
+        </div>
+      </section>
+
+      <section
+        id="services"
+        className="scroll-mt-24 mx-auto w-full max-w-[1240px] px-4 py-10 md:px-6 md:py-16 lg:px-10"
+      >
+        <div className="mb-7 text-center md:mb-12">
+          <div className="flex justify-center">
+            <SectionBadge>Core Services</SectionBadge>
+          </div>
+          <div className="mt-5 flex justify-center">
+            <SectionHeading
+              align="center"
+              title="실제 쓰임이 바로 보이는 서비스"
+              description="촬영·분석·기록이 어떻게 이어지는지, 한눈에 보이도록 정리했습니다."
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-3 md:gap-6">
+          <ServiceCard
+            image={SERVICE_THUMB_HIGHLIGHT}
+            eyebrow="MATCH HIGHLIGHT"
+            title="경기 핵심 장면 자동 정리"
+            desc="긴 경기에서 중요한 순간만 골라 빠르게 복기할 수 있도록 하이라이트를 자동으로 정리합니다."
+            bullets={['중요 장면 위주로 빠르게 복기', '코칭 포인트가 필요한 순간 확인', '시청 시간 대비 인사이트 효율 향상']}
+          />
+          <ServiceCard
+            image={SERVICE_THUMB_ANALYSIS}
+            eyebrow="AI ANALYSIS"
+            title="AI 분석 결과를 더 직관적으로"
+            desc="수치와 시각화를 함께 보여줘 어떤 장면이 왜 중요했는지 쉽게 이해할 수 있습니다."
+            bullets={['장면별 맥락과 수치 해석 보조', '반복 패턴과 개선 포인트 시각화', '리포트 전환 전 이해도 상승']}
+          />
+          <ServiceCard
+            image={SERVICE_THUMB_JOURNAL}
+            eyebrow="TRAINING JOURNAL"
+            title="훈련일지로 자연스럽게 연결"
+            desc="분석에서 끝나지 않고, 오늘 배운 것과 다음 목표를 가볍게 기록하며 이어갑니다."
+            bullets={['분석에서 훈련일지로 자연스럽게 이동', '다음 훈련 주제 정리와 기록 축적', '선수/코치 간 커뮤니케이션 강화']}
+          />
+        </div>
+      </section>
+
+      <section
+        id="analysis"
+        className="scroll-mt-24 mx-auto w-full max-w-[1240px] px-4 py-10 md:px-6 md:py-16 lg:px-10"
+      >
+        <div
+          className="relative overflow-hidden rounded-[28px] border px-5 py-6 md:rounded-[38px] md:px-8 md:py-8 lg:px-10 lg:py-10"
+          style={{
+            borderColor: STROKE,
+            background: 'linear-gradient(180deg, rgba(13,18,32,0.98) 0%, rgba(8,11,20,1) 100%)',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.28)',
+          }}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_14%,rgba(255,159,2,0.12),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(78,176,255,0.08),transparent_20%)]" />
+
+          <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10">
+            <div className="lg:pr-6">
+              <SectionBadge>AI Analysis</SectionBadge>
+              <div className="mt-5">
+                <SectionHeading
+                  title="AI 코치가 짚어주는 진짜 포인트"
+                  description="단순 이벤트 나열이 아니라, 어느 흐름에서 어떤 장면이 중요했는지 읽기 쉽게 보여줍니다."
+                />
+              </div>
+
+              <div className="mt-6 space-y-3 md:mt-8 md:space-y-4">
+                <div
+                  className="rounded-[20px] border p-4 md:p-5"
+                  style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
+                >
+                  <div className="flex items-start gap-3">
+                    <Radar size={18} className="mt-[3px] text-[#FFB648]" />
+                    <div>
+                      <h3 className="text-base font-bold text-white">장면별 맥락을 더 쉽게 이해</h3>
+                      <p className="mt-2 text-sm leading-7" style={{ color: TEXT_SUB }}>
+                        어느 흐름에서 어떤 장면이 중요했는지 읽기 쉬운 구조로 보여줍니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="rounded-[20px] border p-4 md:p-5"
+                  style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
+                >
+                  <div className="flex items-start gap-3">
+                    <BarChart3 size={18} className="mt-[3px] text-[#FFB648]" />
+                    <div>
+                      <h3 className="text-base font-bold text-white">텍스트와 수치를 함께 정리</h3>
+                      <p className="mt-2 text-sm leading-7" style={{ color: TEXT_SUB }}>
+                        분석 요약·핵심 메트릭·코칭 포인트가 한 화면에서 이어집니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-3 md:mt-9">
+                <MetallicButton variant="primary" onClick={handleStartClick}>
+                  지금 분석 시작
+                  <ArrowRight size={16} />
+                </MetallicButton>
+                <MetallicButton variant="outline" onClick={() => goToPage('/training-journal')}>
+                  훈련일지 보기
+                </MetallicButton>
+              </div>
+            </div>
+
+            <div
+              className="relative h-[210px] overflow-hidden rounded-[22px] border md:h-[380px] md:rounded-[28px] lg:h-[480px]"
+              style={{
+                borderColor: 'rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.02)',
+                boxShadow: '0 22px 50px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)',
+              }}
+            >
+              <SafeImage
+                src={ANALYSIS_DASHBOARD_IMAGE}
+                alt="AI analysis dashboard"
+                className="fill-img"
+                fallbackTitle="Analysis Dashboard"
+                fallbackDesc="public/analysis-dashboard.png 파일을 넣으면 AI 분석 이미지가 표시됩니다."
+              />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.02)_0%,rgba(6,9,16,0.20)_100%)]" />
+            </div>
           </div>
         </div>
       </section>
