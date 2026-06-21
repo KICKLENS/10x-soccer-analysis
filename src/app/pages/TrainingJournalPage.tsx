@@ -32,6 +32,8 @@ const SKILLS: SkillOption[] = [
   { id: 'shoot', emoji: '🎯', label: '슈팅' },
   { id: 'trap', emoji: '🧤', label: '볼컨트롤' },
   { id: 'lifting', emoji: '🦶', label: '리프팅' },
+  { id: 'step', emoji: '👟', label: '스텝' },
+  { id: 'jumprope', emoji: '🪢', label: '줄넘기' },
   { id: 'stamina', emoji: '🏃', label: '체력' },
   { id: 'heading', emoji: '🙆', label: '헤딩' },
   { id: 'defense', emoji: '🛡️', label: '수비' },
