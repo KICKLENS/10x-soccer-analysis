@@ -90,6 +90,15 @@ const upload = multer({
   }),
 });
 
+// 훈련일지 영상: 서버 경유 업로드용 (한국 ISP의 R2 직접연결 SNI 차단 우회)
+const trainingUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => cb(null, `training-${Date.now()}.${sanitizeExt(file.originalname)}`),
+  }),
+  limits: { fileSize: (Number(process.env.R2_MAX_UPLOAD_MB) || 300) * 1024 * 1024 },
+});
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -850,6 +859,57 @@ app.post('/api/training-journal/presign-upload', async (req, res) => {
   } catch (error) {
     console.error('[R2] presign 실패:', error);
     res.status(500).json({ success: false, error: '업로드 주소 발급에 실패했습니다.' });
+  }
+});
+
+// 훈련일지 영상: 서버 경유 업로드 (브라우저 → 우리 서버 → R2)
+// 한국 ISP가 <account>.r2.cloudflarestorage.com 직접 연결을 SNI 차단하므로 서버에서 대신 업로드함
+app.post('/api/training-journal/upload', trainingUpload.single('video'), async (req, res) => {
+  const filePath = req.file?.path;
+  try {
+    if (!R2_ENABLED || !r2Client) {
+      res.status(503).json({ success: false, error: '영상 저장소(R2)가 아직 설정되지 않았습니다.' });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ success: false, error: '영상 파일이 없습니다.' });
+      return;
+    }
+
+    const ct = String(req.file.mimetype || '').toLowerCase();
+    if (!ct.startsWith('video/')) {
+      res.status(400).json({ success: false, error: '영상 파일만 업로드할 수 있습니다.' });
+      return;
+    }
+
+    const ext = sanitizeExt(req.file.originalname);
+    const now = new Date();
+    const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const key = `training/${datePart}/${crypto.randomUUID()}.${ext}`;
+
+    const stat = fs.statSync(filePath);
+    await r2Client.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        ContentType: ct,
+        Body: fs.createReadStream(filePath),
+        ContentLength: stat.size,
+      }),
+    );
+
+    res.json({
+      success: true,
+      publicUrl: `${R2_PUBLIC_BASE}/${key}`,
+      key,
+    });
+  } catch (error) {
+    console.error('[R2] 서버 경유 업로드 실패:', error);
+    res.status(500).json({ success: false, error: '영상 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.' });
+  } finally {
+    if (filePath) {
+      fs.promises.unlink(filePath).catch(() => {});
+    }
   }
 });
 

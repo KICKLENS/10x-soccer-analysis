@@ -1,8 +1,7 @@
 import { API_BASE_URL, fetchJson } from './api';
 
-type PresignResponse = {
+type UploadResponse = {
   success: boolean;
-  uploadUrl: string;
   publicUrl: string;
   key: string;
   error?: string;
@@ -10,16 +9,20 @@ type PresignResponse = {
 
 const UPLOAD_TIMEOUT_MS = 15 * 60 * 1000;
 
-function putWithProgress(
-  url: string,
+// 브라우저 → 우리 서버(api.10x.ai.kr) → R2 로 업로드.
+// 한국 ISP가 R2 S3 엔드포인트(<account>.r2.cloudflarestorage.com) 직접 연결을 SNI 차단하므로
+// R2로 직접 PUT하지 않고 서버를 경유한다.
+export async function uploadTrainingVideo(
   file: File,
   onProgress?: (percent: number) => void,
-): Promise<void> {
+): Promise<string> {
   return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append('video', file, file.name);
+
     const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url, true);
+    xhr.open('POST', `${API_BASE_URL}/api/training-journal/upload`, true);
     xhr.timeout = UPLOAD_TIMEOUT_MS;
-    xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && onProgress) {
@@ -28,39 +31,23 @@ function putWithProgress(
     };
 
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
+      let data: UploadResponse | null = null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        data = null;
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && data?.success && data.publicUrl) {
         onProgress?.(100);
-        resolve();
+        resolve(data.publicUrl);
       } else {
-        reject(new Error(`영상 저장 실패 (${xhr.status}). 잠시 후 다시 시도해 주세요.`));
+        reject(new Error(data?.error || `영상 업로드 실패 (${xhr.status}). 잠시 후 다시 시도해 주세요.`));
       }
     };
     xhr.onerror = () => reject(new Error('네트워크 오류로 영상 업로드에 실패했습니다.'));
     xhr.ontimeout = () => reject(new Error('업로드 시간이 초과되었습니다. 더 짧은 영상으로 시도해 주세요.'));
-    xhr.send(file);
+    xhr.send(form);
   });
-}
-
-export async function uploadTrainingVideo(
-  file: File,
-  onProgress?: (percent: number) => void,
-): Promise<string> {
-  const presign = await fetchJson<PresignResponse>('/api/training-journal/presign-upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type || 'video/mp4',
-      fileSize: file.size,
-    }),
-  });
-
-  if (!presign.uploadUrl || !presign.publicUrl) {
-    throw new Error(presign.error || '업로드 주소를 받지 못했습니다.');
-  }
-
-  await putWithProgress(presign.uploadUrl, file, onProgress);
-  return presign.publicUrl;
 }
 
 export async function isTrainingUploadEnabled(): Promise<boolean> {
