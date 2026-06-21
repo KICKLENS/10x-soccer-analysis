@@ -6,6 +6,7 @@ import PlayerRegistrationPage from './pages/PlayerRegistrationPage';
 import VideoAnalysisPage from './pages/VideoAnalysisPage';
 import AiVideoAnalysisPage from './pages/AiVideoAnalysisPage';
 import MobileCapturePage from './pages/MobileCapturePage';
+import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
 import VideoAnalysisPageLab from './pages/VideoAnalysisPageLab';
 import AiVideoAnalysisPageLab from './pages/AiVideoAnalysisPageLab';
 
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
   {
     path: '/mobile-capture',
     element: <MobileCapturePage />,
+  },
+  {
+    path: '/analysis-history',
+    element: <AnalysisHistoryPage />,
   },
   {
     path: '/capture',

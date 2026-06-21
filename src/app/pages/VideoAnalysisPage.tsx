@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchJson, readSelectedPlayer, readSelectedPlayerPosition, toAbsoluteUrl } from '../lib/api';
+import { saveAnalysisToHistory } from '../lib/analysisHistory';
+import type { AiAnalysisPayload as HistoryAiAnalysisPayload } from '../lib/analysisFlow';
 
 const UPLOAD_ENDPOINT = '/api/upload';
 const EXTRACT_ENDPOINT = '/api/extract-highlights';
@@ -442,6 +444,8 @@ export default function VideoAnalysisPage() {
     } catch (error) {
       console.warn('sessionStorage 저장 실패:', error);
     }
+
+    saveAnalysisToHistory(payload as unknown as HistoryAiAnalysisPayload);
 
     navigate('/ai-video-analysis', {
       state: payload,

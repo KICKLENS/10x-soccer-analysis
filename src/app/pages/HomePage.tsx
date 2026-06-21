@@ -13,6 +13,7 @@ import {
   Target,
 } from 'lucide-react';
 import { readSelectedPlayer } from '../lib/api';
+import OnboardingOverlay from '../components/OnboardingOverlay';
 
 const PAGE_LINKS = {
   home: '/',
@@ -517,6 +518,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
       <style>{GLOBAL_STYLES}</style>
+      <OnboardingOverlay />
 
       <header
         className="sticky top-0 z-50 border-b"
@@ -634,6 +636,10 @@ export default function HomePage() {
 
                 <MetallicButton variant="outline" onClick={() => scrollToId('services')}>
                   서비스 보기
+                </MetallicButton>
+
+                <MetallicButton variant="outline" onClick={() => goToPage('/analysis-history')}>
+                  내 분석 기록
                 </MetallicButton>
               </div>
             </div>

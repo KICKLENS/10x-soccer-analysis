@@ -24,6 +24,11 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0
   .map((m) => m.trim())
   .filter(Boolean);
 
+// 비용 최적화: Gemini 시각 검수 단계 파라미터 (환경변수로 조정 가능)
+const QC_FRAME_WIDTH = Number(process.env.QC_FRAME_WIDTH) || 768;
+const QC_FRAMES_PER_CLIP = Math.max(1, Math.min(2, Number(process.env.QC_FRAMES_PER_CLIP) || 2));
+const QC_MAX_CLIPS = Math.max(1, Number(process.env.QC_MAX_CLIPS) || 8);
+
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
@@ -352,11 +357,13 @@ function mergeYoloAndCoachClips(yoloClips, coachClips) {
 
 async function extractClipFrameBase64(videoPath, sec) {
   const tmpPath = path.join(highlightsDir, `qc-frame-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`);
+  // 검수 판정에는 저해상도로 충분하므로 다운스케일하여 Gemini 이미지 토큰 비용 절감
   await runProcess('ffmpeg', [
     '-ss', String(Math.max(0, sec)),
     '-i', videoPath,
     '-frames:v', '1',
-    '-q:v', '3',
+    '-vf', `scale='min(${QC_FRAME_WIDTH},iw)':-2`,
+    '-q:v', '6',
     '-y', tmpPath,
   ]);
   const data = fs.readFileSync(tmpPath).toString('base64');
@@ -380,7 +387,7 @@ function buildVisualVerificationPrompt(clips, player = {}) {
     avgBallConfidence: clip.avgBallConfidence,
   }));
 
-  return `당신은 축구 하이라이트 품질 검수관(QA)입니다. 각 장면에 첨부된 **실제 영상 프레임 2장**을 보고 하이라이트 적합 여부를 판정하세요.
+  return `당신은 축구 하이라이트 품질 검수관(QA)입니다. 각 장면에 첨부된 **실제 영상 프레임 ${QC_FRAMES_PER_CLIP}장**을 보고 하이라이트 적합 여부를 판정하세요.
 
 [분석 대상 선수]
 - 이름: ${playerName}
@@ -390,7 +397,7 @@ function buildVisualVerificationPrompt(clips, player = {}) {
 [검수 대상 장면]
 ${JSON.stringify(clipList, null, 2)}
 
-각 장면 이미지는 순서대로 [장면 id] 라벨 뒤 2장씩 제공됩니다.
+각 장면 이미지는 순서대로 [장면 id] 라벨 뒤 ${QC_FRAMES_PER_CLIP}장씩 제공됩니다.
 
 [반드시 rejected 처리]
 - 선수가 공을 직접 다루지 않고 가만히 서 있거나 대기만 하는 장면
@@ -436,9 +443,11 @@ async function verifyClipsVisually(genAI, videoPath, clips, player = {}) {
 
       try {
         const frameA = await extractClipFrameBase64(videoPath, startSec + 0.4);
-        const frameB = await extractClipFrameBase64(videoPath, midSec);
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: frameA } });
-        parts.push({ inlineData: { mimeType: 'image/jpeg', data: frameB } });
+        if (QC_FRAMES_PER_CLIP >= 2) {
+          const frameB = await extractClipFrameBase64(videoPath, midSec);
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: frameB } });
+        }
       } catch (err) {
         console.warn(`[QC] 프레임 추출 실패 ${clip.id}:`, err.message);
         reviews.push({
@@ -696,7 +705,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   let mergedClips = mergeYoloAndCoachClips(yoloResult.clips, coachSelected.length ? coachSelected : parsed.clips);
 
   console.log(`[QC] 2차 AI 코치 선정 ${mergedClips.length}개 → 시각 검수 시작...`);
-  const visualReviews = await verifyClipsVisually(genAI, fullPath, mergedClips.slice(0, 8), player);
+  const visualReviews = await verifyClipsVisually(genAI, fullPath, mergedClips.slice(0, QC_MAX_CLIPS), player);
   mergedClips = applyQualityGate(mergedClips, player, visualReviews);
 
   if (!mergedClips.length) {

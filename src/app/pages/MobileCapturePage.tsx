@@ -6,6 +6,7 @@ import {
   type AiAnalysisPayload,
   type AnalysisPipelineStep,
 } from '../lib/analysisFlow';
+import { saveAnalysisToHistory } from '../lib/analysisHistory';
 import { type SelectedPlayer } from '../lib/api';
 
 const SELECTED_PLAYER_STORAGE_KEYS = [
@@ -39,6 +40,8 @@ const PIPELINE_LABELS: Record<AnalysisPipelineStep, string> = {
   analyzing: 'AI 하이라이트·코치 분석 중... (2~12분)',
   done: '분석 완료',
 };
+
+const LARGE_FILE_WARN_BYTES = 600 * 1024 * 1024;
 
 type WakeLockSentinelLike = {
   release: () => Promise<void>;
@@ -122,6 +125,7 @@ export default function MobileCapturePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<AnalysisPipelineStep>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<UploadResponseData | null>(null);
   const [isLandscape, setIsLandscape] = useState(
     typeof window !== 'undefined' ? window.innerWidth >= window.innerHeight : true,
@@ -507,6 +511,7 @@ export default function MobileCapturePage() {
 
     try {
       setIsUploading(true);
+      setUploadProgress(0);
       setPipelineStep('uploading');
       setErrorMessage('');
       setStatusMessage(PIPELINE_LABELS.uploading);
@@ -530,8 +535,10 @@ export default function MobileCapturePage() {
             setStatusMessage(PIPELINE_LABELS.analyzing);
           }
         },
+        (percent) => setUploadProgress(percent),
       );
 
+      saveAnalysisToHistory(payload);
       setUploadResult({ success: true, fileName: payload.uploadedVideoFileName });
       setStatusMessage('분석이 완료되었습니다. 코치 피드백 화면으로 이동합니다.');
       navigate('/ai-video-analysis', { state: payload });
@@ -793,7 +800,11 @@ export default function MobileCapturePage() {
                 <div
                   style={{
                     ...pipelineBarFillStyle,
-                    width: pipelineStep === 'uploading' ? '35%' : '78%',
+                    width:
+                      pipelineStep === 'uploading'
+                        ? `${Math.max(4, uploadProgress)}%`
+                        : '92%',
+                    transition: 'width 0.3s ease',
                   }}
                 />
               </div>
@@ -805,11 +816,13 @@ export default function MobileCapturePage() {
           <section style={pipelineOverlayCardStyle}>
             <div style={pipelineSpinnerStyle}>●</div>
             <h2 style={pipelineOverlayTitleStyle}>
-              {pipelineStep === 'uploading' ? '영상 업로드 중' : 'AI 분석 중'}
+              {pipelineStep === 'uploading'
+                ? `영상 업로드 중 ${uploadProgress}%`
+                : 'AI 분석 중'}
             </h2>
             <p style={pipelineOverlayDescStyle}>
               {pipelineStep === 'uploading'
-                ? '촬영한 영상을 서버로 전송하고 있습니다.'
+                ? '촬영한 영상을 서버로 전송하고 있습니다. 업로드가 끝나면 자동으로 분석이 시작됩니다.'
                 : '등록한 선수 중심으로 하이라이트를 추출하고 코치 피드백을 생성합니다. 화면을 켜 두어 주세요.'}
             </p>
           </section>
@@ -828,6 +841,15 @@ export default function MobileCapturePage() {
                 <div style={recordInfoMetaStyle}>
                   길이: {formatDuration(recordSeconds)} · 크기: {formatFileSize(recordedFile?.size || 0)}
                 </div>
+                {(recordedFile?.size || 0) > LARGE_FILE_WARN_BYTES ? (
+                  <div style={recordWarnStyle}>
+                    ⚠ 영상 용량이 큽니다. 업로드가 오래 걸릴 수 있으니 와이파이 환경을 권장합니다.
+                  </div>
+                ) : (
+                  <div style={recordTipStyle}>
+                    💡 안정적인 업로드를 위해 와이파이 연결을 권장합니다. (최대 약 20분 권장)
+                  </div>
+                )}
               </div>
 
               <div style={previewWrapStyle}>
@@ -849,7 +871,11 @@ export default function MobileCapturePage() {
                     ...(canStartAnalysis ? null : disabledButtonStyle),
                   }}
                 >
-                  {isPipelineRunning ? '분석 진행 중...' : 'AI 분석 시작'}
+                  {isPipelineRunning
+                    ? '분석 진행 중...'
+                    : errorMessage
+                      ? '다시 분석 시도'
+                      : 'AI 분석 시작'}
                 </button>
 
                 <button
@@ -1435,6 +1461,21 @@ const recordInfoMetaStyle: CSSProperties = {
   fontSize: 13,
   color: 'rgba(255,255,255,0.76)',
   lineHeight: 1.7,
+};
+
+const recordTipStyle: CSSProperties = {
+  marginTop: 8,
+  fontSize: 12,
+  color: 'rgba(255,255,255,0.55)',
+  lineHeight: 1.6,
+};
+
+const recordWarnStyle: CSSProperties = {
+  marginTop: 8,
+  fontSize: 12.5,
+  fontWeight: 600,
+  color: '#ffd27a',
+  lineHeight: 1.6,
 };
 
 const previewWrapStyle: CSSProperties = {

@@ -1,4 +1,4 @@
-import { fetchJson, readSelectedPlayer, toAbsoluteUrl, type SelectedPlayer } from './api';
+import { API_BASE_URL, fetchJson, readSelectedPlayer, toAbsoluteUrl, type SelectedPlayer } from './api';
 
 export type HighlightClip = {
   id?: string;
@@ -56,10 +56,72 @@ export type AiAnalysisPayload = {
 
 export type AnalysisPipelineStep = 'idle' | 'uploading' | 'analyzing' | 'done';
 
+const UPLOAD_TIMEOUT_MS = 30 * 60 * 1000;
+
+function uploadFormDataWithProgress(
+  url: string,
+  formData: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<UploadResponse> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(Math.min(99, percent));
+      }
+    };
+
+    xhr.onload = () => {
+      const contentType = xhr.getResponseHeader('content-type') || '';
+      const body = xhr.responseText || '';
+
+      if (!contentType.includes('application/json')) {
+        reject(
+          new Error(
+            body.startsWith('<!DOCTYPE') || body.startsWith('<html')
+              ? `서버 연결에 문제가 있습니다 (${xhr.status}). 잠시 후 다시 시도해 주세요.`
+              : body || `업로드 응답 오류 (${xhr.status})`,
+          ),
+        );
+        return;
+      }
+
+      let data: UploadResponse & { error?: string; message?: string };
+      try {
+        data = JSON.parse(body);
+      } catch {
+        reject(new Error('업로드 응답을 해석하지 못했습니다.'));
+        return;
+      }
+
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(data.error || data.message || `업로드 실패 (${xhr.status})`));
+        return;
+      }
+
+      onProgress?.(100);
+      resolve(data);
+    };
+
+    xhr.onerror = () =>
+      reject(new Error('네트워크 오류로 업로드에 실패했습니다. 연결 상태를 확인해 주세요.'));
+    xhr.ontimeout = () =>
+      reject(new Error('업로드 시간이 초과되었습니다. 와이파이 환경에서 다시 시도하거나 더 짧게 촬영해 주세요.'));
+    xhr.onabort = () => reject(new Error('업로드가 취소되었습니다.'));
+
+    xhr.send(formData);
+  });
+}
+
 export async function uploadVideoFile(
   file: File,
   player?: SelectedPlayer,
   extras?: Record<string, string>,
+  onProgress?: (percent: number) => void,
 ): Promise<{ fileName: string; videoUrl: string; analysisId: string }> {
   const formData = new FormData();
   formData.append('video', file);
@@ -81,10 +143,11 @@ export async function uploadVideoFile(
     }
   }
 
-  const data = await fetchJson<UploadResponse>('/api/upload', {
-    method: 'POST',
-    body: formData,
-  });
+  const data = await uploadFormDataWithProgress(
+    `${API_BASE_URL}/api/upload`,
+    formData,
+    onProgress,
+  );
 
   const fileName = data.fileName || data.savedFilename || '';
   const videoUrl = toAbsoluteUrl(data.videoUrl || '');
@@ -155,9 +218,10 @@ export async function runMobileAnalysisPipeline(
   player: SelectedPlayer,
   extras?: Record<string, string>,
   onStep?: (step: AnalysisPipelineStep) => void,
+  onUploadProgress?: (percent: number) => void,
 ): Promise<AiAnalysisPayload> {
   onStep?.('uploading');
-  const upload = await uploadVideoFile(file, player, extras);
+  const upload = await uploadVideoFile(file, player, extras, onUploadProgress);
 
   onStep?.('analyzing');
   const extract = await extractHighlightsForPlayer(upload.fileName, player);

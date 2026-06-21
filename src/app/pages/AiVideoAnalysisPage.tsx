@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Download, History, Share2, Sparkles } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toAbsoluteUrl, type SelectedPlayer } from '../lib/api';
 
@@ -77,15 +77,57 @@ export default function AiVideoAnalysisPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [shareNotice, setShareNotice] = useState('');
+
   const payload = useMemo(() => {
     const statePayload = location.state as AnalysisPayload | null;
     if (statePayload) return statePayload;
     return parseStoredPayload();
   }, [location.state]);
 
+  useEffect(() => {
+    if (location.state) {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(location.state));
+      } catch {
+        // ignore
+      }
+    }
+  }, [location.state]);
+
   const clips = payload?.highlightClips || [];
   const summary = payload?.summary;
   const highlightUrl = toAbsoluteUrl(payload?.highlightVideoUrl || '');
+
+  const handleShare = async () => {
+    const shareUrl = highlightUrl || window.location.href;
+    const title = `${payload?.player?.name || '선수'} AI 코치 분석 리포트`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: title, url: shareUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      setShareNotice('링크가 복사되었습니다.');
+      setTimeout(() => setShareNotice(''), 2500);
+    } catch {
+      // user cancelled share or clipboard blocked
+    }
+  };
+
+  const handleDownload = () => {
+    if (!highlightUrl) return;
+    const a = document.createElement('a');
+    a.href = highlightUrl;
+    a.download = payload?.uploadedVideoFileName
+      ? `highlight_${payload.uploadedVideoFileName}`
+      : 'highlight.mp4';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   return (
     <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
@@ -101,16 +143,67 @@ export default function AiVideoAnalysisPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/video-analysis')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:w-auto md:px-5"
-            style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
-          >
-            <ArrowLeft size={16} />
-            하이라이트 페이지로
-          </button>
+          {payload ? (
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-black transition active:scale-[0.98] md:px-5"
+                style={{ background: '#FF9F02' }}
+              >
+                <Share2 size={16} />
+                공유하기
+              </button>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={!highlightUrl}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 disabled:opacity-40 md:px-5"
+                style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
+              >
+                <Download size={16} />
+                영상 저장
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/analysis-history')}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:px-5"
+                style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
+              >
+                <History size={16} />
+                내 기록
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/video-analysis')}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:px-5"
+                style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
+              >
+                <ArrowLeft size={16} />
+                하이라이트
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/video-analysis')}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:w-auto md:px-5"
+              style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
+            >
+              <ArrowLeft size={16} />
+              하이라이트 페이지로
+            </button>
+          )}
         </div>
+
+        {shareNotice ? (
+          <div
+            className="mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold text-emerald-200"
+            style={{ borderColor: 'rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.12)' }}
+          >
+            {shareNotice}
+          </div>
+        ) : null}
 
         {!payload ? (
           <div
