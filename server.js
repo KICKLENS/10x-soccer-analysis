@@ -919,29 +919,6 @@ app.post('/api/training-journal/upload', trainingUpload.single('video'), async (
   }
 });
 
-// 임시 진단: Railway에서 R2 후보 엔드포인트로 TLS 연결되는지 확인
-app.get('/api/debug/r2tls', async (_req, res) => {
-  const tls = await import('tls');
-  const hosts = [
-    `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    `${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`,
-    `${R2_BUCKET}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    'r2.cloudflarestorage.com',
-  ];
-  const testHost = (host) =>
-    new Promise((resolve) => {
-      const socket = tls.connect({ host, port: 443, servername: host, timeout: 8000 }, () => {
-        const cert = socket.getPeerCertificate();
-        resolve({ host, ok: true, tlsVersion: socket.getProtocol(), certCN: cert?.subject?.CN, san: (cert?.subjectaltname || '').slice(0, 120) });
-        socket.end();
-      });
-      socket.on('error', (e) => resolve({ host, ok: false, error: e.message }));
-      socket.on('timeout', () => { resolve({ host, ok: false, error: 'timeout' }); socket.destroy(); });
-    });
-  const results = await Promise.all(hosts.map(testHost));
-  res.json({ accountId: R2_ACCOUNT_ID, bucket: R2_BUCKET, results });
-});
-
 app.get('/api/lab/health', (_req, res) => {
   res.json({
     success: true,
