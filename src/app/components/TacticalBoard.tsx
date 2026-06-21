@@ -1,6 +1,16 @@
 import { useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
+import {
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpLeft,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowDownRight,
+} from 'lucide-react';
 
-export type BoardTokenType = 'home' | 'away' | 'ball' | 'cone';
+export type BoardTokenType = 'home' | 'away' | 'ball' | 'cone' | 'arrow';
 
 export type BoardToken = {
   id: string;
@@ -8,7 +18,20 @@ export type BoardToken = {
   x: number; // 0-100 (%)
   y: number; // 0-100 (%)
   num?: number;
+  angle?: number; // arrow 회전 각도(deg), 0 = 오른쪽
 };
+
+// 기준 아이콘(ArrowRight)은 오른쪽(0deg)을 가리킴 → angle만큼 회전
+const ARROWS: { key: string; angle: number; Icon: typeof ArrowUp }[] = [
+  { key: 'up-left', angle: -135, Icon: ArrowUpLeft },
+  { key: 'up', angle: -90, Icon: ArrowUp },
+  { key: 'up-right', angle: -45, Icon: ArrowUpRight },
+  { key: 'left', angle: 180, Icon: ArrowLeft },
+  { key: 'right', angle: 0, Icon: ArrowRight },
+  { key: 'down-left', angle: 135, Icon: ArrowDownLeft },
+  { key: 'down', angle: 90, Icon: ArrowDown },
+  { key: 'down-right', angle: 45, Icon: ArrowDownRight },
+];
 
 const FIELD_BLUE_TOP = '#1f57a3';
 const FIELD_BLUE_BOTTOM = '#12356a';
@@ -72,7 +95,7 @@ export default function TacticalBoard({
     window.addEventListener('pointerup', handleUp);
   };
 
-  const addToken = (type: BoardTokenType) => {
+  const addToken = (type: BoardTokenType, angle?: number) => {
     if (!onChange) return;
     onChange((prev) => {
       const num =
@@ -80,7 +103,7 @@ export default function TacticalBoard({
           ? prev.filter((t) => t.type === type).length + 1
           : undefined;
       const jitter = () => 50 + (Math.random() - 0.5) * 22;
-      return [...prev, { id: uid(), type, x: jitter(), y: jitter(), num }];
+      return [...prev, { id: uid(), type, x: jitter(), y: jitter(), num, angle }];
     });
   };
 
@@ -115,6 +138,25 @@ export default function TacticalBoard({
           <button type="button" onClick={() => addToken('cone')} style={paletteBtn('#FFC83D')}>
             🔻 콘 +
           </button>
+        </div>
+      )}
+
+      {editable && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={arrowLabelStyle}>방향 화살표</div>
+          <div style={arrowPaletteStyle}>
+            {ARROWS.map((a) => (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => addToken('arrow', a.angle)}
+                style={arrowBtnStyle}
+                aria-label={`${a.key} 화살표`}
+              >
+                <a.Icon size={18} strokeWidth={2.6} />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -193,6 +235,13 @@ function renderToken(t: BoardToken) {
   if (t.type === 'cone') {
     return <div style={{ ...coneStyle }}>🔻</div>;
   }
+  if (t.type === 'arrow') {
+    return (
+      <div style={{ ...arrowTokenStyle, transform: `rotate(${t.angle ?? 0}deg)` }}>
+        <ArrowRight size={26} strokeWidth={3.2} color="#FFE08A" />
+      </div>
+    );
+  }
   const color = t.type === 'home' ? HOME : AWAY;
   return (
     <div style={{ ...playerStyle, background: color }}>
@@ -230,6 +279,38 @@ const dot = (c: string): CSSProperties => ({
   background: c,
   display: 'inline-block',
 });
+
+const arrowLabelStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'rgba(214,228,247,0.6)',
+  marginBottom: 6,
+};
+
+const arrowPaletteStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(8, 1fr)',
+  gap: 6,
+};
+
+const arrowBtnStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '9px 0',
+  borderRadius: 10,
+  border: '1px solid rgba(255,224,138,0.4)',
+  background: 'rgba(255,224,138,0.12)',
+  color: '#FFE08A',
+  cursor: 'pointer',
+};
+
+const arrowTokenStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+};
 
 const fieldStyle: CSSProperties = {
   position: 'relative',
