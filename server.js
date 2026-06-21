@@ -905,7 +905,11 @@ app.post('/api/training-journal/upload', trainingUpload.single('video'), async (
     });
   } catch (error) {
     console.error('[R2] 서버 경유 업로드 실패:', error);
-    res.status(500).json({ success: false, error: '영상 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.' });
+    res.status(500).json({
+      success: false,
+      error: '영상 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      debug: { name: error?.name, message: error?.message, code: error?.Code || error?.$metadata?.httpStatusCode },
+    });
   } finally {
     if (filePath) {
       fs.promises.unlink(filePath).catch(() => {});
