@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { ArrowLeft, Trash2, Star, Trophy, Video, X, Play } from 'lucide-react';
 import { isTrainingUploadEnabled, uploadTrainingVideo } from '../lib/trainingVideo';
+import TacticalBoard, { type BoardToken } from '../components/TacticalBoard';
 
 const STORAGE_KEY = 'training-journal-entries';
 
@@ -50,6 +51,7 @@ type JournalEntry = {
   rating: number;
   coachNote: string;
   videoUrl?: string;
+  board?: BoardToken[];
   xp: number;
   createdAt: string;
 };
@@ -130,6 +132,7 @@ export default function TrainingJournalPage() {
   const [coachNote, setCoachNote] = useState('');
   const [savedXp, setSavedXp] = useState<number | null>(null);
 
+  const [board, setBoard] = useState<BoardToken[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
   const [uploadEnabled, setUploadEnabled] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -186,8 +189,9 @@ export default function TrainingJournalPage() {
     if (rating > 0) total += 10;
     if (coachNote.trim()) total += 10;
     if (videoUrl) total += 20;
+    if (board.length > 0) total += 10;
     return total;
-  }, [mood, goal, learned, skills, wentWell, toImprove, rating, coachNote, videoUrl]);
+  }, [mood, goal, learned, skills, wentWell, toImprove, rating, coachNote, videoUrl, board]);
 
   const totalXp = useMemo(() => entries.reduce((sum, e) => sum + (e.xp || 0), 0), [entries]);
   const level = Math.floor(totalXp / 100) + 1;
@@ -215,6 +219,7 @@ export default function TrainingJournalPage() {
     setVideoUrl('');
     setVideoError('');
     setVideoProgress(0);
+    setBoard([]);
   };
 
   const loadEntryToForm = (entry: JournalEntry) => {
@@ -230,6 +235,7 @@ export default function TrainingJournalPage() {
     setVideoUrl(entry.videoUrl || '');
     setVideoError('');
     setVideoProgress(0);
+    setBoard(Array.isArray(entry.board) ? entry.board : []);
     setSavedXp(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -262,6 +268,7 @@ export default function TrainingJournalPage() {
       rating,
       coachNote: coachNote.trim(),
       videoUrl: videoUrl || undefined,
+      board: board.length ? board : undefined,
       xp,
       createdAt: new Date().toISOString(),
     };
@@ -362,6 +369,14 @@ export default function TrainingJournalPage() {
             placeholder="예) 왼발 슈팅 10번 성공하기!"
             style={inputStyle}
           />
+        </Card>
+
+        {/* 전술판 복습 */}
+        <Card title="전술판으로 복습하기" emoji="📋" hint="배치하면 +10 XP">
+          <p style={boardDescStyle}>
+            오늘 배운 훈련이나 경기 중 중요한 순간을 필드 위에 직접 배치해 복습해 봐요.
+          </p>
+          <TacticalBoard value={board} onChange={setBoard} />
         </Card>
 
         {/* 기본기 훈련 체크 */}
@@ -528,6 +543,9 @@ export default function TrainingJournalPage() {
                           <span style={historyVideoBadgeStyle}>
                             <Play size={10} /> 영상
                           </span>
+                        ) : null}
+                        {e.board && e.board.length ? (
+                          <span style={historyBoardBadgeStyle}>📋 전술판</span>
                         ) : null}
                       </span>
                       <span style={historyGoalStyle}>{e.goal || e.learned || '훈련 기록'}</span>
@@ -951,6 +969,27 @@ const historyVideoBadgeStyle: CSSProperties = {
   color: NAVY,
   background: YELLOW,
   verticalAlign: 'middle',
+};
+
+const historyBoardBadgeStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 3,
+  marginLeft: 6,
+  padding: '1px 7px',
+  borderRadius: 999,
+  fontSize: 10.5,
+  fontWeight: 700,
+  color: '#fff',
+  background: 'rgba(47,123,224,0.5)',
+  verticalAlign: 'middle',
+};
+
+const boardDescStyle: CSSProperties = {
+  fontSize: 12.5,
+  color: TEXT_SUB,
+  lineHeight: 1.6,
+  marginBottom: 11,
 };
 
 const videoUploadBtnStyle: CSSProperties = {
