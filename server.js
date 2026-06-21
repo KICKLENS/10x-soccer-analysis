@@ -905,10 +905,12 @@ app.post('/api/training-journal/upload', trainingUpload.single('video'), async (
     });
   } catch (error) {
     console.error('[R2] 서버 경유 업로드 실패:', error);
-    res.status(500).json({
+    const isTls = String(error?.message || '').includes('handshake');
+    res.status(isTls ? 503 : 500).json({
       success: false,
-      error: '영상 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.',
-      debug: { name: error?.name, message: error?.message, code: error?.Code || error?.$metadata?.httpStatusCode },
+      error: isTls
+        ? '영상 저장소를 준비 중입니다(인증서 발급 대기). 몇 시간 후 다시 시도해 주세요.'
+        : '영상 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     });
   } finally {
     if (filePath) {
