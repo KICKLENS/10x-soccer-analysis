@@ -2,18 +2,17 @@ import React, { useMemo, useState } from 'react';
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import {
   ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  ClipboardList,
-  FileText,
+  Archive,
+  Brain,
   NotebookPen,
-  PlayCircle,
-  Radar,
+  Scissors,
   Sparkles,
-  Target,
+  Upload,
+  Video,
 } from 'lucide-react';
 import { readSelectedPlayer } from '../lib/api';
 import OnboardingOverlay from '../components/OnboardingOverlay';
+import BottomTabBar from '../components/BottomTabBar';
 
 const PAGE_LINKS = {
   home: '/',
@@ -24,12 +23,6 @@ const PAGE_LINKS = {
 const LOGO_SRC = '/10x-ai-sports-logo.png';
 const HERO_IMAGE = '/hero-ai-soccer.png';
 const SHOWCASE_IMAGE = '/showcase-ai-vision.jpg';
-
-const SERVICE_THUMB_HIGHLIGHT = '/service-thumb-highlight.png';
-const SERVICE_THUMB_ANALYSIS = '/service-thumb-analysis.png';
-const SERVICE_THUMB_JOURNAL = '/service-thumb-journal.png';
-
-const ANALYSIS_DASHBOARD_IMAGE = '/analysis-dashboard.png';
 
 const PAGE_BG = '#070b14';
 const CARD_BG_SOLID = '#0d1220';
@@ -319,189 +312,61 @@ function FloatingParticles() {
   );
 }
 
-function BenefitItem({
+function FeatureTile({
+  step,
   icon,
   title,
   desc,
+  onClick,
 }: {
+  step: number;
   icon: ReactNode;
   title: string;
   desc: string;
+  onClick: () => void;
 }) {
   return (
-    <div
-      className="relative overflow-hidden rounded-[24px] border p-5 md:p-6"
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative flex flex-col overflow-hidden rounded-[22px] border p-4 text-left transition-all duration-300 hover:-translate-y-1 md:rounded-[26px] md:p-6"
       style={{
         borderColor: STROKE,
         background:
-          'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+          'linear-gradient(180deg, rgba(15,20,34,0.96) 0%, rgba(10,14,26,0.98) 100%)',
+        boxShadow: '0 18px 40px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(255,159,2,0.12),transparent_24%)]" />
-      <div className="relative z-10">
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_18%_12%,rgba(255,159,2,0.16),transparent_42%)]" />
+      <span
+        className="pointer-events-none absolute right-4 top-4 text-[12px] font-bold tracking-widest text-white/28 md:text-[13px]"
+      >
+        {String(step).padStart(2, '0')}
+      </span>
+
+      <div className="relative z-10 flex h-full flex-col">
         <div
-          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border"
+          className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border md:h-14 md:w-14"
           style={{
-            borderColor: 'rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
+            borderColor: 'rgba(255,210,120,0.28)',
+            background:
+              'linear-gradient(180deg, rgba(255,159,2,0.18) 0%, rgba(255,159,2,0.06) 100%)',
           }}
         >
           {icon}
         </div>
-        <h3 className="mt-5 text-lg font-bold text-white">{title}</h3>
-        <p className="mt-3 text-sm leading-7" style={{ color: TEXT_SUB }}>
-          {desc}
-        </p>
-      </div>
-    </div>
-  );
-}
 
-function ServiceCard({
-  image,
-  eyebrow,
-  title,
-  desc,
-  bullets,
-}: {
-  image: string;
-  eyebrow: string;
-  title: string;
-  desc: string;
-  bullets: string[];
-}) {
-  return (
-    <div
-      className="relative overflow-hidden rounded-[30px] border p-5 md:p-6"
-      style={{
-        borderColor: STROKE,
-        background:
-          'linear-gradient(180deg, rgba(14,19,33,0.96) 0%, rgba(10,14,26,0.98) 100%)',
-        boxShadow: '0 22px 48px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05)',
-      }}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(255,159,2,0.10),transparent_22%),radial-gradient(circle_at_84%_80%,rgba(255,255,255,0.04),transparent_18%)]" />
-
-      <div className="relative z-10">
-        <div
-          className="relative mb-5 h-[180px] overflow-hidden rounded-[22px] border md:mb-6 md:h-[190px]"
-          style={{
-            borderColor: 'rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.03)',
-          }}
-        >
-          <SafeImage
-            src={image}
-            alt={title}
-            className="cover-img"
-            fallbackTitle={title}
-            fallbackDesc="서비스 카드용 PNG 썸네일 파일을 public 폴더에 넣어주세요."
-          />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,18,0.04)_0%,rgba(8,10,18,0.26)_100%)]" />
-        </div>
-
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/54">
-          {eyebrow}
-        </p>
-        <h3 className="mt-4 text-2xl font-bold text-white">{title}</h3>
-        <p className="mt-4 text-sm leading-7 md:text-[15px]" style={{ color: TEXT_SUB }}>
+        <h3 className="mt-4 text-[16px] font-bold text-white md:mt-5 md:text-xl">{title}</h3>
+        <p className="mt-2 text-[13px] leading-6 md:text-[14px] md:leading-7" style={{ color: TEXT_SUB }}>
           {desc}
         </p>
 
-        <div className="mt-6 space-y-3">
-          {bullets.map((item) => (
-            <div key={item} className="flex items-start gap-3">
-              <CheckCircle2 size={18} className="mt-[2px] text-[#FFB648]" />
-              <p className="text-sm leading-7 text-white/76">{item}</p>
-            </div>
-          ))}
-        </div>
+        <span className="mt-4 inline-flex items-center gap-1 text-[13px] font-semibold text-[#FFB648] md:mt-5">
+          바로가기
+          <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
+        </span>
       </div>
-    </div>
-  );
-}
-
-function ReportCard({
-  title,
-  desc,
-}: {
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div
-      className="rounded-[26px] border p-6"
-      style={{
-        borderColor: STROKE,
-        background:
-          'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%)',
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border"
-          style={{
-            borderColor: 'rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.03)',
-          }}
-        >
-          <FileText size={18} className="text-[#FFB648]" />
-        </div>
-        <h3 className="text-lg font-bold text-white">{title}</h3>
-      </div>
-
-      <div
-        className="mt-5 rounded-[18px] border p-4"
-        style={{
-          borderColor: 'rgba(255,255,255,0.06)',
-          background: 'rgba(255,255,255,0.02)',
-        }}
-      >
-        <div className="h-2 w-20 rounded-full bg-white/12" />
-        <div className="mt-3 h-2 w-full rounded-full bg-white/8" />
-        <div className="mt-2 h-2 w-[82%] rounded-full bg-white/8" />
-        <div className="mt-2 h-2 w-[72%] rounded-full bg-white/8" />
-      </div>
-
-      <p className="mt-5 text-sm leading-7" style={{ color: TEXT_SUB }}>
-        {desc}
-      </p>
-    </div>
-  );
-}
-
-function JournalCard({
-  title,
-  desc,
-}: {
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div
-      className="rounded-[24px] border p-5"
-      style={{
-        borderColor: STROKE,
-        background: 'rgba(255,255,255,0.03)',
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border"
-          style={{
-            borderColor: 'rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.03)',
-          }}
-        >
-          <NotebookPen size={17} className="text-[#FFB648]" />
-        </div>
-        <h4 className="text-base font-bold text-white">{title}</h4>
-      </div>
-      <p className="mt-4 text-sm leading-7" style={{ color: TEXT_SUB }}>
-        {desc}
-      </p>
-    </div>
+    </button>
   );
 }
 
@@ -515,8 +380,53 @@ export default function HomePage() {
     goToPage(PAGE_LINKS.playerRegistration);
   };
 
+  const FEATURES = [
+    {
+      step: 1,
+      icon: <Video size={24} className="text-[#FFB648]" />,
+      title: '영상 촬영',
+      desc: '폰으로 바로 경기 촬영 → 자동 분석',
+      onClick: handleStartClick,
+    },
+    {
+      step: 2,
+      icon: <Upload size={24} className="text-[#FFB648]" />,
+      title: '영상 업로드',
+      desc: '찍어둔 영상 파일을 올려 분석',
+      onClick: () => goToPage('/video-analysis'),
+    },
+    {
+      step: 3,
+      icon: <Scissors size={24} className="text-[#FFB648]" />,
+      title: '하이라이트 추출',
+      desc: 'AI가 핵심 장면만 자동으로 추출',
+      onClick: () => goToPage('/video-analysis'),
+    },
+    {
+      step: 4,
+      icon: <Archive size={24} className="text-[#FFB648]" />,
+      title: '하이라이트 보관함',
+      desc: '추출한 하이라이트와 기록 저장',
+      onClick: () => goToPage('/analysis-history'),
+    },
+    {
+      step: 5,
+      icon: <Brain size={24} className="text-[#FFB648]" />,
+      title: 'AI 분석',
+      desc: 'AI 코치의 상세 피드백 받기',
+      onClick: () => goToPage('/ai-video-analysis'),
+    },
+    {
+      step: 6,
+      icon: <NotebookPen size={24} className="text-[#FFB648]" />,
+      title: '훈련일지',
+      desc: '오늘 배운 것 기록하고 복습',
+      onClick: () => goToPage('/training-journal'),
+    },
+  ];
+
   return (
-    <main className="min-h-screen text-white" style={{ background: PAGE_BG }}>
+    <main className="min-h-screen pb-20 text-white md:pb-0" style={{ background: PAGE_BG }}>
       <style>{GLOBAL_STYLES}</style>
       <OnboardingOverlay />
 
@@ -545,24 +455,17 @@ export default function HomePage() {
           <nav className="hidden items-center gap-8 text-sm text-white/68 lg:flex">
             <button
               type="button"
-              onClick={() => scrollToId('services')}
+              onClick={() => scrollToId('features')}
               className="transition hover:text-white"
             >
-              서비스
+              핵심 기능
             </button>
             <button
               type="button"
-              onClick={() => scrollToId('analysis')}
+              onClick={() => goToPage('/mobile-capture')}
               className="transition hover:text-white"
             >
-              AI 분석
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToId('reports')}
-              className="transition hover:text-white"
-            >
-              리포트
+              경기 촬영
             </button>
             <button
               type="button"
@@ -570,6 +473,13 @@ export default function HomePage() {
               className="transition hover:text-white"
             >
               훈련일지
+            </button>
+            <button
+              type="button"
+              onClick={() => goToPage('/analysis-history')}
+              className="transition hover:text-white"
+            >
+              내 기록
             </button>
             <button
               type="button"
@@ -634,8 +544,8 @@ export default function HomePage() {
                   <ArrowRight size={16} />
                 </MetallicButton>
 
-                <MetallicButton variant="outline" onClick={() => scrollToId('services')}>
-                  서비스 보기
+                <MetallicButton variant="outline" onClick={() => scrollToId('features')}>
+                  기능 둘러보기
                 </MetallicButton>
 
                 <MetallicButton variant="outline" onClick={() => goToPage('/analysis-history')}>
@@ -666,275 +576,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1480px] px-4 pb-8 pt-12 md:px-6 md:pb-12 md:pt-24 lg:px-10 lg:pb-14 lg:pt-28">
-        <div className="grid gap-3 md:grid-cols-3 md:gap-4">
-          <BenefitItem
-            icon={<PlayCircle size={18} className="text-[#FFB648]" />}
-            title="핵심 장면을 빠르게 포착"
-            desc="긴 경기 영상에서 중요한 순간만 더 빠르게 확인하고, 다시 봐야 할 포인트를 선명하게 정리합니다."
-          />
-          <BenefitItem
-            icon={<Target size={18} className="text-[#FFB648]" />}
-            title="훈련 포인트로 즉시 연결"
-            desc="좋았던 장면과 아쉬운 장면을 단순 기록에서 끝내지 않고, 다음 훈련 액션으로 바로 이어줍니다."
-          />
-          <BenefitItem
-            icon={<ClipboardList size={18} className="text-[#FFB648]" />}
-            title="리포트와 일지를 한 흐름으로"
-            desc="분석, 리포트, 훈련일지가 끊기지 않도록 연결해 코치와 선수 모두 보기 쉬운 구조를 만듭니다."
-          />
-        </div>
-      </section>
-
       <section
-        id="services"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
+        id="features"
+        className="scroll-mt-24 mx-auto w-full max-w-[1240px] px-4 pb-10 pt-12 md:px-6 md:pb-16 md:pt-24 lg:px-10"
       >
-        <div className="mb-8 md:mb-16">
-          <SectionBadge>Core Services</SectionBadge>
-          <div className="mt-6">
+        <div className="mb-7 text-center md:mb-12">
+          <div className="flex justify-center">
+            <SectionBadge>How it works</SectionBadge>
+          </div>
+          <div className="mt-5 flex justify-center">
             <SectionHeading
-              title="실제 쓰임이 바로 보이는 서비스 구조"
-              description="서비스 소개 구간은 텍스트만 읽히는 카드가 아니라, 각 카드 상단에 실제 PNG 썸네일을 배치해 어떤 기능인지 바로 이해되도록 구성했습니다."
+              align="center"
+              title="필요한 기능만, 한눈에"
+              description="촬영부터 훈련일지까지 6단계 흐름입니다. 원하는 단계를 눌러 바로 시작하세요."
             />
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <ServiceCard
-            image={SERVICE_THUMB_HIGHLIGHT}
-            eyebrow="MATCH HIGHLIGHT"
-            title="경기 핵심 장면 자동 정리"
-            desc="하이라이트 썸네일을 통해 어떤 장면을 빠르게 포착하는 서비스인지 직관적으로 이해할 수 있도록 설계했습니다."
-            bullets={[
-              '중요 장면 위주로 빠르게 복기',
-              '코칭 포인트가 필요한 순간 확인',
-              '시청 시간 대비 인사이트 효율 향상',
-            ]}
-          />
-
-          <ServiceCard
-            image={SERVICE_THUMB_ANALYSIS}
-            eyebrow="AI ANALYSIS"
-            title="AI 분석 결과를 더 직관적으로"
-            desc="분석 카드 상단에 실제 UI 스타일 PNG를 배치해 수치와 시각화가 함께 보이는 인상을 주도록 구성했습니다."
-            bullets={[
-              '장면별 맥락과 수치 해석 보조',
-              '반복 패턴과 개선 포인트 시각화',
-              '리포트 전환 전 이해도 상승',
-            ]}
-          />
-
-          <ServiceCard
-            image={SERVICE_THUMB_JOURNAL}
-            eyebrow="TRAINING JOURNAL"
-            title="훈련일지로 자연스럽게 연결"
-            desc="기록형 기능은 무겁게 보이지 않도록 노트/체크 느낌의 PNG 썸네일을 배치해 부담 없이 접근되도록 했습니다."
-            bullets={[
-              '리포트에서 훈련일지로 자연스럽게 이동',
-              '다음 훈련 주제 정리와 기록 축적',
-              '선수/코치 간 커뮤니케이션 흐름 강화',
-            ]}
-          />
-        </div>
-      </section>
-
-      <section
-        id="analysis"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
-      >
-        <div
-          className="relative overflow-hidden rounded-[38px] border px-6 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10"
-          style={{
-            borderColor: STROKE,
-            background: 'linear-gradient(180deg, rgba(13,18,32,0.98) 0%, rgba(8,11,20,1) 100%)',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.28)',
-          }}
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_14%,rgba(255,159,2,0.12),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(78,176,255,0.08),transparent_20%)]" />
-
-          <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr]">
-            <div className="lg:pr-6">
-              <SectionBadge>AI Analysis</SectionBadge>
-
-              <div className="mt-6">
-                <SectionHeading
-                  title="AI 분석은 카드 반복보다 한 장의 큰 화면처럼 보여야 더 설득력 있습니다"
-                  description="좌측은 핵심 메시지와 읽기 쉬운 포인트 정리, 우측은 실제 분석 화면 느낌의 대형 PNG로 구성했습니다. 정보 설명과 시각 증명을 동시에 보여주는 구조입니다."
-                />
-              </div>
-
-              <div className="mt-8 space-y-4">
-                <div
-                  className="rounded-[22px] border p-5"
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <Radar size={18} className="mt-[3px] text-[#FFB648]" />
-                    <div>
-                      <h3 className="text-base font-bold text-white">장면별 맥락을 더 쉽게 이해</h3>
-                      <p className="mt-2 text-sm leading-7" style={{ color: TEXT_SUB }}>
-                        단순 이벤트 나열이 아니라 어느 흐름에서 어떤 장면이 중요했는지 읽기 쉬운 구조로 보여줍니다.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="rounded-[22px] border p-5"
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <BarChart3 size={18} className="mt-[3px] text-[#FFB648]" />
-                    <div>
-                      <h3 className="text-base font-bold text-white">텍스트와 수치를 함께 정리</h3>
-                      <p className="mt-2 text-sm leading-7" style={{ color: TEXT_SUB }}>
-                        분석 요약, 핵심 메트릭, 코칭 포인트가 한 화면에서 이어지도록 구성해 보고서 전환이 자연스럽습니다.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="rounded-[22px] border p-5"
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <Target size={18} className="mt-[3px] text-[#FFB648]" />
-                    <div>
-                      <h3 className="text-base font-bold text-white">다음 훈련 액션으로 연결</h3>
-                      <p className="mt-2 text-sm leading-7" style={{ color: TEXT_SUB }}>
-                        화면에서 얻은 인사이트가 훈련 계획과 일지로 이어지도록 구조 자체를 실전형으로 설계했습니다.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-10 flex flex-wrap gap-4">
-                <MetallicButton variant="primary" onClick={() => scrollToId('reports')}>
-                  리포트 확인하기
-                  <ArrowRight size={16} />
-                </MetallicButton>
-                <MetallicButton variant="outline" onClick={() => scrollToId('journal')}>
-                  훈련일지 흐름 보기
-                </MetallicButton>
-              </div>
-            </div>
-
-            <div
-              className="relative h-[230px] overflow-hidden rounded-[24px] border md:h-[420px] md:rounded-[30px] lg:h-[560px]"
-              style={{
-                borderColor: 'rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.02)',
-                boxShadow: '0 22px 50px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)',
-              }}
-            >
-              <SafeImage
-                src={ANALYSIS_DASHBOARD_IMAGE}
-                alt="AI analysis dashboard"
-                className="fill-img"
-                fallbackTitle="Analysis Dashboard"
-                fallbackDesc="public/analysis-dashboard.png 파일을 넣으면 AI 분석 대형 이미지가 표시됩니다."
-              />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.02)_0%,rgba(6,9,16,0.20)_100%)]" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="reports"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
-      >
-        <div className="mb-8 md:mb-16">
-          <SectionBadge>Reports</SectionBadge>
-          <div className="mt-6">
-            <SectionHeading
-              title="리포트는 문서처럼 정리되되 너무 딱딱하지 않게"
-              description="보고서 섹션은 읽는 정보가 많기 때문에 과한 이미지보다 문서형 구조와 미세한 시각 장치를 섞는 것이 더 효과적입니다."
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
+          {FEATURES.map((feature) => (
+            <FeatureTile
+              key={feature.title}
+              step={feature.step}
+              icon={feature.icon}
+              title={feature.title}
+              desc={feature.desc}
+              onClick={feature.onClick}
             />
-          </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <ReportCard
-            title="경기 요약 리포트"
-            desc="경기 전체를 빠르게 다시 파악해야 할 때 핵심 요약과 주요 장면을 한 문서 흐름으로 정리합니다."
-          />
-          <ReportCard
-            title="선수별 포인트 리포트"
-            desc="선수 단위로 보완이 필요한 포인트와 긍정적인 장면을 분리해 훈련 방향이 더 분명해지도록 돕습니다."
-          />
-          <ReportCard
-            title="코칭 인사이트 리포트"
-            desc="코칭 미팅이나 피드백 시간에 바로 활용할 수 있도록 읽기 쉬운 구조와 밀도 있는 요약을 제공합니다."
-          />
-        </div>
-      </section>
-
-      <section
-        id="journal"
-        className="scroll-mt-28 mx-auto w-full max-w-[1480px] px-4 py-12 md:px-6 md:py-24 lg:px-10"
-      >
-        <div
-          className="rounded-[36px] border px-6 py-8 md:px-8 md:py-10 lg:px-10"
-          style={{
-            borderColor: STROKE,
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%)',
-            boxShadow: '0 26px 62px rgba(0,0,0,0.2)',
-          }}
-        >
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-            <div>
-              <SectionBadge>Training Journal</SectionBadge>
-              <div className="mt-6">
-                <SectionHeading
-                  title="분석에서 끝나지 않고 훈련일지까지 자연스럽게"
-                  description="훈련일지는 리포트의 마지막이 아니라 다음 행동의 시작이어야 합니다. 가볍게 기록하면서도 실제 개선 흐름이 남도록 구조를 설계했습니다."
-                />
-              </div>
-
-              <div className="mt-8 flex flex-wrap gap-4">
-                <MetallicButton variant="primary" onClick={() => goToPage('/training-journal')}>
-                  훈련일지 쓰러 가기
-                  <ArrowRight size={16} />
-                </MetallicButton>
-                <MetallicButton variant="outline" onClick={() => scrollToId('analysis')}>
-                  코칭 흐름 살펴보기
-                </MetallicButton>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <JournalCard
-                title="오늘의 훈련 목표"
-                desc="분석 결과에서 바로 이어지는 형태로 오늘 집중할 포인트를 가볍고 분명하게 기록할 수 있습니다."
-              />
-              <JournalCard
-                title="좋았던 장면 기록"
-                desc="반복해서 유지해야 하는 장면은 따로 남겨 자신감과 재현 포인트를 함께 축적할 수 있습니다."
-              />
-              <JournalCard
-                title="개선 포인트 정리"
-                desc="다음 훈련에서 꼭 체크해야 할 장면을 짧고 선명하게 남겨 실전 피드백에 활용할 수 있습니다."
-              />
-              <JournalCard
-                title="코치 메모 연결"
-                desc="선수 메모와 코치 피드백이 분리되지 않도록 같은 흐름에서 관리하는 구조를 지향합니다."
-              />
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -979,8 +648,8 @@ export default function HomePage() {
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3 md:mt-10 md:gap-4">
-                <MetallicButton onClick={() => scrollToId('reports')} variant="primary">
-                  샘플 리포트 보기
+                <MetallicButton onClick={() => scrollToId('features')} variant="primary">
+                  기능 둘러보기
                   <ArrowRight size={17} />
                 </MetallicButton>
 
@@ -1016,31 +685,31 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-5 text-sm text-white/46">
             <button
               type="button"
-              onClick={() => scrollToId('services')}
+              onClick={() => scrollToId('features')}
               className="transition hover:text-white/80"
             >
-              서비스
+              핵심 기능
             </button>
             <button
               type="button"
-              onClick={() => scrollToId('analysis')}
+              onClick={() => goToPage('/mobile-capture')}
               className="transition hover:text-white/80"
             >
-              AI 분석
+              경기 촬영
             </button>
             <button
               type="button"
-              onClick={() => scrollToId('reports')}
-              className="transition hover:text-white/80"
-            >
-              리포트
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToId('journal')}
+              onClick={() => goToPage('/training-journal')}
               className="transition hover:text-white/80"
             >
               훈련일지
+            </button>
+            <button
+              type="button"
+              onClick={() => goToPage('/analysis-history')}
+              className="transition hover:text-white/80"
+            >
+              내 기록
             </button>
             <button
               type="button"
@@ -1052,6 +721,8 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      <BottomTabBar />
     </main>
   );
 }
