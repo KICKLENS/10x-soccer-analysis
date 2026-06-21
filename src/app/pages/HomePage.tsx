@@ -618,11 +618,11 @@ export default function HomePage() {
             <img
               src="/10x-mark.png"
               alt="10X"
-              className="w-[92%] max-w-[820px]"
+              className="w-[82%] max-w-[720px]"
               style={{
-                opacity: 0.7,
+                opacity: 0.28,
                 mixBlendMode: 'screen',
-                filter: 'drop-shadow(0 0 30px rgba(255,159,2,0.35))',
+                filter: 'drop-shadow(0 0 18px rgba(255,159,2,0.18))',
               }}
               draggable={false}
             />
