@@ -312,50 +312,6 @@ function FloatingParticles() {
   );
 }
 
-function TenXMark({
-  className = '',
-  style,
-}: {
-  className?: string;
-  style?: CSSProperties;
-}) {
-  return (
-    <svg
-      viewBox="0 0 640 300"
-      className={className}
-      style={style}
-      fill="none"
-      aria-hidden="true"
-      preserveAspectRatio="xMidYMid meet"
-    >
-      <text
-        x="0"
-        y="236"
-        fontSize="262"
-        fontWeight={900}
-        fontStyle="italic"
-        letterSpacing="-14"
-        fontFamily="'Pretendard','Inter','Helvetica Neue',Arial,sans-serif"
-        fill="currentColor"
-      >
-        10
-      </text>
-      <g transform="translate(498 150) rotate(45)">
-        <path
-          d="M0 -150 L15 -15 L112 0 L15 15 L0 150 L-15 15 L-112 0 L-15 -15 Z"
-          fill="currentColor"
-        />
-        <path
-          d="M0 -150 L15 -15 L112 0 L15 15 L0 150 L-15 15 L-112 0 L-15 -15 Z"
-          fill="currentColor"
-          opacity="0.45"
-          transform="scale(0.55)"
-        />
-      </g>
-    </svg>
-  );
-}
-
 function FeatureTile({
   step,
   icon,
@@ -656,14 +612,16 @@ export default function HomePage() {
           </div>
 
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
-            <TenXMark
-              className="w-[88%] max-w-[760px]"
+            <img
+              src="/10x-mark.png"
+              alt="10X"
+              className="w-[92%] max-w-[820px]"
               style={{
-                color: POINT_COLOR,
-                opacity: 0.16,
-                filter: 'drop-shadow(0 0 26px rgba(255,159,2,0.45))',
+                opacity: 0.7,
                 mixBlendMode: 'screen',
+                filter: 'drop-shadow(0 0 30px rgba(255,159,2,0.35))',
               }}
+              draggable={false}
             />
           </div>
         </div>
