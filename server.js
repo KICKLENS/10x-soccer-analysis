@@ -45,6 +45,9 @@ const r2Client = R2_ENABLED
   ? new S3Client({
       region: 'auto',
       endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      // R2 와일드카드 인증서(*.r2.cloudflarestorage.com)는 버킷 서브도메인을 커버하지 못하므로
+      // 가상호스팅 방식 대신 경로 방식(path-style)을 사용해야 브라우저 직접 업로드 TLS가 통과됨
+      forcePathStyle: true,
       credentials: {
         accessKeyId: R2_ACCESS_KEY_ID,
         secretAccessKey: R2_SECRET_ACCESS_KEY,
@@ -95,10 +98,10 @@ function secToMmss(seconds) {
 }
 
 function robustParse(text) {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error('JSON 파싱 실패');
-  return JSON.parse(text.substring(start, end + 1));
+    return JSON.parse(text.substring(start, end + 1));
 }
 
 function runProcess(command, args, options = {}) {
@@ -874,9 +877,9 @@ app.post('/api/lab/extract-highlights-yolo', async (req, res) => {
 
     const yoloResult = await runYoloDetection(fullPath);
     res.json({ success: true, source: 'yolo', ...yoloResult });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 app.post('/api/lab/analyze-highlights-gemini', async (req, res) => {
@@ -996,14 +999,14 @@ app.post('/api/extract-highlights', async (req, res) => {
 });
 
 app.post('/api/lab/render-final-highlights', async (req, res) => {
-  try {
+    try {
     const { savedFilename, clips = [] } = req.body || {};
     if (!savedFilename) {
       res.status(400).json({ success: false, error: 'savedFilename이 필요합니다.' });
       return;
     }
 
-    const fullPath = path.join(uploadsDir, savedFilename);
+        const fullPath = path.join(uploadsDir, savedFilename);
     if (!fs.existsSync(fullPath)) {
       res.status(400).json({ success: false, error: '파일 없음' });
       return;
@@ -1015,8 +1018,8 @@ app.post('/api/lab/render-final-highlights', async (req, res) => {
       return;
     }
 
-    const outputName = `highlight-${Date.now()}.mp4`;
-    const outputPath = path.join(highlightsDir, outputName);
+        const outputName = `highlight-${Date.now()}.mp4`;
+        const outputPath = path.join(highlightsDir, outputName);
     const preRendered = targetClips
       .map((clip) => clip.clipFileName)
       .filter((name) => name && fs.existsSync(path.join(highlightsDir, name)));
