@@ -133,6 +133,13 @@ export default function MobileCapturePage() {
   );
   const [allowPortrait, setAllowPortrait] = useState(false);
   const [todayUniform, setTodayUniform] = useState('');
+  const [zoomSupported, setZoomSupported] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number }>({
+    min: 1,
+    max: 1,
+    step: 0.1,
+  });
 
   const hasRecordedVideo = useMemo(() => Boolean(recordedBlob && recordedPreviewUrl), [recordedBlob, recordedPreviewUrl]);
   const isPipelineRunning = pipelineStep === 'uploading' || pipelineStep === 'analyzing';
@@ -360,6 +367,39 @@ export default function MobileCapturePage() {
     await releaseWakeLock();
   };
 
+  const detectZoomCapability = (stream: MediaStream) => {
+    try {
+      const track = stream.getVideoTracks?.()[0];
+      const caps = (track?.getCapabilities?.() as Record<string, any> | undefined) || {};
+      const zoomCap = caps.zoom;
+      if (track && zoomCap && typeof zoomCap === 'object' && Number(zoomCap.max) > Number(zoomCap.min)) {
+        const min = Number(zoomCap.min) || 1;
+        const max = Number(zoomCap.max) || 1;
+        const step = Number(zoomCap.step) || 0.1;
+        const settings = (track.getSettings?.() as Record<string, any> | undefined) || {};
+        const current = Number(settings.zoom) || min;
+        setZoomRange({ min, max, step });
+        setZoom(current);
+        setZoomSupported(true);
+        return;
+      }
+    } catch {
+      // 줌 미지원 기기
+    }
+    setZoomSupported(false);
+    setZoom(1);
+  };
+
+  const applyZoom = (value: number) => {
+    const track = streamRef.current?.getVideoTracks?.()[0];
+    if (!track) return;
+    const clamped = Math.min(zoomRange.max, Math.max(zoomRange.min, value));
+    setZoom(clamped);
+    track
+      .applyConstraints({ advanced: [{ zoom: clamped } as MediaTrackConstraintSet] })
+      .catch(() => undefined);
+  };
+
   const startCamera = async () => {
     clearMessages();
     setIsCameraLoading(true);
@@ -384,6 +424,8 @@ export default function MobileCapturePage() {
         await videoRef.current.play().catch(() => undefined);
       }
 
+      detectZoomCapability(stream);
+
       setIsCameraReady(true);
       setStatusMessage('카메라가 준비되었습니다. 선수를 중앙 가이드 박스 안에 맞춘 뒤 녹화를 시작하세요.');
       setErrorMessage('');
@@ -406,6 +448,9 @@ export default function MobileCapturePage() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+
+    setZoomSupported(false);
+    setZoom(1);
 
     await releaseWakeLock();
     setStatusMessage('카메라를 중지했습니다.');
@@ -694,6 +739,38 @@ export default function MobileCapturePage() {
                 >
                   ✕ 가로 종료
                 </button>
+              )}
+
+              {isCameraReady && zoomSupported && (
+                <div style={zoomControlStyle}>
+                  <button
+                    type="button"
+                    onClick={() => applyZoom(zoom - zoomRange.step * 2)}
+                    style={zoomButtonStyle}
+                    aria-label="줌 아웃"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="range"
+                    min={zoomRange.min}
+                    max={zoomRange.max}
+                    step={zoomRange.step}
+                    value={zoom}
+                    onChange={(event) => applyZoom(Number(event.target.value))}
+                    style={zoomSliderStyle}
+                    aria-label="카메라 줌"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => applyZoom(zoom + zoomRange.step * 2)}
+                    style={zoomButtonStyle}
+                    aria-label="줌 인"
+                  >
+                    +
+                  </button>
+                  <span style={zoomLabelStyle}>{zoom.toFixed(1)}×</span>
+                </div>
               )}
 
               {!isLandscape && !allowPortrait && (
@@ -1208,6 +1285,51 @@ const cameraOverlayStyle: CSSProperties = {
   flexDirection: 'column',
   justifyContent: 'space-between',
   padding: 16,
+};
+
+const zoomControlStyle: CSSProperties = {
+  pointerEvents: 'auto',
+  position: 'absolute',
+  left: '50%',
+  bottom: 16,
+  transform: 'translateX(-50%)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 10,
+  padding: '8px 14px',
+  borderRadius: 999,
+  background: 'rgba(0,0,0,0.55)',
+  border: '1px solid rgba(255,255,255,0.24)',
+  backdropFilter: 'blur(8px)',
+  maxWidth: 'min(86vw, 420px)',
+};
+
+const zoomButtonStyle: CSSProperties = {
+  width: 34,
+  height: 34,
+  flexShrink: 0,
+  borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,0.3)',
+  background: 'rgba(255,255,255,0.12)',
+  color: '#fff',
+  fontSize: 20,
+  fontWeight: 800,
+  lineHeight: 1,
+  cursor: 'pointer',
+};
+
+const zoomSliderStyle: CSSProperties = {
+  width: 'clamp(120px, 40vw, 260px)',
+  accentColor: '#FF9F02',
+  cursor: 'pointer',
+};
+
+const zoomLabelStyle: CSSProperties = {
+  minWidth: 42,
+  textAlign: 'center',
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: 800,
 };
 
 const topHintPillStyle: CSSProperties = {
