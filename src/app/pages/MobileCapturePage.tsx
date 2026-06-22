@@ -805,11 +805,11 @@ export default function MobileCapturePage() {
               )}
 
               <div style={guideFrameStyle}>
-                <div style={guideLabelStyle}>선수 중심 가이드</div>
+                <div style={guideLabelStyle}>분석할 선수를 중앙에</div>
               </div>
 
               <div style={bottomGuideTextStyle}>
-                중앙은 선수 식별, 좌우는 경기 흐름 확인
+                시작할 때 분석할 선수를 중앙에 두세요 · 너무 당기지 말고 공이 오가는 흐름까지 함께
               </div>
             </div>
           </div>
@@ -1442,14 +1442,13 @@ const guideFrameStyle: CSSProperties = {
   left: '50%',
   top: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '30%',
-  height: '68%',
-  minWidth: 120,
-  maxWidth: 260,
+  width: '58%',
+  height: '80%',
+  minWidth: 180,
+  maxWidth: 460,
   borderRadius: 24,
-  border: '3px solid rgba(255,159,2,0.95)',
-  boxShadow:
-    '0 0 0 9999px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset, 0 0 24px rgba(255,159,2,0.35)',
+  border: '2px dashed rgba(255,159,2,0.75)',
+  boxShadow: '0 0 0 1px rgba(255,255,255,0.06) inset',
 };
 
 const guideLabelStyle: CSSProperties = {

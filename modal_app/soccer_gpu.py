@@ -83,6 +83,8 @@ with image.imports():
         sahi: bool = True
         assumedPlayerHeightM: float = 1.5
         maxTrackSeconds: float = 0.0  # 0=전체
+        centerSeed: bool = True  # 시작 구간 화면 중앙 선수를 타겟으로 잠그고 추적(등번호 불필요)
+        seedSeconds: float = 3.0  # 중앙 지목 판단에 쓰는 시작 구간(초)
         detectCandidates: bool = False  # SAHI로 공-선수 하이라이트 후보 직접 탐지
         candidateFps: float = 2.0
         preRoll: float = 1.2
@@ -191,7 +193,8 @@ def _estimate_camera_affine(prev_gray, cur_gray, orb, max_features: int = 500):
 # A) 선수 추적 + 이동 지표
 # ---------------------------------------------------------------------------
 def _track_player(video_path: str, player: dict, sample_fps: float,
-                  assumed_height_m: float, max_seconds: float) -> dict:
+                  assumed_height_m: float, max_seconds: float,
+                  center_seed: bool = True, seed_seconds: float = 3.0) -> dict:
     import cv2
     import numpy as np
     from ultralytics import YOLO
@@ -285,10 +288,19 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
             zone = _position_zone_score(position, nx, ny)
             match = kit * 0.5 + zone * 0.5
 
-            rec = tracks.setdefault(tid, {"pts": [], "heights": [], "scores": []})
+            rec = tracks.setdefault(tid, {"pts": [], "heights": [], "scores": [], "seed": []})
             rec["pts"].append((t, sx, sy))
             rec["heights"].append(box_h)
             rec["scores"].append(match)
+
+            # 중앙 지목 점수: 시작 구간에 화면 중앙 + 크게(앞쪽) 잡힌 선수일수록 높음
+            if center_seed and t <= seed_seconds:
+                dcx = abs(nx - 0.5)
+                dcy = abs(ny - 0.5)
+                radial = (dcx * dcx + dcy * dcy) ** 0.5
+                closeness = max(0.0, 1.0 - radial / 0.5)  # 중앙=1, 가장자리=0
+                size_norm = min(1.0, (box_h / frame_h) / 0.6)  # 화면 높이 60%면 만점
+                rec["seed"].append(closeness * (0.6 + 0.4 * size_norm))
 
         frame_idx += 1
 
@@ -297,14 +309,30 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
     if not tracks:
         return {"available": False, "reason": "no_person_tracks"}
 
-    # 대상 track 선정: (매칭점수 평균) 우선, 동률 시 등장 빈도
+    # 대상 track 선정
+    # 1순위: 중앙 지목(center-seed) — 시작 구간 화면 중앙에 크게 잡힌 선수(등번호 불필요)
+    # 2순위(폴백): 유니폼색/포지션 매칭 점수
     def track_rank(item):
         _tid, r = item
         scores = r["scores"]
         avg = sum(scores) / len(scores) if scores else 0.0
         return (avg, len(r["pts"]))
 
-    target_id, target = max(tracks.items(), key=track_rank)
+    seed_select = "kit_zone"
+    seeded = {
+        tid: r for tid, r in tracks.items()
+        if r.get("seed") and len(r["seed"]) >= 2
+    }
+    if center_seed and seeded:
+        def seed_rank(item):
+            _tid, r = item
+            s = r["seed"]
+            return (sum(s) / len(s), len(r["pts"]))
+
+        target_id, target = max(seeded.items(), key=seed_rank)
+        seed_select = "center_seed"
+    else:
+        target_id, target = max(tracks.items(), key=track_rank)
     pts = target["pts"]
     if len(pts) < 3:
         return {"available": False, "reason": "target_track_too_short", "trackId": int(target_id)}
@@ -361,6 +389,7 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
     return {
         "available": True,
         "trackId": int(target_id),
+        "targetSelectedBy": seed_select,  # center_seed | kit_zone
         "matchConfidence": round(sum(target["scores"]) / len(target["scores"]), 3),
         "sampledPoints": len(pts),
         "scaleMetersPerPixel": round(meters_per_px, 5),
@@ -614,6 +643,7 @@ def analyze(req: "AnalyzeRequest"):
 
         tracking = _track_player(
             tmp_path, player, req.sampleFps, req.assumedPlayerHeightM, req.maxTrackSeconds,
+            center_seed=req.centerSeed, seed_seconds=req.seedSeconds,
         )
         out["tracking"] = tracking
 

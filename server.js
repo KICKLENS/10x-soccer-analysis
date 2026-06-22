@@ -204,6 +204,8 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = []) {
     clips: windows,
     sampleFps: MODAL_SAMPLE_FPS,
     sahi: true,
+    centerSeed: true,
+    seedSeconds: 3.0,
   };
 
   try {
@@ -316,6 +318,9 @@ function buildGpuPromptSection(gpu) {
   const m = gpu.tracking?.available ? gpu.tracking.metrics : null;
   const ball = gpu.ball?.available ? gpu.ball.windows : null;
   const lines = ['\n[GPU 정밀 분석 데이터 — 실제 측정 수치이므로 코칭에 적극 활용]'];
+  if (gpu.tracking?.targetSelectedBy === 'center_seed') {
+    lines.push('- 대상 선수: 촬영 시작 시 화면 중앙에 둔 선수를 지목해 끝까지 추적함(등번호 무관). 이 선수 기준으로 분석.');
+  }
   if (m) {
     lines.push(
       `- 대상 선수 추정 이동거리: ${m.distanceM}m, 평균속도 ${m.avgSpeedMS}m/s, 최고속도 ${m.topSpeedMS}m/s, 스프린트 ${m.sprintCount}회, 활동지수 ${m.activityIndex}/100`,
