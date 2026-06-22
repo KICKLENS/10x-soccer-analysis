@@ -19,3 +19,6 @@ __pycache__/
 etc/
 src/imports/**/*.html
 src/imports/pasted_text/
+
+# 하이라이트 효과 데모 산출물(로컬)
+assets_fx/
