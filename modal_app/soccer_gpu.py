@@ -23,11 +23,29 @@ import modal
 
 APP_NAME = "soccer-gpu"
 
-# 기본 모델: 정확도/속도 균형을 위해 11s 사용 (n보다 추적 안정적)
-DETECT_MODEL = os.environ.get("SOCCER_YOLO_MODEL", "yolo11s.pt")
+# 사람/추적용 검출 모델: 정확도 향상을 위해 11m 사용 (s보다 작은·먼 선수 검출 우수)
+DETECT_MODEL = os.environ.get("SOCCER_YOLO_MODEL", "yolo11m.pt")
+
+# 공 전용 모델: 축구공만 학습된 공개 모델(YOLO11n, 단일 클래스 "ball").
+# 일반 COCO 모델보다 야간/원경 축구공 인식이 좋다. 빈 값이면 COCO 모델로 폴백.
+BALL_MODEL = os.environ.get(
+    "SOCCER_BALL_MODEL",
+    "https://huggingface.co/martinjolif/yolo-football-ball-detection/resolve/main/yolo-football-ball-detection.pt",
+)
+BALL_CLASS_ID = int(os.environ.get("SOCCER_BALL_CLASS_ID", "0"))
+BALL_MODEL_LOCAL = "/root/models/ball.pt"  # URL 모델을 빌드 시 받아두는 경로
 
 PERSON_CLASS_ID = 0
 SPORTS_BALL_CLASS_ID = 32
+
+
+def _resolve_ball_model():
+    """공 검출에 쓸 (모델경로, 공클래스ID) 반환. 전용 모델 없으면 COCO 폴백."""
+    if not BALL_MODEL:
+        return DETECT_MODEL, SPORTS_BALL_CLASS_ID
+    if BALL_MODEL.startswith("http"):
+        return BALL_MODEL_LOCAL, BALL_CLASS_ID
+    return BALL_MODEL, BALL_CLASS_ID
 
 
 image = (
@@ -47,9 +65,23 @@ image = (
 
 def _preload_models():
     """이미지 빌드 시점에 가중치를 받아 둬서 콜드스타트를 줄인다."""
+    import os as _os
+
     from ultralytics import YOLO
 
     YOLO(DETECT_MODEL)
+
+    # 공 전용 모델(URL)이면 빌드 시점에 받아 이미지에 굽는다.
+    if BALL_MODEL and BALL_MODEL.startswith("http"):
+        import requests
+
+        _os.makedirs(_os.path.dirname(BALL_MODEL_LOCAL), exist_ok=True)
+        if not _os.path.exists(BALL_MODEL_LOCAL):
+            resp = requests.get(BALL_MODEL, timeout=600)
+            resp.raise_for_status()
+            with open(BALL_MODEL_LOCAL, "wb") as f:
+                f.write(resp.content)
+        YOLO(BALL_MODEL_LOCAL)
 
 
 image = image.run_function(_preload_models)
@@ -192,6 +224,30 @@ def _estimate_camera_affine(prev_gray, cur_gray, orb, max_features: int = 500):
 # ---------------------------------------------------------------------------
 # A) 선수 추적 + 이동 지표
 # ---------------------------------------------------------------------------
+def _write_reid_tracker() -> str:
+    """BoT-SORT + ReID(외형모델) 트래커 설정 파일을 생성하고 경로를 반환."""
+    import tempfile
+
+    cfg = (
+        "tracker_type: botsort\n"
+        "track_high_thresh: 0.25\n"
+        "track_low_thresh: 0.1\n"
+        "new_track_thresh: 0.25\n"
+        "track_buffer: 60\n"          # 끊긴 트랙을 더 오래 유지(가림/줌에 강함)
+        "match_thresh: 0.8\n"
+        "fuse_score: true\n"
+        "gmc_method: sparseOptFlow\n"
+        "proximity_thresh: 0.5\n"
+        "appearance_thresh: 0.25\n"
+        "with_reid: true\n"           # 외형 임베딩으로 ID 유지
+        "model: auto\n"
+    )
+    f = tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False)
+    f.write(cfg)
+    f.close()
+    return f.name
+
+
 def _track_player(video_path: str, player: dict, sample_fps: float,
                   assumed_height_m: float, max_seconds: float,
                   center_seed: bool = True, seed_seconds: float = 3.0) -> dict:
@@ -200,6 +256,8 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
     from ultralytics import YOLO
 
     model = YOLO(DETECT_MODEL)
+    tracker_cfg = _write_reid_tracker()  # ReID 우선, 실패 시 기본 트래커로 폴백
+    reid_active = True
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return {"available": False, "reason": "cannot_open_video"}
@@ -268,11 +326,21 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
                     pass
         prev_gray = gray
 
-        # BoT-SORT 추적
-        res = model.track(
-            source=frame, persist=True, tracker="botsort.yaml",
-            classes=[PERSON_CLASS_ID], conf=0.25, imgsz=640, verbose=False,
-        )[0]
+        # BoT-SORT(+ReID) 추적. ReID 미지원 환경이면 기본 트래커로 폴백.
+        try:
+            res = model.track(
+                source=frame, persist=True, tracker=tracker_cfg,
+                classes=[PERSON_CLASS_ID], conf=0.25, imgsz=960, verbose=False,
+            )[0]
+        except Exception:
+            if reid_active:
+                reid_active = False
+                tracker_cfg = "botsort.yaml"
+                model = YOLO(DETECT_MODEL)  # 트래커 상태 초기화
+                prev_gray = gray
+                frame_idx += 1
+                continue
+            raise
 
         if res.boxes is None or res.boxes.id is None:
             frame_idx += 1
@@ -468,6 +536,7 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
         "available": True,
         "trackId": int(target_id),
         "targetSelectedBy": seed_select,  # center_seed | kit_zone
+        "reidActive": reid_active,        # BoT-SORT ReID(외형모델) 적용 여부
         "reacquireCount": reacquired,     # 줌 등으로 끊긴 뒤 외형으로 다시 이어붙인 횟수
         "matchConfidence": round(sum(target["scores"]) / len(target["scores"]), 3),
         "sampledPoints": len(pts),
@@ -492,9 +561,10 @@ def _detect_ball_sahi(video_path: str, clips: list, sample_fps: float) -> dict:
     from sahi import AutoDetectionModel
     from sahi.predict import get_sliced_prediction
 
+    ball_model_path, ball_class = _resolve_ball_model()
     det_model = AutoDetectionModel.from_pretrained(
         model_type="ultralytics",
-        model_path=DETECT_MODEL,
+        model_path=ball_model_path,
         confidence_threshold=0.20,
         device="cuda:0",
     )
@@ -537,7 +607,7 @@ def _detect_ball_sahi(video_path: str, clips: list, sample_fps: float) -> dict:
             )
             best = None
             for obj in pred.object_prediction_list:
-                if obj.category.id == SPORTS_BALL_CLASS_ID:
+                if obj.category.id == ball_class:
                     if best is None or obj.score.value > best.score.value:
                         best = obj
             if best is not None:
@@ -577,13 +647,17 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
     import cv2
     from sahi import AutoDetectionModel
     from sahi.predict import get_sliced_prediction
+    from ultralytics import YOLO
 
-    det_model = AutoDetectionModel.from_pretrained(
+    # 공: 전용 모델 + SAHI(작은 공 정밀). 선수: 큰 객체라 전체프레임 일반 검출로 충분(빠름).
+    ball_model_path, ball_class = _resolve_ball_model()
+    ball_det = AutoDetectionModel.from_pretrained(
         model_type="ultralytics",
-        model_path=DETECT_MODEL,
+        model_path=ball_model_path,
         confidence_threshold=0.12,
         device="cuda:0",
     )
+    person_model = YOLO(DETECT_MODEL)
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -607,18 +681,23 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
             continue
         h, w = frame.shape[:2]
         pred = get_sliced_prediction(
-            frame, det_model,
+            frame, ball_det,
             slice_height=max(256, h // 2), slice_width=max(256, w // 2),
             overlap_height_ratio=0.2, overlap_width_ratio=0.2, verbose=0,
         )
         balls = []
-        persons = []
         for obj in pred.object_prediction_list:
-            bb = obj.bbox
-            if obj.category.id == SPORTS_BALL_CLASS_ID:
+            if obj.category.id == ball_class:
+                bb = obj.bbox
                 balls.append(((bb.minx + bb.maxx) / 2.0, (bb.miny + bb.maxy) / 2.0, float(obj.score.value)))
-            elif obj.category.id == PERSON_CLASS_ID:
-                persons.append((bb.minx, bb.miny, bb.maxx, bb.maxy))
+
+        persons = []
+        pres = person_model.predict(
+            frame, classes=[PERSON_CLASS_ID], conf=0.25, imgsz=960, verbose=False,
+        )[0]
+        if pres.boxes is not None:
+            for b in pres.boxes.xyxy.cpu().numpy():
+                persons.append((float(b[0]), float(b[1]), float(b[2]), float(b[3])))
 
         if balls:
             ball_seen += 1
@@ -693,7 +772,7 @@ def _check_auth(token: str):
 
 @app.function(
     image=image,
-    gpu="T4",
+    gpu="L4",  # T4보다 빠르고 메모리 큼 → 높은 fps·큰 모델(11m)·ReID 감당
     timeout=1500,
     secrets=[modal.Secret.from_name("soccer-gpu-auth")],
 )

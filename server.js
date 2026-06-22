@@ -30,7 +30,7 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0
 // Modal GPU 고급 분석(선수 추적·히트맵·공 SAHI) — 환경변수 미설정 시 자동 건너뜀
 const MODAL_ANALYZE_URL = (process.env.MODAL_ANALYZE_URL || '').trim();
 const MODAL_AUTH_TOKEN = (process.env.MODAL_AUTH_TOKEN || '').trim();
-const MODAL_SAMPLE_FPS = Number(process.env.MODAL_SAMPLE_FPS) || 4;
+const MODAL_SAMPLE_FPS = Number(process.env.MODAL_SAMPLE_FPS) || 8;
 const MODAL_ENABLED = Boolean(MODAL_ANALYZE_URL);
 
 // 비용 최적화: Gemini 시각 검수 단계 파라미터 (환경변수로 조정 가능)
