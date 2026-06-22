@@ -482,7 +482,7 @@ def render_highlights(req: dict):
         paths.append(p)
 
     out = "/tmp/reel.mp4"
-    _make_reel(paths, profile, out, style=style)
+    _make_reel(paths, profile, out, style=style, with_card=False)
     data = open(out, "rb").read()
     return Response(content=data, media_type="video/mp4",
                     headers={"X-Clip-Count": str(len(paths))})
