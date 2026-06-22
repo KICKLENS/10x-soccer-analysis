@@ -809,7 +809,7 @@ def _check_auth(token: str):
 
 @app.function(
     image=image,
-    gpu="L4",  # T4보다 빠르고 메모리 큼 → 높은 fps·큰 모델(11m)·ReID 감당
+    gpu=["L4", "A10G", "T4"],  # L4 우선, 자리 없으면 A10G→T4로 자동 폴백(대기열 방지)
     timeout=1500,
     secrets=[modal.Secret.from_name("soccer-gpu-auth")],
     volumes={"/models": models_volume},  # 파인튜닝 모델(soccer_best.pt) 읽기용
