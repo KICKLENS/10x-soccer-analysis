@@ -79,8 +79,6 @@ def _age_from_dob(dob: str) -> str:
 def _draw_card(profile: dict):
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-    import math
-
     ORANGE = (255, 159, 2)
     W, H = 1920, 1080
     img = Image.new("RGB", (W, H), (10, 10, 13))
@@ -88,33 +86,45 @@ def _draw_card(profile: dict):
     ImageDraw.Draw(glow).ellipse([W - 700, -300, W + 200, 500], fill=(40, 28, 6))
     img = Image.blend(img, glow.filter(ImageFilter.GaussianBlur(160)), 0.6)
 
-    # ── 축구 배경 패턴(피치 라인 + 잔디 줄무늬 + 공 육각) : 아주 은은하게 ──
+    # ── 훈련일지 스타일 풀 피치(탑다운 전체 코트 + 옅은 그리드) ──
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     od = ImageDraw.Draw(ov)
-    LINE = (255, 255, 255, 16)
-    pcx, pcy = 1430, 430  # 선수 사진 중심
-    for sx in range(-200, W + 200, 150):  # 잔디 줄무늬
-        od.polygon([(sx, 0), (sx + 75, 0), (sx + 75 - 120, H), (sx - 120, H)],
-                   fill=(255, 255, 255, 4))
-    od.line([1120, 0, 1120, H], fill=LINE, width=3)  # 하프라인
-    od.ellipse([pcx - 380, pcy - 380, pcx + 380, pcy + 380], outline=LINE, width=3)  # 센터서클
-    od.ellipse([pcx - 10, pcy - 10, pcx + 10, pcy + 10], fill=LINE)  # 센터스폿
-    od.rectangle([-260, 300, 230, 780], outline=LINE, width=3)  # 좌측 페널티박스
-    od.rectangle([-260, 420, 90, 660], outline=LINE, width=3)  # 골에어리어
-    od.arc([40, 420, 380, 660], start=-68, end=68, fill=LINE, width=3)  # 페널티 아크
-    od.arc([-46, -46, 70, 70], start=0, end=90, fill=LINE, width=3)  # 코너 아크
-    od.arc([-46, H - 70, 70, H + 46], start=270, end=360, fill=LINE, width=3)
-    # 우상단 축구공 육각 패턴
-    HEX = (255, 159, 2, 16)
-    r, gx, gy = 46, 1560, 70
-    for row in range(3):
-        for col in range(4):
-            hx = gx + col * r * 1.74 + (row % 2) * r * 0.87
-            hy = gy + row * r * 1.5
-            pts = [(hx + r * math.cos(math.pi / 6 + k * math.pi / 3),
-                    hy + r * math.sin(math.pi / 6 + k * math.pi / 3)) for k in range(6)]
-            od.polygon(pts, outline=HEX)
-    ov = ov.filter(ImageFilter.GaussianBlur(0.4))
+    LINE = (205, 222, 245, 24)   # 쿨 화이트(저널 라인 톤)
+    GRID = (150, 180, 220, 8)    # 옅은 블루 그리드
+    lw = 3
+    for gx in range(0, W, 40):   # 그리드(훈련일지와 동일 40px)
+        od.line([gx, 0, gx, H], fill=GRID, width=1)
+    for gy in range(0, H, 40):
+        od.line([0, gy, W, gy], fill=GRID, width=1)
+
+    m = 70
+    cy = H // 2
+    od.rectangle([m, m, W - m, H - m], outline=LINE, width=lw)          # 외곽선
+    od.line([W // 2, m, W // 2, H - m], fill=LINE, width=lw)            # 하프라인
+    od.ellipse([W // 2 - 150, cy - 150, W // 2 + 150, cy + 150],
+               outline=LINE, width=lw)                                   # 센터서클
+    od.ellipse([W // 2 - 7, cy - 7, W // 2 + 7, cy + 7], fill=LINE)     # 센터스폿
+
+    pbw, pbh, gbw, gbh = 250, 470, 95, 230  # 페널티박스 / 골에어리어
+    # 좌측
+    od.rectangle([m, cy - pbh // 2, m + pbw, cy + pbh // 2], outline=LINE, width=lw)
+    od.rectangle([m, cy - gbh // 2, m + gbw, cy + gbh // 2], outline=LINE, width=lw)
+    od.ellipse([m + 165, cy - 5, m + 175, cy + 5], fill=LINE)          # 페널티 스폿
+    od.arc([m + pbw - 130, cy - 130, m + pbw + 130, cy + 130], start=-62, end=62,
+           fill=LINE, width=lw)
+    # 우측(대칭)
+    od.rectangle([W - m - pbw, cy - pbh // 2, W - m, cy + pbh // 2], outline=LINE, width=lw)
+    od.rectangle([W - m - gbw, cy - gbh // 2, W - m, cy + gbh // 2], outline=LINE, width=lw)
+    od.ellipse([W - m - 175, cy - 5, W - m - 165, cy + 5], fill=LINE)
+    od.arc([W - m - pbw - 130, cy - 130, W - m - pbw + 130, cy + 130], start=118, end=242,
+           fill=LINE, width=lw)
+    # 코너 아크
+    cr = 30
+    od.arc([m - cr, m - cr, m + cr, m + cr], 0, 90, fill=LINE, width=lw)
+    od.arc([W - m - cr, m - cr, W - m + cr, m + cr], 90, 180, fill=LINE, width=lw)
+    od.arc([m - cr, H - m - cr, m + cr, H - m + cr], 270, 360, fill=LINE, width=lw)
+    od.arc([W - m - cr, H - m - cr, W - m + cr, H - m + cr], 180, 270, fill=LINE, width=lw)
+
     img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB")
 
     d = ImageDraw.Draw(img)
