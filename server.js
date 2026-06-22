@@ -913,7 +913,13 @@ function normalizePlayerInput(body = {}) {
   };
 }
 
-async function runFullHighlightPipeline(savedFilename, player = {}, { renderFinal = false } = {}) {
+async function runFullHighlightPipeline(savedFilename, player = {}, { renderFinal = false, onProgress } = {}) {
+  const report = (stage, progress) => {
+    if (typeof onProgress === 'function') {
+      try { onProgress(stage, progress); } catch { /* noop */ }
+    }
+  };
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
@@ -924,6 +930,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     throw new Error(`영상 파일을 찾을 수 없습니다: ${savedFilename}`);
   }
 
+  report('영상에서 후보 장면 탐지 중', 8);
   const yoloResult = await runYoloDetection(fullPath, player);
   if (!yoloResult.clips?.length) {
     console.warn('[YOLO] 1차 분석에서 클립 없음, 완화 조건으로 재시도...');
@@ -966,6 +973,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   yoloResult.clips = coachCandidates;
   console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개${rescued ? ' (GPU 구제)' : ''}`);
 
+  report('정밀 추적·이동 분석 중', 40);
   if (!rescued && MODAL_ENABLED) {
     gpuAnalysis = await runGpuAnalysis(
       `${PUBLIC_BASE}/uploads/${savedFilename}`,
@@ -974,6 +982,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     );
   }
 
+  report('AI 코치가 장면 선정 중', 60);
   const prompt = buildCoachPrompt(yoloResult, player, gpuAnalysis);
   const text = await generateContentWithFallback(genAI, prompt);
   const parsed = robustParse(text);
@@ -987,6 +996,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     mergedClips = mergedClips.slice(0, QC_MAX_CLIPS);
     console.log(`[QC] GPU 구제 경로 → 시각검수 생략, ${mergedClips.length}개 렌더`);
   } else {
+    report('장면 품질 검수 중', 75);
     console.log(`[QC] 2차 AI 코치 선정 ${mergedClips.length}개 → 시각 검수 시작...`);
     const visualReviews = await verifyClipsVisually(genAI, fullPath, mergedClips.slice(0, QC_MAX_CLIPS), player);
     mergedClips = applyQualityGate(mergedClips, player, visualReviews);
@@ -1000,12 +1010,14 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
 
   console.log(`[QC] 최종 승인 ${mergedClips.length}개`);
 
+  report('하이라이트 클립 렌더링 중', 88);
   console.log('[FFmpeg] 개별 클립 렌더링 시작...');
   const clipsWithVideos = await renderClipVideos(fullPath, mergedClips);
 
   let finalHighlight = null;
   if (renderFinal) {
-    // 스포트라이트(Modal) 렌더는 응답을 막지 않도록 분리 → /api/highlights/spotlight 에서 처리
+    report('하이라이트 영상 합치는 중', 95);
+    // 스포트라이트(Modal) 렌더는 응답을 막지 않도록 분리 → /api/jobs/spotlight 에서 처리
     finalHighlight = await renderFinalHighlight(fullPath, clipsWithVideos);
   }
 
@@ -1422,36 +1434,130 @@ app.post('/api/extract-highlights', async (req, res) => {
   }
 });
 
-// 스포트라이트(선수 포착) 효과 적용 — AI분석과 분리된 별도 요청(응답 안 막음)
-app.post('/api/highlights/spotlight', async (req, res) => {
-  try {
-    if (!HIGHLIGHT_FX_ENABLED || !MODAL_ENABLED) {
-      res.status(503).json({ success: false, error: '스포트라이트 효과가 비활성화되어 있습니다.' });
-      return;
-    }
-    const { clips, player: bodyPlayer, ...rest } = req.body || {};
-    const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
-    const clipObjs = (Array.isArray(clips) ? clips : [])
-      .map((c) => (typeof c === 'string'
-        ? { highlightVideoUrl: c }
-        : { highlightVideoUrl: c.url || c.clipUrl || c.outputUrl || c.videoUrl || c.highlightVideoUrl }))
-      .filter((c) => c.highlightVideoUrl);
-    if (!clipObjs.length) {
-      res.status(400).json({ success: false, error: '효과를 적용할 클립이 없습니다.' });
-      return;
-    }
+// ── 비동기 작업(job) 시스템: 긴 작업이 단일 요청 타임아웃에 안 걸리도록 분리 ──
+const jobs = new Map();
 
-    const out = await renderHighlightReel(clipObjs, player);
-    res.json({
-      success: true,
-      videoUrl: out.videoUrl,
-      outputPath: out.outputPath,
-      message: '스포트라이트 효과 적용 완료',
-    });
-  } catch (err) {
-    console.error('[spotlight]', err);
-    res.status(500).json({ success: false, error: err.message });
+function createJob(type) {
+  // 1시간 지난 작업 정리
+  const now = Date.now();
+  for (const [key, value] of jobs) {
+    if (now - value.createdAt > 60 * 60 * 1000) jobs.delete(key);
   }
+  const id = `${type}-${now}-${Math.random().toString(36).slice(2, 8)}`;
+  const job = { id, type, status: 'running', stage: '대기 중', progress: 0,
+    result: null, error: null, createdAt: now };
+  jobs.set(id, job);
+  return job;
+}
+
+// 하이라이트 자동추출 시작 → jobId 즉시 반환(백그라운드 진행)
+app.post('/api/jobs/extract', (req, res) => {
+  const { savedFilename, fileName, player: bodyPlayer, ...rest } = req.body || {};
+  const filename = savedFilename || fileName;
+  if (!filename) {
+    res.status(400).json({ success: false, error: 'fileName 또는 savedFilename이 필요합니다.' });
+    return;
+  }
+  const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
+  const job = createJob('extract');
+  res.json({ success: true, jobId: job.id });
+
+  (async () => {
+    try {
+      const result = await runFullHighlightPipeline(filename, player, {
+        renderFinal: true,
+        onProgress: (stage, progress) => {
+          job.stage = stage;
+          if (typeof progress === 'number') job.progress = progress;
+        },
+      });
+      try {
+        const originalPath = path.join(uploadsDir, filename);
+        if (fs.existsSync(originalPath)) {
+          fs.unlinkSync(originalPath);
+          console.log('[cleanup] 원본 영상 삭제:', filename);
+        }
+      } catch (cleanupErr) {
+        console.warn('[cleanup] 원본 영상 삭제 실패:', cleanupErr.message);
+      }
+      job.result = {
+        fileName: filename,
+        savedFilename: filename,
+        clips: adaptClipsForMainSite(result.clipsWithVideos),
+        mergedHighlightUrl: result.finalHighlight?.videoUrl || '',
+        highlightVideoUrl: result.finalHighlight?.videoUrl || '',
+        summary: result.summary,
+        yoloSummary: result.yoloSummary,
+        gpuAnalysis: result.gpuAnalysis || null,
+        targetPlayer: result.targetPlayer,
+        player: result.player,
+        message: result.message,
+      };
+      job.status = 'done';
+      job.stage = '완료';
+      job.progress = 100;
+    } catch (err) {
+      console.error('[job/extract]', err);
+      job.status = 'error';
+      job.error = err.message;
+      job.yoloSummary = err.yoloSummary;
+    }
+  })();
+});
+
+// 스포트라이트(선수 포착) 효과 적용 작업 시작
+app.post('/api/jobs/spotlight', (req, res) => {
+  if (!HIGHLIGHT_FX_ENABLED || !MODAL_ENABLED) {
+    res.status(503).json({ success: false, error: '스포트라이트 효과가 비활성화되어 있습니다.' });
+    return;
+  }
+  const { clips, player: bodyPlayer, ...rest } = req.body || {};
+  const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
+  const clipObjs = (Array.isArray(clips) ? clips : [])
+    .map((c) => (typeof c === 'string'
+      ? { highlightVideoUrl: c }
+      : { highlightVideoUrl: c.url || c.clipUrl || c.outputUrl || c.videoUrl || c.highlightVideoUrl }))
+    .filter((c) => c.highlightVideoUrl);
+  if (!clipObjs.length) {
+    res.status(400).json({ success: false, error: '효과를 적용할 클립이 없습니다.' });
+    return;
+  }
+  const job = createJob('spotlight');
+  res.json({ success: true, jobId: job.id });
+
+  (async () => {
+    try {
+      job.stage = '선수 포착 효과 적용 중';
+      job.progress = 30;
+      const out = await renderHighlightReel(clipObjs, player);
+      job.result = { videoUrl: out.videoUrl, outputPath: out.outputPath };
+      job.status = 'done';
+      job.stage = '완료';
+      job.progress = 100;
+    } catch (err) {
+      console.error('[job/spotlight]', err);
+      job.status = 'error';
+      job.error = err.message;
+    }
+  })();
+});
+
+// 작업 상태 조회(폴링)
+app.get('/api/jobs/:id', (req, res) => {
+  const job = jobs.get(req.params.id);
+  if (!job) {
+    res.status(404).json({ success: false, error: '작업을 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({
+    success: true,
+    status: job.status,
+    stage: job.stage,
+    progress: job.progress,
+    result: job.result,
+    error: job.error,
+    yoloSummary: job.yoloSummary,
+  });
 });
 
 app.post('/api/lab/render-final-highlights', async (req, res) => {

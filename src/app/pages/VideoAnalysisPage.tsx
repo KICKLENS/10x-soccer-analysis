@@ -18,7 +18,39 @@ import { uploadVideoFile, type AiAnalysisPayload as HistoryAiAnalysisPayload } f
 import PageNav from '../components/PageNav';
 
 const UPLOAD_ENDPOINT = '/api/upload';
-const EXTRACT_ENDPOINT = '/api/extract-highlights';
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// 비동기 작업(job) 상태를 폴링한다. 네트워크 일시 오류는 재시도, 작업 자체 오류는 전파.
+async function pollJob<T = unknown>(
+  jobId: string,
+  onStage?: (stage: string, progress?: number) => void,
+): Promise<T> {
+  let fails = 0;
+  for (;;) {
+    await sleep(4000);
+    try {
+      const s = await fetchJson<{
+        status: string;
+        stage?: string;
+        progress?: number;
+        result?: T;
+        error?: string;
+      }>(`/api/jobs/${jobId}`, { method: 'GET' });
+      fails = 0;
+      if (s.stage) onStage?.(s.stage, s.progress);
+      if (s.status === 'done') return s.result as T;
+      if (s.status === 'error') {
+        const err = new Error(s.error || '작업 처리 중 오류가 발생했습니다.') as Error & { jobError?: boolean };
+        err.jobError = true;
+        throw err;
+      }
+    } catch (e) {
+      if ((e as { jobError?: boolean })?.jobError) throw e;
+      fails += 1;
+      if (fails >= 10) throw new Error('서버와 통신이 끊겼습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }
+}
 const HEALTH_ENDPOINT = '/api/health';
 
 const PAGE_BG = '#070b14';
@@ -389,16 +421,17 @@ export default function VideoAnalysisPage() {
     try {
       setIsEnhancing(true);
       setStatusMessage('하이라이트에 선수 포착(스포트라이트) 효과를 적용하는 중입니다... (약 1~3분)');
-      const data = await fetchJson<{ success?: boolean; videoUrl?: string; error?: string }>(
-        '/api/highlights/spotlight',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clips: clipList, ...player, player }),
-        },
+      const start = await fetchJson<{ jobId?: string }>('/api/jobs/spotlight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clips: clipList, ...player, player }),
+      });
+      if (!start.jobId) return;
+      const result = await pollJob<{ videoUrl?: string }>(start.jobId, (stage) =>
+        setStatusMessage(`선수 포착(스포트라이트) ${stage}...`),
       );
-      const fxUrl = toAbsoluteUrl(data.videoUrl || '');
-      if (data.success && fxUrl) {
+      const fxUrl = toAbsoluteUrl(result?.videoUrl || '');
+      if (fxUrl) {
         setHighlightVideoUrl(fxUrl);
         setStatusMessage('선수 포착(스포트라이트) 효과가 적용된 하이라이트가 준비되었습니다.');
       }
@@ -417,11 +450,11 @@ export default function VideoAnalysisPage() {
 
     setIsExtracting(true);
     setErrorMessage('');
-    setStatusMessage('등록한 선수 중심으로 AI 분석·품질 검수 중... (영상 길이에 따라 2~12분)');
+    setStatusMessage('하이라이트 자동추출을 시작합니다...');
 
     try {
       const player = readSelectedPlayer();
-      const data = await fetchJson<ExtractResponse>(EXTRACT_ENDPOINT, {
+      const start = await fetchJson<{ jobId?: string }>('/api/jobs/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -431,6 +464,13 @@ export default function VideoAnalysisPage() {
           player,
         }),
       });
+      if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
+
+      const data = await pollJob<ExtractResponse>(start.jobId, (stage, progress) =>
+        setStatusMessage(
+          `하이라이트 추출 중: ${stage}${typeof progress === 'number' ? ` (${progress}%)` : ''}`,
+        ),
+      );
 
       const nextClips = Array.isArray(data.clips) ? data.clips : [];
       const mergedUrl = toAbsoluteUrl(data.mergedHighlightUrl || data.highlightVideoUrl || '');
@@ -441,12 +481,12 @@ export default function VideoAnalysisPage() {
 
       setHighlightClips(nextClips);
       setHighlightVideoUrl(mergedUrl);
-      setHighlightJobId(data.jobId || '');
+      setHighlightJobId(start.jobId);
       setCoachSummary(data.summary || null);
 
       setStatusMessage(data.message || '하이라이트 생성이 완료되었습니다. AI 분석으로 이어서 확인할 수 있습니다.');
 
-      // 스포트라이트 효과는 응답을 막지 않도록 별도 요청으로 적용(완료되면 영상 교체)
+      // 스포트라이트 효과는 별도 작업으로 적용(완료되면 영상 교체)
       void enhanceWithSpotlight(nextClips, player);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '하이라이트 추출 중 오류가 발생했습니다.');
