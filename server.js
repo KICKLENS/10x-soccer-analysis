@@ -8,7 +8,13 @@ import multer from 'multer';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,6 +76,85 @@ const r2Client = R2_ENABLED
       },
     })
   : null;
+
+// ── R2 저장 헬퍼(영구 보관: 작업기록·원본영상·하이라이트 출력) ─────────────
+async function streamToString(stream) {
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
+async function r2PutFile(key, localPath, contentType = 'application/octet-stream') {
+  const stat = fs.statSync(localPath);
+  await r2Client.send(new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    Body: fs.createReadStream(localPath),
+    ContentType: contentType,
+    ContentLength: stat.size,
+  }));
+  return `${R2_PUBLIC_BASE}/${key}`;
+}
+
+async function r2PutJson(key, obj) {
+  const body = Buffer.from(JSON.stringify(obj));
+  await r2Client.send(new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    Body: body,
+    ContentType: 'application/json',
+    ContentLength: body.length,
+  }));
+}
+
+async function r2GetJson(key) {
+  try {
+    const resp = await r2Client.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    return JSON.parse(await streamToString(resp.Body));
+  } catch (err) {
+    if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
+    throw err;
+  }
+}
+
+async function r2GetToFile(key, localPath) {
+  const resp = await r2Client.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+  await new Promise((resolve, reject) => {
+    const ws = fs.createWriteStream(localPath);
+    resp.Body.on('error', reject);
+    ws.on('error', reject);
+    ws.on('finish', resolve);
+    resp.Body.pipe(ws);
+  });
+  return localPath;
+}
+
+async function r2Delete(key) {
+  try {
+    await r2Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+  } catch (err) {
+    console.warn('[R2] 삭제 실패:', key, err.message);
+  }
+}
+
+async function r2List(prefix) {
+  const keys = [];
+  let token;
+  do {
+    const resp = await r2Client.send(new ListObjectsV2Command({
+      Bucket: R2_BUCKET,
+      Prefix: prefix,
+      ContinuationToken: token,
+    }));
+    (resp.Contents || []).forEach((o) => keys.push(o.Key));
+    token = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
+}
+
+const R2_JOB_PREFIX = 'jobs/';
+const R2_SRC_PREFIX = 'analysis-src/';
+const R2_OUT_PREFIX = 'analysis-out/';
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '500mb' }));
@@ -1434,20 +1519,180 @@ app.post('/api/extract-highlights', async (req, res) => {
   }
 });
 
-// ── 비동기 작업(job) 시스템: 긴 작업이 단일 요청 타임아웃에 안 걸리도록 분리 ──
-const jobs = new Map();
+// 로컬 하이라이트 출력 URL → 실제 파일 경로
+function localHighlightFileFromUrl(url) {
+  if (typeof url !== 'string') return null;
+  const m = url.match(/\/highlights\/([^/?#]+)$/);
+  if (!m) return null;
+  const fullPath = path.join(highlightsDir, m[1]);
+  return fs.existsSync(fullPath) ? { name: m[1], path: fullPath } : null;
+}
 
-function createJob(type) {
-  // 1시간 지난 작업 정리
+// 하이라이트 출력(영상)을 R2로 미러링하고 결과 URL을 R2 주소로 교체.
+// 서버가 재시작돼도 결과 링크가 살아있도록 함. (실패 시 로컬 URL 유지)
+async function mirrorJobResultOutputs(result) {
+  if (!R2_ENABLED || !result) return result;
+  const cache = new Map();
+  const mirror = async (url) => {
+    const info = localHighlightFileFromUrl(url);
+    if (!info) return url;
+    if (cache.has(info.name)) return cache.get(info.name);
+    try {
+      const publicUrl = await r2PutFile(`${R2_OUT_PREFIX}${info.name}`, info.path, 'video/mp4');
+      cache.set(info.name, publicUrl);
+      return publicUrl;
+    } catch (err) {
+      console.warn('[R2] 출력 미러 실패:', info.name, err.message);
+      return url;
+    }
+  };
+
+  if (result.mergedHighlightUrl) result.mergedHighlightUrl = await mirror(result.mergedHighlightUrl);
+  if (result.highlightVideoUrl) result.highlightVideoUrl = await mirror(result.highlightVideoUrl);
+  if (result.videoUrl) result.videoUrl = await mirror(result.videoUrl);
+  if (Array.isArray(result.clips)) {
+    for (const clip of result.clips) {
+      for (const field of ['url', 'clipUrl', 'outputUrl', 'videoUrl', 'highlightVideoUrl']) {
+        if (clip[field]) clip[field] = await mirror(clip[field]);
+      }
+    }
+  }
+  return result;
+}
+
+// ── 비동기 작업(job) 시스템: 긴 작업이 단일 요청 타임아웃에 안 걸리도록 분리 ──
+// 작업 기록을 R2에 영구 저장(write-through) → 서버가 재시작돼도 결과 유지/재개 가능.
+const jobs = new Map(); // 빠른 조회용 메모리 캐시(원본은 R2)
+
+// R2에 저장할 때 영상 데이터(base64 등 큰 값)는 빼고 메타데이터만 보관
+function jobToPersist(job) {
+  return {
+    id: job.id,
+    type: job.type,
+    status: job.status,
+    stage: job.stage,
+    progress: job.progress,
+    result: job.result,
+    error: job.error,
+    yoloSummary: job.yoloSummary || null,
+    createdAt: job.createdAt,
+    // 재개(resume)에 필요한 정보
+    filename: job.filename || null,
+    srcKey: job.srcKey || null,
+    player: job.player || null,
+  };
+}
+
+function persistJob(job) {
+  if (!R2_ENABLED) return;
+  r2PutJson(`${R2_JOB_PREFIX}${job.id}.json`, jobToPersist(job))
+    .catch((err) => console.warn('[job] 영구저장 실패:', job.id, err.message));
+}
+
+// 메모리 캐시에 반영 + R2에 write-through
+function setJob(job) {
+  jobs.set(job.id, job);
+  persistJob(job);
+}
+
+async function getJob(id) {
+  if (jobs.has(id)) return jobs.get(id);
+  if (R2_ENABLED) {
+    try {
+      const j = await r2GetJson(`${R2_JOB_PREFIX}${id}.json`);
+      if (j) {
+        jobs.set(j.id, j);
+        return j;
+      }
+    } catch (err) {
+      console.warn('[job] R2 조회 실패:', id, err.message);
+    }
+  }
+  return null;
+}
+
+function createJob(type, meta = {}) {
+  // 1시간 지난 메모리 캐시 정리
   const now = Date.now();
   for (const [key, value] of jobs) {
     if (now - value.createdAt > 60 * 60 * 1000) jobs.delete(key);
   }
   const id = `${type}-${now}-${Math.random().toString(36).slice(2, 8)}`;
   const job = { id, type, status: 'running', stage: '대기 중', progress: 0,
-    result: null, error: null, createdAt: now };
-  jobs.set(id, job);
+    result: null, error: null, createdAt: now, ...meta };
+  setJob(job);
   return job;
+}
+
+// 추출 작업 실행(신규 시작 + 재시작 후 재개 공용). job에는 filename/player/srcKey가 들어있음.
+async function runExtractJob(job) {
+  const filename = job.filename;
+  const player = job.player || {};
+  const localPath = path.join(uploadsDir, filename);
+
+  try {
+    // 로컬 원본이 없으면(=서버 재시작 후 재개) R2에서 복구
+    if (!fs.existsSync(localPath)) {
+      if (job.srcKey && R2_ENABLED) {
+        console.log('[resume] R2에서 원본 복구:', job.srcKey);
+        job.stage = '영상 복구 중';
+        setJob(job);
+        await r2GetToFile(job.srcKey, localPath);
+      } else {
+        throw new Error('원본 영상을 찾을 수 없어 재개할 수 없습니다. 다시 업로드해 주세요.');
+      }
+    }
+
+    const result = await runFullHighlightPipeline(filename, player, {
+      renderFinal: true,
+      onProgress: (stage, progress) => {
+        job.stage = stage;
+        if (typeof progress === 'number') job.progress = progress;
+        setJob(job);
+      },
+    });
+
+    // 원본 영상은 처리 후 삭제(개인정보·저장공간)
+    try {
+      if (fs.existsSync(localPath)) {
+        fs.unlinkSync(localPath);
+        console.log('[cleanup] 원본 영상 삭제:', filename);
+      }
+    } catch (cleanupErr) {
+      console.warn('[cleanup] 원본 영상 삭제 실패:', cleanupErr.message);
+    }
+
+    const jobResult = {
+      fileName: filename,
+      savedFilename: filename,
+      clips: adaptClipsForMainSite(result.clipsWithVideos),
+      mergedHighlightUrl: result.finalHighlight?.videoUrl || '',
+      highlightVideoUrl: result.finalHighlight?.videoUrl || '',
+      summary: result.summary,
+      yoloSummary: result.yoloSummary,
+      gpuAnalysis: result.gpuAnalysis || null,
+      targetPlayer: result.targetPlayer,
+      player: result.player,
+      message: result.message,
+    };
+    // 하이라이트 출력물을 R2로 미러링 → 재시작돼도 결과 링크 유지
+    await mirrorJobResultOutputs(jobResult);
+
+    job.result = jobResult;
+    job.status = 'done';
+    job.stage = '완료';
+    job.progress = 100;
+    setJob(job);
+  } catch (err) {
+    console.error('[job/extract]', err);
+    job.status = 'error';
+    job.error = err.message;
+    job.yoloSummary = err.yoloSummary;
+    setJob(job);
+  } finally {
+    // 작업이 끝나면(성공/실패) R2 원본 백업은 더 이상 필요 없음
+    if (job.srcKey && R2_ENABLED) r2Delete(job.srcKey);
+  }
 }
 
 // 하이라이트 자동추출 시작 → jobId 즉시 반환(백그라운드 진행)
@@ -1458,50 +1703,31 @@ app.post('/api/jobs/extract', (req, res) => {
     res.status(400).json({ success: false, error: 'fileName 또는 savedFilename이 필요합니다.' });
     return;
   }
+  const localPath = path.join(uploadsDir, filename);
+  if (!fs.existsSync(localPath)) {
+    res.status(400).json({ success: false, error: '업로드된 영상을 찾을 수 없습니다. 다시 업로드해 주세요.' });
+    return;
+  }
   const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
-  const job = createJob('extract');
+  const job = createJob('extract', { filename, player, srcKey: null });
   res.json({ success: true, jobId: job.id });
 
   (async () => {
-    try {
-      const result = await runFullHighlightPipeline(filename, player, {
-        renderFinal: true,
-        onProgress: (stage, progress) => {
-          job.stage = stage;
-          if (typeof progress === 'number') job.progress = progress;
-        },
-      });
+    // 원본 영상을 R2에 백업(서버가 도중에 죽어도 재개 가능하도록)
+    if (R2_ENABLED) {
       try {
-        const originalPath = path.join(uploadsDir, filename);
-        if (fs.existsSync(originalPath)) {
-          fs.unlinkSync(originalPath);
-          console.log('[cleanup] 원본 영상 삭제:', filename);
-        }
-      } catch (cleanupErr) {
-        console.warn('[cleanup] 원본 영상 삭제 실패:', cleanupErr.message);
+        job.stage = '영상 안전 보관 중';
+        job.progress = 3;
+        setJob(job);
+        const srcKey = `${R2_SRC_PREFIX}${crypto.randomUUID()}-${filename}`;
+        await r2PutFile(srcKey, localPath, 'video/mp4');
+        job.srcKey = srcKey;
+        setJob(job);
+      } catch (err) {
+        console.warn('[R2] 원본 백업 실패(재개 불가, 분석은 계속):', err.message);
       }
-      job.result = {
-        fileName: filename,
-        savedFilename: filename,
-        clips: adaptClipsForMainSite(result.clipsWithVideos),
-        mergedHighlightUrl: result.finalHighlight?.videoUrl || '',
-        highlightVideoUrl: result.finalHighlight?.videoUrl || '',
-        summary: result.summary,
-        yoloSummary: result.yoloSummary,
-        gpuAnalysis: result.gpuAnalysis || null,
-        targetPlayer: result.targetPlayer,
-        player: result.player,
-        message: result.message,
-      };
-      job.status = 'done';
-      job.stage = '완료';
-      job.progress = 100;
-    } catch (err) {
-      console.error('[job/extract]', err);
-      job.status = 'error';
-      job.error = err.message;
-      job.yoloSummary = err.yoloSummary;
     }
+    await runExtractJob(job);
   })();
 });
 
@@ -1529,22 +1755,27 @@ app.post('/api/jobs/spotlight', (req, res) => {
     try {
       job.stage = '선수 포착 효과 적용 중';
       job.progress = 30;
+      setJob(job);
       const out = await renderHighlightReel(clipObjs, player);
-      job.result = { videoUrl: out.videoUrl, outputPath: out.outputPath };
+      const jobResult = { videoUrl: out.videoUrl, outputPath: out.outputPath };
+      await mirrorJobResultOutputs(jobResult);
+      job.result = jobResult;
       job.status = 'done';
       job.stage = '완료';
       job.progress = 100;
+      setJob(job);
     } catch (err) {
       console.error('[job/spotlight]', err);
       job.status = 'error';
       job.error = err.message;
+      setJob(job);
     }
   })();
 });
 
-// 작업 상태 조회(폴링)
-app.get('/api/jobs/:id', (req, res) => {
-  const job = jobs.get(req.params.id);
+// 작업 상태 조회(폴링) — 메모리에 없으면 R2에서 복구
+app.get('/api/jobs/:id', async (req, res) => {
+  const job = await getJob(req.params.id);
   if (!job) {
     res.status(404).json({ success: false, error: '작업을 찾을 수 없습니다.' });
     return;
@@ -1627,4 +1858,44 @@ app.use((err, _req, res, next) => {
   });
 });
 
-app.listen(PORT, () => console.log(`🟢 BACKEND ON: ${PORT}`));
+// 서버 재시작으로 중단된 추출 작업을 R2 기록에서 찾아 자동 재개
+async function resumeInterruptedJobs() {
+  if (!R2_ENABLED) return;
+  try {
+    const keys = await r2List(R2_JOB_PREFIX);
+    const now = Date.now();
+    for (const key of keys) {
+      let job;
+      try {
+        job = await r2GetJson(key);
+      } catch {
+        continue;
+      }
+      if (!job || job.status !== 'running') continue;
+      // 너무 오래된 작업은 재개하지 않고 실패 처리
+      if (now - (job.createdAt || 0) > 60 * 60 * 1000) {
+        job.status = 'error';
+        job.error = '서버 재시작으로 중단됨(시간 초과)';
+        setJob(job);
+        continue;
+      }
+      // 추출 작업만 자동 재개(원본 영상이 R2에 백업된 경우)
+      if (job.type === 'extract' && job.srcKey && job.filename) {
+        console.log('[resume] 중단된 추출 작업 재개:', job.id);
+        jobs.set(job.id, job);
+        runExtractJob(job); // 백그라운드 재실행
+      } else {
+        job.status = 'error';
+        job.error = '서버 재시작으로 중단되었습니다. 다시 시도해 주세요.';
+        setJob(job);
+      }
+    }
+  } catch (err) {
+    console.warn('[resume] 중단 작업 점검 실패:', err.message);
+  }
+}
+
+app.listen(PORT, () => {
+  console.log(`🟢 BACKEND ON: ${PORT}`);
+  resumeInterruptedJobs();
+});
