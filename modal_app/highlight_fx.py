@@ -89,18 +89,27 @@ def _draw_card(profile: dict):
     # ── 훈련일지 스타일 풀 피치(탑다운 전체 코트 + 옅은 그리드) ──
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     od = ImageDraw.Draw(ov)
-    LINE = (205, 222, 245, 24)   # 쿨 화이트(저널 라인 톤)
-    GRID = (150, 180, 220, 8)    # 옅은 블루 그리드
-    lw = 3
-    for gx in range(0, W, 40):   # 그리드(훈련일지와 동일 40px)
-        od.line([gx, 0, gx, H], fill=GRID, width=1)
-    for gy in range(0, H, 40):
-        od.line([0, gy, W, gy], fill=GRID, width=1)
-
+    LINE = (208, 224, 246, 42)   # 쿨 화이트(저널 라인 톤, 조금 더 진하게)
+    GRID = (150, 180, 220, 12)   # 옅은 블루 그리드
+    lw = 4
     m = 70
     cy = H // 2
+    # 그리드: 카드(코트) 안쪽에만, 칸이 정확히 나눠지도록 맞춤
+    gx_n, gy_n = 16, 9
+    fw, fh = (W - 2 * m), (H - 2 * m)
+    for i in range(1, gx_n):
+        x = m + round(fw * i / gx_n)
+        od.line([x, m, x, H - m], fill=GRID, width=1)
+    for j in range(1, gy_n):
+        y = m + round(fh * j / gy_n)
+        od.line([m, y, W - m, y], fill=GRID, width=1)
+
     od.rectangle([m, m, W - m, H - m], outline=LINE, width=lw)          # 외곽선
     od.line([W // 2, m, W // 2, H - m], fill=LINE, width=lw)            # 하프라인
+    goal_h, goal_d = 150, 26                                             # 골대(좌우 중앙)
+    od.rectangle([m - goal_d, cy - goal_h // 2, m, cy + goal_h // 2], outline=LINE, width=lw)
+    od.rectangle([W - m, cy - goal_h // 2, W - m + goal_d, cy + goal_h // 2],
+                 outline=LINE, width=lw)
     od.ellipse([W // 2 - 150, cy - 150, W // 2 + 150, cy + 150],
                outline=LINE, width=lw)                                   # 센터서클
     od.ellipse([W // 2 - 7, cy - 7, W // 2 + 7, cy + 7], fill=LINE)     # 센터스폿
