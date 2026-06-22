@@ -1120,6 +1120,111 @@ app.get('/api/lab/health', (_req, res) => {
 
 app.post('/api/upload', upload.single('video'), handleUpload);
 
+// ── 청크(조각) 업로드: 20분 등 대용량 영상도 끊기지 않게 ──────────────────
+// uploadId별로 순차 도착하는 조각을 한 파일에 이어붙인다(재시도 안전).
+const chunkUploads = new Map();
+const CHUNK_UPLOAD_TTL_MS = 2 * 60 * 60 * 1000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of chunkUploads.entries()) {
+    if (now - entry.updatedAt > CHUNK_UPLOAD_TTL_MS) {
+      fs.promises.unlink(entry.filePath).catch(() => {});
+      chunkUploads.delete(id);
+    }
+  }
+}, 30 * 60 * 1000).unref?.();
+
+function safeUploadId(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+}
+
+app.post('/api/upload/chunk', express.raw({ type: 'application/octet-stream', limit: '32mb' }), (req, res) => {
+  try {
+    const uploadId = safeUploadId(req.get('x-upload-id'));
+    const index = Number(req.get('x-chunk-index'));
+    const total = Number(req.get('x-chunk-total'));
+
+    if (!uploadId || !Number.isInteger(index) || !Number.isInteger(total) || total <= 0) {
+      res.status(400).json({ success: false, error: '청크 헤더가 올바르지 않습니다.' });
+      return;
+    }
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      res.status(400).json({ success: false, error: '빈 청크입니다.' });
+      return;
+    }
+
+    let entry = chunkUploads.get(uploadId);
+    if (!entry) {
+      entry = {
+        filePath: path.join(uploadsDir, `chunk-${uploadId}.mp4`),
+        nextIndex: 0,
+        total,
+        updatedAt: Date.now(),
+      };
+      // 이전 잔여 파일 제거 후 새로 시작
+      try { fs.existsSync(entry.filePath) && fs.unlinkSync(entry.filePath); } catch {}
+      chunkUploads.set(uploadId, entry);
+    }
+
+    // 이미 받은 조각의 재시도 → 멱등 처리
+    if (index < entry.nextIndex) {
+      res.json({ success: true, received: entry.nextIndex, total: entry.total });
+      return;
+    }
+    // 순서가 어긋나면 클라이언트가 nextIndex부터 다시 보내도록 안내
+    if (index !== entry.nextIndex) {
+      res.status(409).json({ success: false, expected: entry.nextIndex, received: entry.nextIndex });
+      return;
+    }
+
+    fs.appendFileSync(entry.filePath, req.body);
+    entry.nextIndex += 1;
+    entry.updatedAt = Date.now();
+
+    res.json({ success: true, received: entry.nextIndex, total: entry.total });
+  } catch (error) {
+    console.error('[upload/chunk]', error);
+    res.status(500).json({ success: false, error: '청크 저장에 실패했습니다.' });
+  }
+});
+
+app.post('/api/upload/complete', (req, res) => {
+  try {
+    const uploadId = safeUploadId(req.body?.uploadId);
+    const entry = chunkUploads.get(uploadId);
+    if (!entry) {
+      res.status(400).json({ success: false, error: '업로드 세션을 찾을 수 없습니다. 다시 시도해 주세요.' });
+      return;
+    }
+    if (entry.nextIndex < entry.total) {
+      res.status(400).json({
+        success: false,
+        error: `업로드가 완료되지 않았습니다(${entry.nextIndex}/${entry.total}).`,
+        received: entry.nextIndex,
+        total: entry.total,
+      });
+      return;
+    }
+
+    const savedFilename = `video-${Date.now()}.mp4`;
+    const finalPath = path.join(uploadsDir, savedFilename);
+    fs.renameSync(entry.filePath, finalPath);
+    chunkUploads.delete(uploadId);
+
+    res.json({
+      success: true,
+      savedFilename,
+      fileName: savedFilename,
+      videoUrl: `${PUBLIC_BASE}/uploads/${savedFilename}`,
+      fileUrl: `${PUBLIC_BASE}/uploads/${savedFilename}`,
+    });
+  } catch (error) {
+    console.error('[upload/complete]', error);
+    res.status(500).json({ success: false, error: '업로드 마무리에 실패했습니다.' });
+  }
+});
+
 app.post('/api/lab/extract-highlights-yolo', async (req, res) => {
   try {
     const { savedFilename } = req.body || {};

@@ -90,98 +90,105 @@ export type AiAnalysisPayload = {
 
 export type AnalysisPipelineStep = 'idle' | 'uploading' | 'analyzing' | 'done';
 
-const UPLOAD_TIMEOUT_MS = 30 * 60 * 1000;
+const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB: 모바일 업링크에서도 한 조각이 금방 끝남
+const CHUNK_TIMEOUT_MS = 5 * 60 * 1000;
+const CHUNK_MAX_RETRY = 4;
 
-function uploadFormDataWithProgress(
-  url: string,
-  formData: FormData,
-  onProgress?: (percent: number) => void,
-): Promise<UploadResponse> {
+type ChunkResult = { received?: number; total?: number; expected?: number };
+
+function postChunk(
+  uploadId: string,
+  index: number,
+  total: number,
+  blob: Blob,
+): Promise<ChunkResult> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.timeout = UPLOAD_TIMEOUT_MS;
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && onProgress) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        onProgress(Math.min(99, percent));
-      }
-    };
+    xhr.open('POST', `${API_BASE_URL}/api/upload/chunk`, true);
+    xhr.timeout = CHUNK_TIMEOUT_MS;
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.setRequestHeader('x-upload-id', uploadId);
+    xhr.setRequestHeader('x-chunk-index', String(index));
+    xhr.setRequestHeader('x-chunk-total', String(total));
 
     xhr.onload = () => {
-      const contentType = xhr.getResponseHeader('content-type') || '';
-      const body = xhr.responseText || '';
-
-      if (!contentType.includes('application/json')) {
-        reject(
-          new Error(
-            body.startsWith('<!DOCTYPE') || body.startsWith('<html')
-              ? `서버 연결에 문제가 있습니다 (${xhr.status}). 잠시 후 다시 시도해 주세요.`
-              : body || `업로드 응답 오류 (${xhr.status})`,
-          ),
-        );
-        return;
-      }
-
-      let data: UploadResponse & { error?: string; message?: string };
+      let data: ChunkResult = {};
       try {
-        data = JSON.parse(body);
+        data = JSON.parse(xhr.responseText || '{}');
       } catch {
-        reject(new Error('업로드 응답을 해석하지 못했습니다.'));
-        return;
+        data = {};
       }
-
-      if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error(data.error || data.message || `업로드 실패 (${xhr.status})`));
-        return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data);
+      } else if (xhr.status === 409) {
+        // 서버가 기대하는 인덱스로 되감기 (재시도 안전)
+        reject(Object.assign(new Error('chunk-order'), { expected: data.expected }));
+      } else {
+        reject(new Error(`청크 업로드 실패 (${xhr.status})`));
       }
-
-      onProgress?.(100);
-      resolve(data);
     };
+    xhr.onerror = () => reject(new Error('network'));
+    xhr.ontimeout = () => reject(new Error('timeout'));
+    xhr.onabort = () => reject(new Error('aborted'));
 
-    xhr.onerror = () =>
-      reject(new Error('네트워크 오류로 업로드에 실패했습니다. 연결 상태를 확인해 주세요.'));
-    xhr.ontimeout = () =>
-      reject(new Error('업로드 시간이 초과되었습니다. 와이파이 환경에서 다시 시도하거나 더 짧게 촬영해 주세요.'));
-    xhr.onabort = () => reject(new Error('업로드가 취소되었습니다.'));
-
-    xhr.send(formData);
+    xhr.send(blob);
   });
+}
+
+function randomUploadId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  } catch {
+    /* noop */
+  }
+  return `up-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export async function uploadVideoFile(
   file: File,
-  player?: SelectedPlayer,
-  extras?: Record<string, string>,
+  _player?: SelectedPlayer,
+  _extras?: Record<string, string>,
   onProgress?: (percent: number) => void,
 ): Promise<{ fileName: string; videoUrl: string; analysisId: string }> {
-  const formData = new FormData();
-  formData.append('video', file);
+  const uploadId = randomUploadId();
+  const total = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+  let index = 0;
 
-  const resolvedPlayer = player ?? readSelectedPlayer();
-  if (resolvedPlayer.name) {
-    formData.append('playerName', resolvedPlayer.name);
-    formData.append('playerPosition', resolvedPlayer.position ?? '');
-    formData.append('teamName', resolvedPlayer.teamName ?? '');
-    formData.append('jerseyNumber', resolvedPlayer.jerseyNumber ?? '');
-    formData.append('uniformColor', resolvedPlayer.uniformColor ?? '');
-    formData.append('traits', resolvedPlayer.traits ?? '');
-    formData.append('selectedPlayer', JSON.stringify(resolvedPlayer));
-  }
+  while (index < total) {
+    const start = index * CHUNK_SIZE;
+    const blob = file.slice(start, Math.min(file.size, start + CHUNK_SIZE));
 
-  if (extras) {
-    for (const [key, value] of Object.entries(extras)) {
-      formData.append(key, value);
+    let attempt = 0;
+    for (;;) {
+      try {
+        const result = await postChunk(uploadId, index, total, blob);
+        index = typeof result.received === 'number' ? result.received : index + 1;
+        break;
+      } catch (err) {
+        const expected = (err as { expected?: number }).expected;
+        if (typeof expected === 'number') {
+          // 서버가 기대하는 위치로 동기화 후 그 지점부터 다시 전송
+          index = expected;
+          break;
+        }
+        attempt += 1;
+        if (attempt >= CHUNK_MAX_RETRY) {
+          throw new Error(
+            '네트워크가 불안정해 업로드에 실패했습니다. 와이파이 환경에서 다시 시도해 주세요.',
+          );
+        }
+        await new Promise((res) => setTimeout(res, 1000 * attempt));
+      }
     }
+
+    onProgress?.(Math.min(99, Math.round((index / total) * 100)));
   }
 
-  const data = await uploadFormDataWithProgress(
-    `${API_BASE_URL}/api/upload`,
-    formData,
-    onProgress,
-  );
+  const data = await fetchJson<UploadResponse & { error?: string }>('/api/upload/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uploadId, fileName: file.name }),
+  });
 
   const fileName = data.fileName || data.savedFilename || '';
   const videoUrl = toAbsoluteUrl(data.videoUrl || '');
@@ -189,6 +196,8 @@ export async function uploadVideoFile(
   if (!fileName || !videoUrl) {
     throw new Error('업로드는 완료되었지만 영상 정보를 확인하지 못했습니다.');
   }
+
+  onProgress?.(100);
 
   return {
     fileName,
