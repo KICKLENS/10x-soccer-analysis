@@ -26,6 +26,11 @@ interface PlayerRecord {
   jerseyNumber?: string;
   uniformColor?: string;
   traits?: string;
+  photo?: string;
+  dob?: string;
+  heightCm?: string;
+  weightKg?: string;
+  nationality?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -70,9 +75,44 @@ function normalizePlayerRecord(raw: unknown, index: number): PlayerRecord | null
     jerseyNumber: String(obj.jerseyNumber ?? obj.backNumber ?? obj.number ?? '').trim(),
     uniformColor: String(obj.uniformColor ?? obj.uniform_color ?? obj.kitColor ?? '').trim(),
     traits: String(obj.traits ?? obj.playerTraits ?? obj.identifyHints ?? '').trim(),
+    photo: String(obj.photo ?? obj.photoUrl ?? obj.avatar ?? '').trim(),
+    dob: String(obj.dob ?? obj.birthDate ?? obj.dateOfBirth ?? '').trim(),
+    heightCm: String(obj.heightCm ?? obj.height ?? '').trim(),
+    weightKg: String(obj.weightKg ?? obj.weight ?? '').trim(),
+    nationality: String(obj.nationality ?? obj.country ?? '').trim(),
     createdAt: String(obj.createdAt ?? '').trim(),
     updatedAt: String(obj.updatedAt ?? '').trim(),
   };
+}
+
+const MAX_PHOTO_SIZE = 512;
+
+function fileToCompressedDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('이미지를 읽지 못했습니다.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('이미지를 불러오지 못했습니다.'));
+      img.onload = () => {
+        const scale = Math.min(1, MAX_PHOTO_SIZE / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('이미지 처리를 지원하지 않는 환경입니다.'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function extractArray<T = unknown>(value: unknown): T[] {
@@ -142,6 +182,11 @@ export default function PlayerRegistrationPage() {
   const [teamName, setTeamName] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [traits, setTraits] = useState('');
+  const [photo, setPhoto] = useState('');
+  const [dob, setDob] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [weightKg, setWeightKg] = useState('');
+  const [nationality, setNationality] = useState('대한민국');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [statusMessage, setStatusMessage] = useState('');
@@ -166,8 +211,30 @@ export default function PlayerRegistrationPage() {
     setTeamName('');
     setJerseyNumber('');
     setTraits('');
+    setPhoto('');
+    setDob('');
+    setHeightCm('');
+    setWeightKg('');
+    setNationality('대한민국');
     setEditingId(null);
     clearMessages();
+  };
+
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      setPhoto(dataUrl);
+      clearMessages();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '이미지 처리에 실패했습니다.');
+    }
   };
 
   const handleEditSavedPlayer = (player: PlayerRecord) => {
@@ -177,6 +244,11 @@ export default function PlayerRegistrationPage() {
     setTeamName(player.teamName ?? '');
     setJerseyNumber(player.jerseyNumber ?? '');
     setTraits(player.traits ?? '');
+    setPhoto(player.photo ?? '');
+    setDob(player.dob ?? '');
+    setHeightCm(player.heightCm ?? '');
+    setWeightKg(player.weightKg ?? '');
+    setNationality(player.nationality ?? '대한민국');
     setEditingId(player.id);
     setStatusMessage(`"${player.name}" 선수 정보를 수정하고 있습니다. 변경 후 "수정 내용 저장"을 눌러 주세요.`);
     if (typeof window !== 'undefined') {
@@ -228,6 +300,11 @@ export default function PlayerRegistrationPage() {
           teamName: teamName.trim(),
           jerseyNumber: jerseyNumber.trim(),
           traits: traits.trim(),
+          photo,
+          dob: dob.trim(),
+          heightCm: heightCm.trim(),
+          weightKg: weightKg.trim(),
+          nationality: nationality.trim(),
           updatedAt: now,
         };
         return updated;
@@ -249,6 +326,11 @@ export default function PlayerRegistrationPage() {
       jerseyNumber: jerseyNumber.trim(),
       uniformColor: '',
       traits: traits.trim(),
+      photo,
+      dob: dob.trim(),
+      heightCm: heightCm.trim(),
+      weightKg: weightKg.trim(),
+      nationality: nationality.trim(),
       createdAt: now,
       updatedAt: now,
     };
@@ -353,6 +435,39 @@ export default function PlayerRegistrationPage() {
               />
             </div>
 
+            <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>선수 사진 (소개 카드용)</label>
+              <div style={photoRowStyle}>
+                <div style={photoPreviewStyle}>
+                  {photo ? (
+                    <img src={photo} alt="선수 사진" style={photoImgStyle} />
+                  ) : (
+                    <span style={photoPlaceholderStyle}>사진 없음</span>
+                  )}
+                </div>
+                <div style={photoActionsStyle}>
+                  <label style={photoUploadButtonStyle}>
+                    사진 선택
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  {photo && (
+                    <button
+                      type="button"
+                      onClick={() => setPhoto('')}
+                      style={photoRemoveButtonStyle}
+                    >
+                      사진 삭제
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div style={fieldStyle}>
               <label style={labelStyle}>포지션</label>
               <input
@@ -379,6 +494,50 @@ export default function PlayerRegistrationPage() {
                 value={jerseyNumber}
                 onChange={(event) => setJerseyNumber(event.target.value)}
                 placeholder="예: 1"
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>생년월일</label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(event) => setDob(event.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>국적</label>
+              <input
+                value={nationality}
+                onChange={(event) => setNationality(event.target.value)}
+                placeholder="예: 대한민국"
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>키 (cm)</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={heightCm}
+                onChange={(event) => setHeightCm(event.target.value)}
+                placeholder="예: 150"
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>몸무게 (kg)</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={weightKg}
+                onChange={(event) => setWeightKg(event.target.value)}
+                placeholder="예: 42"
                 style={inputStyle}
               />
             </div>
@@ -492,10 +651,31 @@ export default function PlayerRegistrationPage() {
                     ...(editingId === player.id ? playerCardActiveStyle : null),
                   }}
                 >
-                  <div style={playerCardTitleStyle}>{player.name}</div>
-                  <div style={playerMetaStyle}>포지션: {player.position || '-'}</div>
+                  <div style={playerCardHeadStyle}>
+                    <div style={playerAvatarStyle}>
+                      {player.photo ? (
+                        <img src={player.photo} alt={player.name} style={playerAvatarImgStyle} />
+                      ) : (
+                        <span style={playerAvatarInitialStyle}>
+                          {player.name.slice(0, 1)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div style={playerCardTitleStyle}>{player.name}</div>
+                      <div style={playerMetaStyle}>
+                        {player.position || '-'} · {player.jerseyNumber ? `#${player.jerseyNumber}` : '-'}
+                      </div>
+                    </div>
+                  </div>
                   <div style={playerMetaStyle}>팀명: {player.teamName || '-'}</div>
-                  <div style={playerMetaStyle}>등번호: {player.jerseyNumber || '-'}</div>
+                  <div style={playerMetaStyle}>
+                    생년월일: {player.dob || '-'}
+                  </div>
+                  <div style={playerMetaStyle}>
+                    키/몸무게: {player.heightCm ? `${player.heightCm}cm` : '-'} / {player.weightKg ? `${player.weightKg}kg` : '-'}
+                  </div>
+                  <div style={playerMetaStyle}>국적: {player.nationality || '-'}</div>
                   <div style={playerTraitsStyle}>
                     특징: {player.traits || '-'}
                   </div>
@@ -807,10 +987,105 @@ const cardDangerActionStyle: CSSProperties = {
   border: '1px solid rgba(255,90,80,0.30)',
 };
 
+const playerCardHeadStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  marginBottom: 12,
+};
+
+const playerAvatarStyle: CSSProperties = {
+  width: 48,
+  height: 48,
+  borderRadius: '50%',
+  overflow: 'hidden',
+  flexShrink: 0,
+  background: 'rgba(255,159,2,0.16)',
+  border: '1px solid rgba(255,159,2,0.35)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const playerAvatarImgStyle: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+};
+
+const playerAvatarInitialStyle: CSSProperties = {
+  fontSize: 20,
+  fontWeight: 800,
+  color: '#FF9F02',
+};
+
 const playerCardTitleStyle: CSSProperties = {
   fontSize: 17,
   fontWeight: 800,
-  marginBottom: 10,
+  marginBottom: 4,
+};
+
+const photoRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 14,
+};
+
+const photoPreviewStyle: CSSProperties = {
+  width: 84,
+  height: 84,
+  borderRadius: 16,
+  overflow: 'hidden',
+  flexShrink: 0,
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px dashed rgba(255,255,255,0.18)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const photoImgStyle: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+};
+
+const photoPlaceholderStyle: CSSProperties = {
+  fontSize: 12,
+  color: 'rgba(255,255,255,0.45)',
+};
+
+const photoActionsStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+};
+
+const photoUploadButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 42,
+  padding: '0 16px',
+  borderRadius: 12,
+  background: 'rgba(255,159,2,0.16)',
+  color: '#FF9F02',
+  border: '1px solid rgba(255,159,2,0.4)',
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const photoRemoveButtonStyle: CSSProperties = {
+  minHeight: 38,
+  padding: '0 16px',
+  borderRadius: 12,
+  background: 'transparent',
+  color: 'rgba(255,255,255,0.6)',
+  border: '1px solid rgba(255,255,255,0.16)',
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
 };
 
 const playerMetaStyle: CSSProperties = {
