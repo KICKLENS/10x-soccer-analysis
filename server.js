@@ -27,6 +27,12 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0
   .map((m) => m.trim())
   .filter(Boolean);
 
+// Modal GPU 고급 분석(선수 추적·히트맵·공 SAHI) — 환경변수 미설정 시 자동 건너뜀
+const MODAL_ANALYZE_URL = (process.env.MODAL_ANALYZE_URL || '').trim();
+const MODAL_AUTH_TOKEN = (process.env.MODAL_AUTH_TOKEN || '').trim();
+const MODAL_SAMPLE_FPS = Number(process.env.MODAL_SAMPLE_FPS) || 4;
+const MODAL_ENABLED = Boolean(MODAL_ANALYZE_URL);
+
 // 비용 최적화: Gemini 시각 검수 단계 파라미터 (환경변수로 조정 가능)
 const QC_FRAME_WIDTH = Number(process.env.QC_FRAME_WIDTH) || 768;
 const QC_FRAMES_PER_CLIP = Math.max(1, Math.min(2, Number(process.env.QC_FRAMES_PER_CLIP) || 2));
@@ -177,6 +183,77 @@ async function runYoloDetection(videoPath, player = {}, topK = 15, { minScore = 
   return result;
 }
 
+async function runGpuAnalysis(videoUrl, player = {}, clips = []) {
+  if (!MODAL_ENABLED) return null;
+
+  const windows = (clips || [])
+    .filter((c) => Number.isFinite(c.startSec) && Number.isFinite(c.endSec))
+    .slice(0, 12)
+    .map((c) => ({ startSec: c.startSec, endSec: c.endSec }));
+
+  const payload = {
+    videoUrl,
+    authToken: MODAL_AUTH_TOKEN,
+    player: {
+      name: player.name || '',
+      position: player.position || '',
+      jerseyNumber: String(player.jerseyNumber || ''),
+      uniformColor: player.uniformColor || '',
+      traits: buildPlayerTraits(player) || '',
+    },
+    clips: windows,
+    sampleFps: MODAL_SAMPLE_FPS,
+    sahi: true,
+  };
+
+  try {
+    console.log('[GPU] Modal 고급 분석 요청...', videoUrl);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25 * 60 * 1000);
+    const resp = await fetch(MODAL_ANALYZE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) {
+      console.warn(`[GPU] Modal 응답 오류 ${resp.status}`);
+      return null;
+    }
+    const data = await resp.json();
+    if (!data.success) {
+      console.warn('[GPU] Modal 분석 실패:', data.error);
+      return null;
+    }
+    console.log(`[GPU] 완료 (${data.elapsedSec || '?'}초) 이동거리=${data.tracking?.metrics?.distanceM ?? '-'}m`);
+    return data;
+  } catch (err) {
+    console.warn('[GPU] Modal 호출 예외(건너뜀):', err.message);
+    return null;
+  }
+}
+
+function buildGpuPromptSection(gpu) {
+  if (!gpu) return '';
+  const m = gpu.tracking?.available ? gpu.tracking.metrics : null;
+  const ball = gpu.ball?.available ? gpu.ball.windows : null;
+  const lines = ['\n[GPU 정밀 분석 데이터 — 실제 측정 수치이므로 코칭에 적극 활용]'];
+  if (m) {
+    lines.push(
+      `- 대상 선수 추정 이동거리: ${m.distanceM}m, 평균속도 ${m.avgSpeedMS}m/s, 최고속도 ${m.topSpeedMS}m/s, 스프린트 ${m.sprintCount}회, 활동지수 ${m.activityIndex}/100`,
+      '  (단안 추정치라 절대값보다는 활동량/성향 해석에 활용)',
+    );
+  } else {
+    lines.push('- 선수 이동 추적: 이번 영상에서는 안정적으로 측정되지 않음');
+  }
+  if (ball && ball.length) {
+    const avgRate = ball.reduce((s, w) => s + (w.ballDetectionRate || 0), 0) / ball.length;
+    lines.push(`- 공 정밀탐지(SAHI): 후보 구간 평균 공 검출률 ${(avgRate * 100).toFixed(0)}%`);
+  }
+  return lines.join('\n');
+}
+
 async function generateContentWithFallback(genAI, prompt) {
   return generateMultimodalWithFallback(genAI, [{ text: prompt }]);
 }
@@ -268,7 +345,7 @@ function prefilterYoloClipsForCoach(clips, player = {}) {
     .slice(0, 12);
 }
 
-function buildCoachPrompt(yoloResult, player = {}) {
+function buildCoachPrompt(yoloResult, player = {}, gpu = null) {
   const position = player.position || '미지정';
   const playerName = player.name || '분석 대상 선수';
   const jerseyNumber = player.jerseyNumber || '-';
@@ -315,6 +392,7 @@ AI 영상 분석 시스템이 위 선수만 추적하여 공·움직임을 분�
 
 [후보 장면 JSON]
 ${JSON.stringify(candidates, null, 2)}
+${buildGpuPromptSection(gpu)}
 
 [임무 — 1차 코치 선정]
 1. 후보 중 "${playerName}" 선수(${jerseyNumber}번, ${position})의 **실제 경기 하이라이트**만 3~6개 선정하세요.
@@ -737,7 +815,16 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   yoloResult.clips = coachCandidates;
   console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개`);
 
-  const prompt = buildCoachPrompt(yoloResult, player);
+  let gpuAnalysis = null;
+  if (MODAL_ENABLED) {
+    gpuAnalysis = await runGpuAnalysis(
+      `${PUBLIC_BASE}/uploads/${savedFilename}`,
+      player,
+      coachCandidates,
+    );
+  }
+
+  const prompt = buildCoachPrompt(yoloResult, player, gpuAnalysis);
   const text = await generateContentWithFallback(genAI, prompt);
   const parsed = robustParse(text);
   const coachSelected = (parsed.clips || []).filter((clip) => clip.approved !== false);
@@ -768,6 +855,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     clipsWithVideos,
     summary: parsed.summary,
     yoloSummary: yoloResult.summary,
+    gpuAnalysis,
     finalHighlight,
     message: renderFinal
       ? `대상 선수 ${player.name || ''} · 후보 ${yoloResult.clips.length}개 → AI 코치 ${clipsWithVideos.length}개 → 최종 하이라이트 완료`
@@ -805,6 +893,7 @@ app.get('/api/health', (_req, res) => {
     geminiModels: GEMINI_MODELS,
     yoloScript: fs.existsSync(YOLO_SCRIPT),
     r2Enabled: R2_ENABLED,
+    modalEnabled: MODAL_ENABLED,
     timestamp: new Date().toISOString(),
   });
 });
@@ -1054,6 +1143,7 @@ app.post('/api/extract-highlights', async (req, res) => {
       jobId: `job-${Date.now()}`,
       summary: result.summary,
       yoloSummary: result.yoloSummary,
+      gpuAnalysis: result.gpuAnalysis || null,
       targetPlayer: result.targetPlayer,
       player: result.player,
       message: result.message,

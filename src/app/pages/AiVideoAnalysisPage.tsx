@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Download, History, Share2, Sparkles } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toAbsoluteUrl, type SelectedPlayer } from '../lib/api';
+import type { GpuAnalysis } from '../lib/analysisFlow';
 import PageNav from '../components/PageNav';
 
 const STORAGE_KEY = 'ai-analysis-payload';
@@ -38,6 +39,7 @@ type AnalysisPayload = {
   analysisId?: string;
   jobId?: string;
   summary?: CoachSummary;
+  gpuAnalysis?: GpuAnalysis | null;
   position?: string;
   player?: SelectedPlayer;
 };
@@ -74,6 +76,108 @@ function SummaryCard({ title, value, tone }: { title: string; value?: string; to
   );
 }
 
+function StatTile({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return (
+    <div className="rounded-2xl border p-3 text-center md:p-4" style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}>
+      <div className="text-[11px] text-white/48 md:text-xs">{label}</div>
+      <div className="mt-1 text-xl font-extrabold md:text-2xl">
+        {value}
+        {unit ? <span className="ml-0.5 text-xs font-semibold text-white/56">{unit}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+type HeatmapData = { cols: number; rows: number; grid: number[][] };
+
+function Heatmap({ heatmap }: { heatmap: HeatmapData }) {
+  const grid = heatmap?.grid || [];
+  const rows = grid.length;
+  const cols = rows > 0 ? grid[0].length : 0;
+  let max = 1;
+  for (const row of grid) for (const v of row) if (v > max) max = v;
+
+  return (
+    <div
+      className="w-full overflow-hidden rounded-2xl border border-white/10"
+      style={{
+        aspectRatio: '3 / 2',
+        background: 'linear-gradient(180deg, #0f5a37 0%, #0c4d2f 100%)',
+      }}
+    >
+      <div
+        className="grid h-full w-full"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          border: '2px solid rgba(255,255,255,0.4)',
+        }}
+      >
+        {grid.flatMap((row, r) =>
+          row.map((v, c) => {
+            const intensity = max > 0 ? v / max : 0;
+            const alpha = v === 0 ? 0 : 0.18 + intensity * 0.72;
+            return (
+              <div
+                key={`${r}-${c}`}
+                style={{
+                  background: alpha
+                    ? `rgba(255, ${Math.round(159 - intensity * 110)}, 2, ${alpha})`
+                    : 'transparent',
+                }}
+              />
+            );
+          }),
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GpuStatsCard({ gpu, playerName }: { gpu: GpuAnalysis; playerName?: string }) {
+  const m = gpu.tracking?.metrics || {};
+  const heatmap = gpu.tracking?.heatmap;
+  const ball = gpu.ball?.available ? gpu.ball.windows || [] : [];
+  const avgBallRate =
+    ball.length > 0
+      ? Math.round((ball.reduce((s, w) => s + (w.ballDetectionRate || 0), 0) / ball.length) * 100)
+      : null;
+
+  return (
+    <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
+      <div className="mb-3 flex flex-wrap items-center gap-2 md:mb-4">
+        <h2 className="text-base font-bold md:text-lg">정밀 움직임 분석</h2>
+        <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-200">GPU</span>
+        {playerName ? <span className="text-xs text-white/48">{playerName} 선수</span> : null}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+        <StatTile label="이동거리" value={m.distanceM != null ? String(m.distanceM) : '-'} unit="m" />
+        <StatTile label="스프린트" value={m.sprintCount != null ? String(m.sprintCount) : '-'} unit="회" />
+        <StatTile label="평균속도" value={m.avgSpeedMS != null ? String(m.avgSpeedMS) : '-'} unit="m/s" />
+        <StatTile label="활동지수" value={m.activityIndex != null ? String(m.activityIndex) : '-'} unit="/100" />
+      </div>
+
+      {heatmap?.grid?.length ? (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-sm font-semibold text-white/80">활동 히트맵</div>
+            {avgBallRate != null ? (
+              <div className="text-xs text-white/48">공 검출률 {avgBallRate}%</div>
+            ) : null}
+          </div>
+          <Heatmap heatmap={heatmap} />
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-[11px] leading-5 text-white/40">
+        {gpu.tracking?.note ||
+          '거리·속도는 단안 영상 기반 추정치라 절대값보다 활동량/성향 비교에 활용하세요.'}
+      </p>
+    </div>
+  );
+}
+
 export default function AiVideoAnalysisPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,6 +202,7 @@ export default function AiVideoAnalysisPage() {
 
   const clips = payload?.highlightClips || [];
   const summary = payload?.summary;
+  const gpu = payload?.gpuAnalysis;
   const highlightUrl = toAbsoluteUrl(payload?.highlightVideoUrl || '');
 
   const handleShare = async () => {
@@ -264,6 +369,10 @@ export default function AiVideoAnalysisPage() {
                 <p className="text-sm" style={{ color: TEXT_SUB }}>종합 코칭 리포트가 아직 없습니다.</p>
               )}
             </div>
+
+            {gpu?.tracking?.available ? (
+              <GpuStatsCard gpu={gpu} playerName={payload.player?.name} />
+            ) : null}
 
             <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
               <h2 className="mb-3 text-base font-bold md:mb-4 md:text-lg">장면별 코치 코멘트</h2>

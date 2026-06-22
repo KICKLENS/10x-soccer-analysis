@@ -26,6 +26,38 @@ export type UploadResponse = {
   message?: string;
 };
 
+export type GpuHeatmap = { cols: number; rows: number; grid: number[][] };
+
+export type GpuMetrics = {
+  distanceM?: number;
+  avgSpeedMS?: number;
+  topSpeedMS?: number;
+  sprintCount?: number;
+  activityIndex?: number;
+};
+
+export type GpuAnalysis = {
+  success?: boolean;
+  source?: string;
+  elapsedSec?: number;
+  tracking?: {
+    available?: boolean;
+    matchConfidence?: number;
+    metrics?: GpuMetrics;
+    heatmap?: GpuHeatmap;
+    note?: string;
+  };
+  ball?: {
+    available?: boolean;
+    windows?: Array<{
+      startSec?: number;
+      endSec?: number;
+      ballDetectionRate?: number;
+      avgConfidence?: number;
+    }>;
+  };
+};
+
 export type ExtractResponse = {
   success?: boolean;
   clips?: HighlightClip[];
@@ -33,6 +65,7 @@ export type ExtractResponse = {
   highlightVideoUrl?: string;
   jobId?: string;
   message?: string;
+  gpuAnalysis?: GpuAnalysis | null;
   summary?: {
     noticeableScene?: string;
     strength?: string;
@@ -50,6 +83,7 @@ export type AiAnalysisPayload = {
   analysisId?: string;
   jobId?: string;
   summary?: ExtractResponse['summary'];
+  gpuAnalysis?: GpuAnalysis | null;
   position?: string;
   player?: SelectedPlayer;
 };
@@ -200,6 +234,7 @@ export function buildAiAnalysisPayload(input: {
     analysisId: input.analysisId || '',
     jobId: input.extract.jobId || '',
     summary: input.extract.summary,
+    gpuAnalysis: input.extract.gpuAnalysis ?? null,
     position: player.position || '골키퍼',
     player,
   };
