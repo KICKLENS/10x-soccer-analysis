@@ -25,7 +25,7 @@ FONT_REG = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("libgl1", "libglib2.0-0", "ffmpeg", "fonts-nanum")
+    .apt_install("libgl1", "libglib2.0-0", "ffmpeg", "fonts-nanum", "fonts-dejavu")
     .pip_install(
         "ultralytics==8.3.58",
         "opencv-python-headless==4.10.0.84",
@@ -76,133 +76,219 @@ def _age_from_dob(dob: str) -> str:
 
 
 # ─────────────────────────── 소개 카드 ───────────────────────────
+DJV_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+DJV_R = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+DJV_I = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf"
+DJV_BI = "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf"
+POS_MAP = {"GK": "Goalkeeper (GK)", "DF": "Defender (DF)", "CB": "Centre-Back (CB)",
+           "FB": "Full-Back (FB)", "MF": "Midfielder (MF)", "DM": "Defensive Mid (DM)",
+           "AM": "Attacking Mid (AM)", "WG": "Winger (WG)", "FW": "Forward (FW)",
+           "ST": "Striker (ST)", "CF": "Centre-Forward (CF)"}
+NAT_MAP = {"대한민국": "Republic of Korea", "한국": "Republic of Korea", "korea": "Republic of Korea"}
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+           "August", "September", "October", "November", "December"]
+
+
 def _draw_card(profile: dict):
-    from PIL import Image, ImageDraw, ImageFont, ImageFilter
+    from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
-    ORANGE = (255, 159, 2)
     W, H = 1920, 1080
-    img = Image.new("RGB", (W, H), (10, 10, 13))
-    glow = Image.new("RGB", (W, H), (10, 10, 13))
-    ImageDraw.Draw(glow).ellipse([W - 700, -300, W + 200, 500], fill=(40, 28, 6))
-    img = Image.blend(img, glow.filter(ImageFilter.GaussianBlur(160)), 0.6)
-
-    # ── 훈련일지 스타일 풀 피치(탑다운 전체 코트 + 옅은 그리드) ──
-    ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    od = ImageDraw.Draw(ov)
-    LINE = (208, 224, 246, 42)   # 쿨 화이트(저널 라인 톤, 조금 더 진하게)
-    GRID = (150, 180, 220, 12)   # 옅은 블루 그리드
-    lw = 4
-    m = 70
-    cy = H // 2
-    # 그리드: 카드(코트) 안쪽에만, 칸이 정확히 나눠지도록 맞춤
-    gx_n, gy_n = 16, 9
-    fw, fh = (W - 2 * m), (H - 2 * m)
-    for i in range(1, gx_n):
-        x = m + round(fw * i / gx_n)
-        od.line([x, m, x, H - m], fill=GRID, width=1)
-    for j in range(1, gy_n):
-        y = m + round(fh * j / gy_n)
-        od.line([m, y, W - m, y], fill=GRID, width=1)
-
-    od.rectangle([m, m, W - m, H - m], outline=LINE, width=lw)          # 외곽선
-    od.line([W // 2, m, W // 2, H - m], fill=LINE, width=lw)            # 하프라인
-    goal_h, goal_d = 150, 26                                             # 골대(좌우 중앙)
-    od.rectangle([m - goal_d, cy - goal_h // 2, m, cy + goal_h // 2], outline=LINE, width=lw)
-    od.rectangle([W - m, cy - goal_h // 2, W - m + goal_d, cy + goal_h // 2],
-                 outline=LINE, width=lw)
-    od.ellipse([W // 2 - 150, cy - 150, W // 2 + 150, cy + 150],
-               outline=LINE, width=lw)                                   # 센터서클
-    od.ellipse([W // 2 - 7, cy - 7, W // 2 + 7, cy + 7], fill=LINE)     # 센터스폿
-
-    pbw, pbh, gbw, gbh = 250, 470, 95, 230  # 페널티박스 / 골에어리어
-    # 좌측
-    od.rectangle([m, cy - pbh // 2, m + pbw, cy + pbh // 2], outline=LINE, width=lw)
-    od.rectangle([m, cy - gbh // 2, m + gbw, cy + gbh // 2], outline=LINE, width=lw)
-    od.ellipse([m + 165, cy - 5, m + 175, cy + 5], fill=LINE)          # 페널티 스폿
-    od.arc([m + pbw - 130, cy - 130, m + pbw + 130, cy + 130], start=-62, end=62,
-           fill=LINE, width=lw)
-    # 우측(대칭)
-    od.rectangle([W - m - pbw, cy - pbh // 2, W - m, cy + pbh // 2], outline=LINE, width=lw)
-    od.rectangle([W - m - gbw, cy - gbh // 2, W - m, cy + gbh // 2], outline=LINE, width=lw)
-    od.ellipse([W - m - 175, cy - 5, W - m - 165, cy + 5], fill=LINE)
-    od.arc([W - m - pbw - 130, cy - 130, W - m - pbw + 130, cy + 130], start=118, end=242,
-           fill=LINE, width=lw)
-    # 코너 아크
-    cr = 30
-    od.arc([m - cr, m - cr, m + cr, m + cr], 0, 90, fill=LINE, width=lw)
-    od.arc([W - m - cr, m - cr, W - m + cr, m + cr], 90, 180, fill=LINE, width=lw)
-    od.arc([m - cr, H - m - cr, m + cr, H - m + cr], 270, 360, fill=LINE, width=lw)
-    od.arc([W - m - cr, H - m - cr, W - m + cr, H - m + cr], 180, 270, fill=LINE, width=lw)
-
-    img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB")
-
+    FG = (236, 238, 242)
+    SUB = (150, 152, 160)
+    img = Image.new("RGB", (W, H), (9, 9, 11))
     d = ImageDraw.Draw(img)
 
-    def font(bold, size):
-        return ImageFont.truetype(FONT_BOLD if bold else FONT_REG, size)
+    def f_en(size, style="b"):
+        return ImageFont.truetype(
+            {"b": DJV_B, "r": DJV_R, "i": DJV_I, "bi": DJV_BI}[style], size)
 
-    name = profile.get("name") or "선수"
+    def f_ko(size):
+        return ImageFont.truetype(FONT_BOLD, size)
+
+    # ── 데이터 ──
+    name_ko = (profile.get("name") or "선수").strip()
+    name_en = (profile.get("nameEn") or name_ko).strip()
     number = str(profile.get("jerseyNumber") or "").strip()
-    position = (profile.get("position") or "").strip()
-    team = (profile.get("teamName") or "").strip()
+    pos = (profile.get("position") or "").strip().upper()
+    pos_full = POS_MAP.get(pos, profile.get("position") or "-")
+    team_en = (profile.get("teamName") or "-").strip()
+    team_ko = (profile.get("teamNameKo") or profile.get("teamName") or "").strip()
     dob = (profile.get("dob") or "").strip()
     height = (profile.get("heightCm") or "").strip()
     weight = (profile.get("weightKg") or "").strip()
-    nat = (profile.get("nationality") or "").strip()
-    LX = 130
+    nat_raw = (profile.get("nationality") or "").strip()
+    nat_en = NAT_MAP.get(nat_raw, NAT_MAP.get(nat_raw.lower(), nat_raw or "-"))
+    season = str(profile.get("season") or "2026").strip()
+    try:
+        yy, mm, dd = (int(x) for x in dob.split("-"))
+        dob_disp = f"{dd:02d}/{mm:02d}/{yy} ({dd} {_MONTHS[mm - 1]}, {yy})"
+    except Exception:
+        dob_disp = dob or "-"
 
-    d.rectangle([LX, 110, LX + 250, 158], fill=(255, 255, 255))
-    d.text((LX + 18, 118), "PLAYER REVIEW", font=font(True, 26), fill=(10, 10, 13))
-    if position:
-        d.rounded_rectangle([LX, 188, LX + 130, 240], radius=8, outline=ORANGE, width=2)
-        d.text((LX + 18, 197), position.upper()[:4], font=font(True, 28), fill=ORANGE)
-    d.text((LX, 270), name, font=font(True, 110), fill=(255, 255, 255))
-    if number:
-        d.text((LX, 410), f"#{number}", font=font(True, 70), fill=ORANGE)
+    # ── 배경 워터마크(국가명) ──
+    wm = (nat_en.split()[-1] if nat_en and nat_en != "-" else "TEAM").upper()
+    wmf = f_en(300, "b")
+    bb = d.textbbox((0, 0), wm, font=wmf)
+    d.text((W // 2 - (bb[2] - bb[0]) // 2 - 120, H // 2 - (bb[3] - bb[1]) // 2 - 70),
+           wm, font=wmf, fill=(24, 24, 28))
 
-    iy = 540
-    d.text((LX, iy), "GENERAL INFO", font=font(True, 40), fill=(255, 255, 255))
-    d.line([LX, iy + 56, LX + 520, iy + 56], fill=(60, 60, 66), width=2)
-    rows = [
-        ("나이", f"{_age_from_dob(dob)}세" if dob else "-"),
-        ("생년월일", dob or "-"),
-        ("포지션", position or "-"),
-        ("키 / 몸무게", f"{height or '-'}cm / {weight or '-'}kg"),
-        ("소속팀", team or "-"),
-        ("국적", nat or "-"),
-    ]
-    ry = iy + 80
-    for label, value in rows:
-        d.ellipse([LX, ry + 12, LX + 12, ry + 24], fill=ORANGE)
-        d.text((LX + 30, ry), label, font=font(False, 30), fill=(170, 170, 176))
-        d.text((LX + 300, ry), value, font=font(True, 32), fill=(255, 255, 255))
-        ry += 66
-
-    cx, cy, R = 1420, 430, 280
-    d.ellipse([cx - R - 10, cy - R - 10, cx + R + 10, cy + R + 10], outline=ORANGE, width=10)
-    photo_path = profile.get("_photo_path")
-    drew_photo = False
-    if photo_path:
+    # ── 사진(센터-우측 원형) ──
+    cx, cy, R = 1285, 372, 212
+    d.ellipse([cx - R - 7, cy - R - 7, cx + R + 7, cy + R + 7], outline=(70, 70, 78), width=3)
+    drew = False
+    pp = profile.get("_photo_path")
+    if pp:
         try:
-            ph = Image.open(photo_path).convert("RGB")
+            ph = Image.open(pp).convert("RGBA")
             s = min(ph.size)
             ph = ph.crop(((ph.width - s) // 2, (ph.height - s) // 2,
                           (ph.width - s) // 2 + s, (ph.height - s) // 2 + s)).resize((2 * R, 2 * R))
-            mask = Image.new("L", (2 * R, 2 * R), 0)
-            ImageDraw.Draw(mask).ellipse([0, 0, 2 * R, 2 * R], fill=255)
-            img.paste(ph, (cx - R, cy - R), mask)
-            drew_photo = True
+            cmask = Image.new("L", (2 * R, 2 * R), 0)
+            ImageDraw.Draw(cmask).ellipse([0, 0, 2 * R, 2 * R], fill=255)
+            fmask = ImageChops.multiply(cmask, ph.split()[3])
+            img.paste(ph.convert("RGB"), (cx - R, cy - R), fmask)
+            drew = True
         except Exception:
-            drew_photo = False
-    if not drew_photo:
-        d.ellipse([cx - R, cy - R, cx + R, cy + R], fill=(28, 28, 33))
-        f = font(True, 220)
-        bb = d.textbbox((0, 0), name[:1], font=f)
-        d.text((cx - (bb[2] - bb[0]) / 2, cy - (bb[3] - bb[1]) / 2 - 30), name[:1],
-               font=f, fill=ORANGE)
+            drew = False
+    if not drew:
+        d.ellipse([cx - R, cy - R, cx + R, cy + R], fill=(26, 26, 30))
+        ff = f_ko(210)
+        b2 = d.textbbox((0, 0), name_ko[:1], font=ff)
+        d.text((cx - (b2[2] - b2[0]) / 2, cy - (b2[3] - b2[1]) / 2 - 24), name_ko[:1],
+               font=ff, fill=FG)
 
-    d.text((LX, 1010), "10X · AI SOCCER ANALYSIS", font=font(True, 24), fill=(110, 110, 116))
+    # SEASON 라벨 + 사진으로 향하는 연결선
+    d.text((876, cy - 26), f"SEASON {season}", font=f_en(17, "b"), fill=SUB)
+    d.line([876, cy + 4, cx - R - 12, cy + 4], fill=(70, 70, 78), width=2)
+
+    # 국기(사진 우하단)
+    try:
+        _download_url("https://flagcdn.com/w160/kr.png", "/tmp/flag.png")
+        fl = Image.open("/tmp/flag.png").convert("RGB").resize((74, 49))
+        fx, fy = cx + 96, cy + 120
+        d.rectangle([fx - 2, fy - 2, fx + 76, fy + 51], fill=(255, 255, 255))
+        img.paste(fl, (fx, fy))
+    except Exception:
+        pass
+
+    # ── 좌측 텍스트 ──
+    LX = 140
+    _prf = f_en(26, "b")
+    _prb = d.textbbox((0, 0), "PLAYER REVIEW", font=_prf)
+    d.rectangle([LX, 58, LX + (_prb[2] - _prb[0]) + 34, 104], fill=(245, 245, 248))
+    d.text((LX + 17, 67), "PLAYER REVIEW", font=_prf, fill=(12, 12, 14))
+    if pos:
+        d.rounded_rectangle([LX, 124, LX + 96, 172], radius=6, outline=(120, 120, 128), width=2)
+        pb = d.textbbox((0, 0), pos[:3], font=f_en(26, "b"))
+        d.text((LX + 48 - (pb[2] - pb[0]) / 2, 136), pos[:3], font=f_en(26, "b"), fill=FG)
+
+    d.text((LX, 196), name_en, font=f_en(112, "b"), fill=FG)
+
+    d.rectangle([LX, 352, LX + 6, 438], fill=(245, 245, 248))
+    d.text((LX + 28, 360), "#", font=f_en(46, "bi"), fill=SUB)
+    d.text((LX + 78, 348), number or "-", font=f_en(96, "bi"), fill=FG)
+
+    d.text((LX, 470), "GENERAL INFO", font=f_en(46, "b"), fill=FG)
+
+    rows = [
+        ("age", "Age", f"{_age_from_dob(dob)}" if dob else "-"),
+        ("dob", "Date of birth", dob_disp),
+        ("pos", "Position", pos_full),
+        ("hw", "Height / Weight", f"{height or '-'}cm / {weight or '-'}kg"),
+        ("club", "Club", team_en),
+        ("nat", "Nationality", nat_en),
+    ]
+    ry = 548
+    for kind, label, value in rows:
+        _row_icon(d, kind, LX + 2, ry + 4, 24, SUB)
+        d.text((LX + 42, ry), label, font=f_en(26, "b"), fill=FG)
+        lw_ = d.textbbox((0, 0), label, font=f_en(26, "b"))[2]
+        d.text((LX + 42 + lw_ + 14, ry + 2), value, font=f_en(25, "i"), fill=SUB)
+        ry += 58
+
+    # ── 우측 세로 텍스트(팀·번호·한글이름) ──
+    vtxt = f"{team_ko}  No.{number}  {name_ko}".strip()
+    vimg = Image.new("RGBA", (560, 40), (0, 0, 0, 0))
+    ImageDraw.Draw(vimg).text((0, 0), vtxt, font=f_ko(24), fill=(150, 150, 158))
+    vimg = vimg.rotate(90, expand=True)
+    img.paste(vimg, (W - 56, cy - 280), vimg)
+
+    # ── 우하단 미니 피치(진행 방향 + GK 강조) ──
+    _draw_mini_pitch(img, d, f_en, x0=1175, y0=792, x1=1838, y1=996,
+                     direction_y=760, gk_label="GOALKEEPER (GK)", highlight="left")
+
     return img
+
+
+def _row_icon(d, kind, x, y, s, col):
+    w = 2
+    if kind == "age":
+        d.ellipse([x + s * 0.28, y, x + s * 0.72, y + s * 0.42], outline=col, width=w)
+        d.arc([x + s * 0.12, y + s * 0.42, x + s * 0.88, y + s * 1.1], 180, 360, fill=col, width=w)
+    elif kind == "dob":
+        d.rounded_rectangle([x, y + s * 0.12, x + s, y + s], radius=3, outline=col, width=w)
+        d.line([x, y + s * 0.36, x + s, y + s * 0.36], fill=col, width=w)
+        d.line([x + s * 0.3, y, x + s * 0.3, y + s * 0.22], fill=col, width=w)
+        d.line([x + s * 0.7, y, x + s * 0.7, y + s * 0.22], fill=col, width=w)
+    elif kind == "pos":
+        for ix in (0, 1):
+            for iy in (0, 1):
+                d.rectangle([x + ix * s * 0.56, y + iy * s * 0.56,
+                             x + ix * s * 0.56 + s * 0.4, y + iy * s * 0.56 + s * 0.4],
+                            outline=col, width=w)
+    elif kind == "hw":
+        d.line([x + s * 0.3, y, x + s * 0.3, y + s], fill=col, width=w)
+        d.line([x + s * 0.3, y, x + s * 0.15, y + s * 0.2], fill=col, width=w)
+        d.line([x + s * 0.3, y, x + s * 0.45, y + s * 0.2], fill=col, width=w)
+        d.line([x + s * 0.7, y, x + s * 0.7, y + s], fill=col, width=w)
+        d.line([x + s * 0.7, y + s, x + s * 0.55, y + s * 0.8], fill=col, width=w)
+        d.line([x + s * 0.7, y + s, x + s * 0.85, y + s * 0.8], fill=col, width=w)
+    elif kind == "club":
+        d.polygon([(x + s * 0.5, y), (x + s, y + s * 0.22), (x + s * 0.5, y + s),
+                   (x, y + s * 0.22)], outline=col, width=w)
+    elif kind == "nat":
+        d.ellipse([x, y, x + s, y + s], outline=col, width=w)
+        d.ellipse([x + s * 0.32, y, x + s * 0.68, y + s], outline=col, width=w)
+        d.line([x, y + s * 0.5, x + s, y + s * 0.5], fill=col, width=w)
+
+
+def _draw_mini_pitch(img, d, f_en, x0, y0, x1, y1, direction_y, gk_label, highlight="left"):
+    from PIL import Image, ImageDraw, ImageFilter
+
+    LINE = (120, 120, 128)
+    cy = (y0 + y1) // 2
+    w, h = x1 - x0, y1 - y0
+
+    # GK 강조 스포트라이트(좌측 페널티 지역)
+    glow = Image.new("L", img.size, 0)
+    gx = x0 + int(w * 0.12)
+    ImageDraw.Draw(glow).ellipse([gx - 70, cy - 70, gx + 70, cy + 70], fill=90)
+    glow = glow.filter(ImageFilter.GaussianBlur(28))
+    img.paste(Image.new("RGB", img.size, (245, 245, 250)), (0, 0), glow)
+
+    # 진행 방향
+    d.text(((x0 + x1) // 2 - 78, direction_y - 4), "DIRECTION OF PLAY", font=f_en(17, "b"),
+           fill=(180, 180, 188))
+    ay = direction_y + 26
+    d.line([x0 + 40, ay, x1 - 40, ay], fill=(160, 160, 168), width=2)
+    d.polygon([(x1 - 40, ay), (x1 - 58, ay - 8), (x1 - 58, ay + 8)], fill=(160, 160, 168))
+
+    # 피치 라인
+    d.rectangle([x0, y0, x1, y1], outline=LINE, width=2)
+    d.line([(x0 + x1) // 2, y0, (x0 + x1) // 2, y1], fill=LINE, width=2)
+    r = h // 6
+    d.ellipse([(x0 + x1) // 2 - r, cy - r, (x0 + x1) // 2 + r, cy + r], outline=LINE, width=2)
+    pbw, pbh = int(w * 0.13), int(h * 0.5)
+    gbw, gbh = int(w * 0.05), int(h * 0.26)
+    d.rectangle([x0, cy - pbh, x0 + pbw, cy + pbh], outline=LINE, width=2)
+    d.rectangle([x0, cy - gbh, x0 + gbw, cy + gbh], outline=LINE, width=2)
+    d.rectangle([x1 - pbw, cy - pbh, x1, cy + pbh], outline=LINE, width=2)
+    d.rectangle([x1 - gbw, cy - gbh, x1, cy + gbh], outline=LINE, width=2)
+    d.rectangle([x0 - 7, cy - gbh // 2, x0, cy + gbh // 2], outline=LINE, width=2)
+    d.rectangle([x1, cy - gbh // 2, x1 + 7, cy + gbh // 2], outline=LINE, width=2)
+
+    lb = d.textbbox((0, 0), gk_label, font=f_en(16, "b"))
+    d.text((x1 - (lb[2] - lb[0]), y1 + 12), gk_label, font=f_en(16, "b"), fill=(180, 180, 188))
 
 
 def _card_clip(profile: dict, out_path: str, seconds: float = 3.5):
@@ -408,10 +494,14 @@ def card_preview():
 
     os.makedirs("/models/reel_demo", exist_ok=True)
     profile = {
-        "name": "강도윤", "jerseyNumber": "1", "position": "GK",
-        "teamName": "AAFC 충암 U-12", "dob": "2014-02-24",
+        "name": "강도윤", "nameEn": "Kang Do-Yun", "jerseyNumber": "1",
+        "position": "GK", "teamName": "AAFC Choong-Am U-12",
+        "teamNameKo": "AAFC 충암 U-12", "dob": "2014-02-24",
         "heightCm": "173", "weightKg": "69", "nationality": "대한민국",
+        "season": "2026",
     }
+    if os.path.exists("/models/demo_face.png"):
+        profile["_photo_path"] = "/models/demo_face.png"
     _draw_card(profile).save("/models/reel_demo/card_only.png")
     volume.commit()
     return {"ok": True, "out": "reel_demo/card_only.png"}
