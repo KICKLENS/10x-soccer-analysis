@@ -218,7 +218,16 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
 
     orb = cv2.ORB_create(800)
 
-    # track_id -> {points:[(t,x,y)], heights:[], scores:[]}
+    def _crop_hist(crop):
+        """크롭의 HSV(H-S) 색 히스토그램 — 재포착용 외형 시그니처."""
+        if crop is None or crop.size == 0:
+            return None
+        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+        h = cv2.calcHist([hsv], [0, 1], None, [30, 32], [0, 180, 0, 256])
+        cv2.normalize(h, h, 0, 1, cv2.NORM_MINMAX)
+        return h
+
+    # track_id -> {pts:[(t,x,y,h)], scores:[], seed:[], hist, histw}
     tracks: dict = {}
     prev_gray = None
     accum = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float64)  # frame->frame0 누적 affine
@@ -288,10 +297,18 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
             zone = _position_zone_score(position, nx, ny)
             match = kit * 0.5 + zone * 0.5
 
-            rec = tracks.setdefault(tid, {"pts": [], "heights": [], "scores": [], "seed": []})
-            rec["pts"].append((t, sx, sy))
-            rec["heights"].append(box_h)
+            rec = tracks.setdefault(
+                tid, {"pts": [], "scores": [], "seed": [], "hist": None, "histw": 0.0}
+            )
+            rec["pts"].append((t, sx, sy, box_h))
             rec["scores"].append(match)
+
+            # 외형 시그니처 누적(박스 면적 가중 → 클로즈업 프레임이 시그니처를 주도)
+            hgram = _crop_hist(crop)
+            if hgram is not None:
+                area = float(max(1.0, (x2 - x1)) * box_h)
+                rec["hist"] = hgram * area if rec["hist"] is None else rec["hist"] + hgram * area
+                rec["histw"] += area
 
             # 중앙 지목 점수: 시작 구간에 화면 중앙 + 크게(앞쪽) 잡힌 선수일수록 높음
             if center_seed and t <= seed_seconds:
@@ -333,20 +350,80 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
         seed_select = "center_seed"
     else:
         target_id, target = max(tracks.items(), key=track_rank)
-    pts = target["pts"]
+
+    # ── 재포착(re-acquisition) ──────────────────────────────────────────────
+    # 줌 아웃 등으로 대상 트랙 ID가 끊기면, 클로즈업에서 기억한 외형(색 히스토그램)과
+    # 가장 비슷하고 끊긴 위치 근처/직후에 등장한 트랙을 같은 선수로 이어붙인다.
+    def _sig(r):
+        h = r.get("hist")
+        if h is None or r.get("histw", 0) <= 0:
+            return None
+        s = h.copy()
+        cv2.normalize(s, s, 0, 1, cv2.NORM_MINMAX)
+        return s
+
+    target_sig = _sig(target)
+    used = {target_id}
+    chain = list(target["pts"])  # (t,sx,sy,h), 시간순 적재됨
+    reacquired = 0
+    APPEAR_THR = 0.5   # 색 히스토그램 상관 임계(보수적)
+    MAX_GAP = 3.0      # 끊긴 뒤 이만큼(초) 내에 다시 나타나야 이어붙임
+
+    if target_sig is not None:
+        while reacquired < 8:
+            last_t, last_x, last_y = chain[-1][0], chain[-1][1], chain[-1][2]
+            if duration and last_t >= duration - dt:
+                break
+            best = None
+            best_sim = APPEAR_THR
+            for tid, r in tracks.items():
+                if tid in used or not r["pts"]:
+                    continue
+                start_t = r["pts"][0][0]
+                gap = start_t - last_t
+                if gap < -2 * dt or gap > MAX_GAP:
+                    continue
+                sig = _sig(r)
+                if sig is None:
+                    continue
+                sim = float(cv2.compareHist(target_sig, sig, cv2.HISTCMP_CORREL))
+                if sim < best_sim:
+                    continue
+                sx0, sy0 = r["pts"][0][1], r["pts"][0][2]
+                if ((sx0 - last_x) ** 2 + (sy0 - last_y) ** 2) ** 0.5 > frame_w * 1.5:
+                    continue  # 잃어버린 위치에서 너무 멀면 제외
+                best_sim = sim
+                best = (tid, r)
+            if not best:
+                break
+            btid, br = best
+            used.add(btid)
+            chain.extend(br["pts"])
+            reacquired += 1
+        chain.sort(key=lambda p: p[0])
+
+    pts = chain
     if len(pts) < 3:
         return {"available": False, "reason": "target_track_too_short", "trackId": int(target_id)}
 
-    median_h = float(np.median(target["heights"]))
+    # 지표 계산에선 등록용 클로즈업 구간(시작 seed_seconds)은 제외 → 실제 플레이만 반영
+    if seed_select == "center_seed":
+        metric_pts = [p for p in pts if p[0] > seed_seconds]
+        if len(metric_pts) < 3:
+            metric_pts = pts
+    else:
+        metric_pts = pts
+
+    median_h = float(np.median([p[3] for p in metric_pts]))
     meters_per_px = assumed_height_m / median_h if median_h > 0 else 0.0
 
     # 이동거리/속도: 안정화 좌표 변위 * 스케일, 비현실적 점프는 클램프
     dist_m = 0.0
     speeds = []  # (t, speed_m_s)
     max_step_m = 12.0 * dt  # 12 m/s 상한
-    for i in range(1, len(pts)):
-        t0, x0, y0 = pts[i - 1]
-        t1, x1, y1 = pts[i]
+    for i in range(1, len(metric_pts)):
+        t0, x0, y0, _h0 = metric_pts[i - 1]
+        t1, x1, y1, _h1 = metric_pts[i]
         seg_dt = max(1e-3, t1 - t0)
         d_px = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
         d_m = d_px * meters_per_px
@@ -374,14 +451,15 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
 
     # 히트맵: 안정화 좌표를 bounding box로 정규화 후 그리드 집계
     cols, rows = 24, 16
-    xs = np.array([p[1] for p in pts])
-    ys = np.array([p[2] for p in pts])
+    xs = np.array([p[1] for p in metric_pts])
+    ys = np.array([p[2] for p in metric_pts])
     xmin, xmax = float(xs.min()), float(xs.max())
     ymin, ymax = float(ys.min()), float(ys.max())
     span_x = max(1.0, xmax - xmin)
     span_y = max(1.0, ymax - ymin)
     grid = [[0 for _ in range(cols)] for _ in range(rows)]
-    for _t, x, y in pts:
+    for p in metric_pts:
+        x, y = p[1], p[2]
         gx = min(cols - 1, int((x - xmin) / span_x * cols))
         gy = min(rows - 1, int((y - ymin) / span_y * rows))
         grid[gy][gx] += 1
@@ -390,6 +468,7 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
         "available": True,
         "trackId": int(target_id),
         "targetSelectedBy": seed_select,  # center_seed | kit_zone
+        "reacquireCount": reacquired,     # 줌 등으로 끊긴 뒤 외형으로 다시 이어붙인 횟수
         "matchConfidence": round(sum(target["scores"]) / len(target["scores"]), 3),
         "sampledPoints": len(pts),
         "scaleMetersPerPixel": round(meters_per_px, 5),
