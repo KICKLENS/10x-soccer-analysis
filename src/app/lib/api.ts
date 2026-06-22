@@ -13,6 +13,11 @@ export type SelectedPlayer = {
   jerseyNumber?: string;
   uniformColor?: string;
   traits?: string;
+  photo?: string;
+  dob?: string;
+  heightCm?: string;
+  weightKg?: string;
+  nationality?: string;
 };
 
 const SELECTED_PLAYER_KEYS = [
@@ -64,6 +69,11 @@ export function readSelectedPlayer(): SelectedPlayer {
           jerseyNumber: player.jerseyNumber?.trim() || '',
           uniformColor: player.uniformColor?.trim() || '',
           traits: player.traits?.trim() || '',
+          photo: player.photo || '',
+          dob: player.dob?.trim() || '',
+          heightCm: player.heightCm?.trim() || '',
+          weightKg: player.weightKg?.trim() || '',
+          nationality: player.nationality?.trim() || '',
         };
       }
     } catch {

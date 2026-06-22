@@ -1,13 +1,15 @@
 """
-하이라이트 강조 효과 렌더러 (스포트라이트 / 빛기둥콘 + 이름바).
+하이라이트 최종 렌더러 (소개 카드 인트로 + 클립별 스포트라이트 + 이어붙이기).
 
-타깃 선수를 추적해 영상 위에 강조 효과를 입힌다.
-- demo(): 공개 샘플 축구 클립으로 spotlight/cone 두 버전을 렌더 + 미리보기 프레임 추출.
-  결과는 Modal 볼륨 'soccer-models'의 /models/fx_demo/ 에 저장.
+- render_highlights (web endpoint): {clips:[url...], profile:{...}, style} → 완성본 mp4 바이너리 반환.
+  서버가 잘라둔 하이라이트 클립 URL들을 받아, 타깃 선수를 추적해 스포트라이트를 입히고,
+  맨 앞에 선수 소개 카드(PLAYER REVIEW)를 붙여 하나의 완성본으로 만든다.
+- demo_full(): 공개 축구 클립으로 완성본을 만들어 미리보기(프레임+영상)를 볼륨에 저장.
 
 사용:
-  modal run modal_app/highlight_fx.py::demo --seconds 8
-  modal volume get soccer-models fx_demo ./fx_demo   # 로컬로 내려받기
+  modal run modal_app/highlight_fx.py::demo_full
+  modal volume get soccer-models reel_demo ./reel_demo
+  modal deploy modal_app/highlight_fx.py
 """
 
 from __future__ import annotations
@@ -15,19 +17,23 @@ from __future__ import annotations
 import modal
 
 APP_NAME = "soccer-fx"
-# 공개 축구 클립(roboflow/sports, DFL Bundesliga) — Google Drive
-SAMPLE_GDRIVE_ID = "19PGw55V8aA6GZu5-Aac5_9mCy3fNxmEf"
+SAMPLE_GDRIVE_ID = "19PGw55V8aA6GZu5-Aac5_9mCy3fNxmEf"  # DFL Bundesliga 클립
 DETECT_MODEL = "yolo11m.pt"
+TARGET_W, TARGET_H, TARGET_FPS = 1280, 720, 30
+FONT_BOLD = "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"
+FONT_REG = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("libgl1", "libglib2.0-0", "ffmpeg")
+    .apt_install("libgl1", "libglib2.0-0", "ffmpeg", "fonts-nanum")
     .pip_install(
         "ultralytics==8.3.58",
         "opencv-python-headless==4.10.0.84",
         "numpy<2",
         "lap==0.5.12",
         "gdown==5.2.0",
+        "pillow==10.4.0",
+        "fastapi[standard]==0.115.4",
     )
 )
 
@@ -35,14 +41,135 @@ volume = modal.Volume.from_name("soccer-models", create_if_missing=True)
 app = modal.App(APP_NAME)
 
 
-def _download(gdrive_id: str, path: str):
+# ────────────────────────────── 유틸 ──────────────────────────────
+def _run(args):
+    import subprocess
+
+    p = subprocess.run(args, capture_output=True)
+    if p.returncode != 0:
+        raise RuntimeError(p.stderr.decode("utf-8", "ignore")[-800:])
+
+
+def _download_url(url: str, path: str):
+    import urllib.request
+
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=180) as r, open(path, "wb") as f:
+        f.write(r.read())
+
+
+def _gdrive(gid: str, path: str):
     import gdown
 
-    gdown.download(id=gdrive_id, output=path, quiet=False)
+    gdown.download(id=gid, output=path, quiet=True)
 
 
-def _track_target(video_path: str, seconds: float):
-    """프레임별 타깃 선수 중심(cx,cy,h)을 반환. 처음 구간 중앙 선수를 타깃으로 잠금."""
+def _age_from_dob(dob: str) -> str:
+    from datetime import date
+
+    try:
+        y, m, d = (int(x) for x in dob.split("-"))
+        today = date.today()
+        return str(today.year - y - ((today.month, today.day) < (m, d)))
+    except Exception:
+        return "-"
+
+
+# ─────────────────────────── 소개 카드 ───────────────────────────
+def _draw_card(profile: dict):
+    from PIL import Image, ImageDraw, ImageFont, ImageFilter
+
+    ORANGE = (255, 159, 2)
+    W, H = 1920, 1080
+    img = Image.new("RGB", (W, H), (10, 10, 13))
+    glow = Image.new("RGB", (W, H), (10, 10, 13))
+    ImageDraw.Draw(glow).ellipse([W - 700, -300, W + 200, 500], fill=(40, 28, 6))
+    img = Image.blend(img, glow.filter(ImageFilter.GaussianBlur(160)), 0.6)
+    d = ImageDraw.Draw(img)
+
+    def font(bold, size):
+        return ImageFont.truetype(FONT_BOLD if bold else FONT_REG, size)
+
+    name = profile.get("name") or "선수"
+    number = str(profile.get("jerseyNumber") or "").strip()
+    position = (profile.get("position") or "").strip()
+    team = (profile.get("teamName") or "").strip()
+    dob = (profile.get("dob") or "").strip()
+    height = (profile.get("heightCm") or "").strip()
+    weight = (profile.get("weightKg") or "").strip()
+    nat = (profile.get("nationality") or "").strip()
+    LX = 130
+
+    d.rectangle([LX, 110, LX + 250, 158], fill=(255, 255, 255))
+    d.text((LX + 18, 118), "PLAYER REVIEW", font=font(True, 26), fill=(10, 10, 13))
+    if position:
+        d.rounded_rectangle([LX, 188, LX + 130, 240], radius=8, outline=ORANGE, width=2)
+        d.text((LX + 18, 197), position.upper()[:4], font=font(True, 28), fill=ORANGE)
+    d.text((LX, 270), name, font=font(True, 110), fill=(255, 255, 255))
+    if number:
+        d.text((LX, 410), f"#{number}", font=font(True, 70), fill=ORANGE)
+
+    iy = 540
+    d.text((LX, iy), "GENERAL INFO", font=font(True, 40), fill=(255, 255, 255))
+    d.line([LX, iy + 56, LX + 520, iy + 56], fill=(60, 60, 66), width=2)
+    rows = [
+        ("나이", f"{_age_from_dob(dob)}세" if dob else "-"),
+        ("생년월일", dob or "-"),
+        ("포지션", position or "-"),
+        ("키 / 몸무게", f"{height or '-'}cm / {weight or '-'}kg"),
+        ("소속팀", team or "-"),
+        ("국적", nat or "-"),
+    ]
+    ry = iy + 80
+    for label, value in rows:
+        d.ellipse([LX, ry + 12, LX + 12, ry + 24], fill=ORANGE)
+        d.text((LX + 30, ry), label, font=font(False, 30), fill=(170, 170, 176))
+        d.text((LX + 300, ry), value, font=font(True, 32), fill=(255, 255, 255))
+        ry += 66
+
+    cx, cy, R = 1420, 430, 280
+    d.ellipse([cx - R - 10, cy - R - 10, cx + R + 10, cy + R + 10], outline=ORANGE, width=10)
+    photo_path = profile.get("_photo_path")
+    drew_photo = False
+    if photo_path:
+        try:
+            ph = Image.open(photo_path).convert("RGB")
+            s = min(ph.size)
+            ph = ph.crop(((ph.width - s) // 2, (ph.height - s) // 2,
+                          (ph.width - s) // 2 + s, (ph.height - s) // 2 + s)).resize((2 * R, 2 * R))
+            mask = Image.new("L", (2 * R, 2 * R), 0)
+            ImageDraw.Draw(mask).ellipse([0, 0, 2 * R, 2 * R], fill=255)
+            img.paste(ph, (cx - R, cy - R), mask)
+            drew_photo = True
+        except Exception:
+            drew_photo = False
+    if not drew_photo:
+        d.ellipse([cx - R, cy - R, cx + R, cy + R], fill=(28, 28, 33))
+        f = font(True, 220)
+        bb = d.textbbox((0, 0), name[:1], font=f)
+        d.text((cx - (bb[2] - bb[0]) / 2, cy - (bb[3] - bb[1]) / 2 - 30), name[:1],
+               font=f, fill=ORANGE)
+
+    d.text((LX, 1010), "10X · AI SOCCER ANALYSIS", font=font(True, 24), fill=(110, 110, 116))
+    return img
+
+
+def _card_clip(profile: dict, out_path: str, seconds: float = 3.5):
+    png = "/tmp/card.png"
+    _draw_card(profile).save(png)
+    _run([
+        "ffmpeg", "-y", "-loop", "1", "-i", png, "-t", str(seconds),
+        "-vf",
+        f"scale={TARGET_W}:{TARGET_H},setsar=1,"
+        f"zoompan=z='min(zoom+0.0006,1.08)':d={int(TARGET_FPS*seconds)}:"
+        f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={TARGET_W}x{TARGET_H}:fps={TARGET_FPS}",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
+        "-crf", "21", out_path,
+    ])
+
+
+# ─────────────────────────── 추적 + 효과 ───────────────────────────
+def _track_target(video_path: str, seconds: float = 600.0):
     import cv2
     import numpy as np
     from ultralytics import YOLO
@@ -53,89 +180,62 @@ def _track_target(video_path: str, seconds: float):
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     max_frames = int(fps * seconds)
-    seed_frames = int(fps * 2.0)
+    seed_frames = max(1, int(fps * 1.5))
     cx0, cy0 = W / 2.0, H / 2.0
 
-    per_frame = []   # list of {id: (cx,cy,h)}
-    seed_score = {}  # id -> accumulated centrality*size
-    idx = 0
+    per_frame, seed_score, idx = [], {}, 0
     while idx < max_frames:
         ok, frame = cap.read()
         if not ok:
             break
-        res = model.track(
-            source=frame, persist=True, tracker="botsort.yaml",
-            classes=[0], conf=0.25, imgsz=960, verbose=False,
-        )[0]
+        res = model.track(source=frame, persist=True, tracker="botsort.yaml",
+                          classes=[0], conf=0.25, imgsz=960, verbose=False)[0]
         boxes = {}
         if res.boxes is not None and res.boxes.id is not None:
             xyxy = res.boxes.xyxy.cpu().numpy()
             ids = res.boxes.id.cpu().numpy().astype(int)
             for (x1, y1, x2, y2), tid in zip(xyxy, ids):
-                cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
-                h = y2 - y1
+                cx, cy, h = (x1 + x2) / 2.0, (y1 + y2) / 2.0, y2 - y1
                 boxes[int(tid)] = (cx, cy, h)
                 if idx < seed_frames:
-                    d = np.hypot((cx - cx0) / W, (cy - cy0) / H)
-                    seed_score[int(tid)] = seed_score.get(int(tid), 0.0) + (
-                        (1.0 - min(d, 1.0)) * (h / H)
-                    )
+                    dd = np.hypot((cx - cx0) / W, (cy - cy0) / H)
+                    seed_score[int(tid)] = seed_score.get(int(tid), 0.0) + (1.0 - min(dd, 1.0)) * (h / H)
         per_frame.append(boxes)
         idx += 1
     cap.release()
-
     if not seed_score:
         return None, fps, W, H, len(per_frame)
-    target_id = max(seed_score, key=seed_score.get)
+    target = max(seed_score, key=seed_score.get)
 
-    # 프레임별 타깃 좌표(없으면 직전 유지) + EMA 스무딩
-    centers = []
-    last = None
+    centers, last, ema = [], None, None
     for boxes in per_frame:
-        if target_id in boxes:
-            last = boxes[target_id]
-        centers.append(last)
-    sm = []
-    ema = None
-    for c in centers:
-        if c is None:
-            sm.append(ema)
+        if target in boxes:
+            last = boxes[target]
+        if last is None:
+            centers.append(None)
             continue
-        if ema is None:
-            ema = c
-        else:
-            a = 0.35
-            ema = (a * c[0] + (1 - a) * ema[0],
-                   a * c[1] + (1 - a) * ema[1],
-                   a * c[2] + (1 - a) * ema[2])
-        sm.append(ema)
-    return sm, fps, W, H, len(per_frame)
+        ema = last if ema is None else (
+            0.35 * last[0] + 0.65 * ema[0],
+            0.35 * last[1] + 0.65 * ema[1],
+            0.35 * last[2] + 0.65 * ema[2],
+        )
+        centers.append(ema)
+    return centers, fps, W, H, len(per_frame)
 
 
-def _draw_namebar(frame, text: str):
-    import cv2
-
-    H, W = frame.shape[:2]
-    bar_h = max(48, int(H * 0.085))
-    y0 = H - bar_h
-    overlay = frame.copy()
-    cv2.rectangle(overlay, (0, y0), (int(W * 0.46), H), (12, 12, 12), -1)
-    cv2.rectangle(overlay, (0, y0), (8, H), (2, 159, 255), -1)  # 주황 액센트 (BGR)
-    cv2.addWeighted(overlay, 0.78, frame, 0.22, 0, frame)
-    cv2.putText(frame, text, (24, y0 + int(bar_h * 0.62)),
-                cv2.FONT_HERSHEY_DUPLEX, max(0.7, H / 900.0), (255, 255, 255), 2,
-                cv2.LINE_AA)
+def _name_text(profile: dict) -> str:
+    name = (profile.get("name") or "선수").strip()
+    number = str(profile.get("jerseyNumber") or "").strip()
+    return f"{name}  #{number}" if number else name
 
 
-def _render(video_path: str, out_path: str, centers, fps, W, H, style: str,
-            name_text: str):
+def _render_spotlight(video_path: str, out_path: str, centers, fps, W, H, name_text: str):
     import cv2
     import numpy as np
 
     cap = cv2.VideoCapture(video_path)
-    tmp = out_path + ".raw.mp4"
-    vw = cv2.VideoWriter(tmp, cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
-
+    raw = out_path + ".raw.mp4"
+    vw = cv2.VideoWriter(raw, cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     idx = 0
     while True:
@@ -147,81 +247,143 @@ def _render(video_path: str, out_path: str, centers, fps, W, H, style: str,
         if c is not None:
             cx, cy, h = c
             radius = max(70.0, h * 1.5)
-            if style == "spotlight":
-                dist = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
-                mask = np.clip(1.0 - (dist - radius) / (radius * 0.9), 0.0, 1.0)
-                mask = mask[..., None]
-                dark = frame * 0.32
-                frame = frame * mask + dark * (1.0 - mask)
-                cv2.circle(frame, (int(cx), int(cy)), int(radius),
-                           (255, 255, 255), 2, cv2.LINE_AA)
-            elif style == "cone":
-                # 위에서 내려오는 빛기둥 + 발밑 글로우
-                frame *= 0.5
-                beam = np.zeros((H, W), np.float32)
-                top_half = max(20, int(radius * 0.35))
-                base_half = max(60, int(radius * 1.25))
-                feet_y = int(min(H - 1, cy + h * 0.55))
-                pts = np.array([
-                    [int(cx - top_half), 0], [int(cx + top_half), 0],
-                    [int(cx + base_half), feet_y], [int(cx - base_half), feet_y],
-                ], np.int32)
-                cv2.fillConvexPoly(beam, pts, 1.0)
-                beam = cv2.GaussianBlur(beam, (0, 0), sigmaX=max(8, W / 90.0))
-                grad = np.clip(1.0 - (yy / max(feet_y, 1)), 0.15, 1.0)
-                beam = (beam * grad)[..., None]
-                glow = np.zeros((H, W), np.float32)
-                cv2.ellipse(glow, (int(cx), feet_y),
-                            (int(base_half * 0.8), int(h * 0.22)), 0, 0, 360, 1.0, -1)
-                glow = cv2.GaussianBlur(glow, (0, 0), sigmaX=max(6, W / 110.0))[..., None]
-                light = np.clip(beam + glow * 0.9, 0.0, 1.0)
-                white = np.full_like(frame, 255.0)
-                frame = frame * (1.0 - light * 0.55) + white * (light * 0.55)
-        frame = np.clip(frame, 0, 255).astype(np.uint8)
-        _draw_namebar(frame, name_text)
-        vw.write(frame)
+            dist = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+            mask = np.clip(1.0 - (dist - radius) / (radius * 0.9), 0.0, 1.0)[..., None]
+            frame = frame * mask + (frame * 0.32) * (1.0 - mask)
+            cv2.circle(frame, (int(cx), int(cy)), int(radius), (255, 255, 255), 2, cv2.LINE_AA)
+        vw.write(np.clip(frame, 0, 255).astype(np.uint8))
         idx += 1
     cap.release()
     vw.release()
 
-    import subprocess
-    subprocess.run([
-        "ffmpeg", "-y", "-i", tmp, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-        "-preset", "veryfast", "-crf", "23", "-movflags", "+faststart", out_path,
-    ], check=True, capture_output=True)
+    with open("/tmp/name.txt", "w") as f:
+        f.write(name_text)
+    vf = (
+        f"scale={TARGET_W}:{TARGET_H},setsar=1,fps={TARGET_FPS},"
+        f"drawbox=x=0:y=ih-70:w=iw*0.5:h=70:color=black@0.72:t=fill,"
+        f"drawbox=x=0:y=ih-70:w=8:h=70:color=0xFF9F02:t=fill,"
+        f"drawtext=fontfile={FONT_BOLD}:textfile=/tmp/name.txt:fontcolor=white:"
+        f"fontsize=34:x=30:y=H-52"
+    )
+    _run(["ffmpeg", "-y", "-i", raw, "-vf", vf, "-c:v", "libx264",
+          "-pix_fmt", "yuv420p", "-preset", "veryfast", "-crf", "22", out_path])
     import os
-    os.remove(tmp)
+    os.remove(raw)
+
+
+def _normalize(video_path: str, out_path: str):
+    _run(["ffmpeg", "-y", "-i", video_path, "-vf",
+          f"scale={TARGET_W}:{TARGET_H},setsar=1,fps={TARGET_FPS}",
+          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
+          "-crf", "22", out_path])
+
+
+def _concat_video(paths, out_path: str):
+    args = ["ffmpeg", "-y"]
+    for p in paths:
+        args += ["-i", p]
+    n = len(paths)
+    streams = "".join(f"[{i}:v]" for i in range(n))
+    args += ["-filter_complex", f"{streams}concat=n={n}:v=1:a=0[v]",
+             "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+             "-preset", "veryfast", "-crf", "21", "-movflags", "+faststart", out_path]
+    _run(args)
+
+
+def _make_reel(clip_paths, profile, out_path, style="spotlight", with_card=True):
+    parts = []
+    if with_card:
+        card = "/tmp/card.mp4"
+        _card_clip(profile, card)
+        parts.append(card)
+    name_text = _name_text(profile)
+    for i, cp in enumerate(clip_paths):
+        fx = f"/tmp/fx_{i}.mp4"
+        try:
+            centers, fps, W, H, _ = _track_target(cp)
+            if centers is None or style != "spotlight":
+                _normalize(cp, fx)
+            else:
+                _render_spotlight(cp, fx, centers, fps, W, H, name_text)
+        except Exception as e:  # noqa: BLE001
+            print(f"[reel] clip {i} 효과 실패→원본: {e}")
+            _normalize(cp, fx)
+        parts.append(fx)
+    _concat_video(parts, out_path)
+    return parts
+
+
+# ─────────────────────────── 엔드포인트 ───────────────────────────
+@app.function(image=image, gpu="L4", timeout=1500, volumes={"/models": volume})
+@modal.fastapi_endpoint(method="POST")
+def render_highlights(req: dict):
+    import base64
+    import os
+
+    from fastapi import Response
+
+    clips = req.get("clips") or []
+    profile = dict(req.get("profile") or {})
+    style = req.get("style", "spotlight")
+    if not clips:
+        return {"ok": False, "error": "clips 가 비어 있습니다."}
+
+    # 사진(dataURL/base64) 처리
+    photo = profile.get("photo")
+    if photo and isinstance(photo, str) and "," in photo:
+        try:
+            with open("/tmp/photo.jpg", "wb") as f:
+                f.write(base64.b64decode(photo.split(",", 1)[1]))
+            profile["_photo_path"] = "/tmp/photo.jpg"
+        except Exception:
+            pass
+
+    paths = []
+    for i, url in enumerate(clips):
+        p = f"/tmp/in_{i}.mp4"
+        _download_url(url, p)
+        paths.append(p)
+
+    out = "/tmp/reel.mp4"
+    _make_reel(paths, profile, out, style=style)
+    data = open(out, "rb").read()
+    return Response(content=data, media_type="video/mp4",
+                    headers={"X-Clip-Count": str(len(paths))})
 
 
 @app.function(image=image, gpu="L4", timeout=1200, volumes={"/models": volume})
-def demo(seconds: float = 8.0):
+def demo_full():
     import os
 
     import cv2
 
-    os.makedirs("/models/fx_demo", exist_ok=True)
+    os.makedirs("/models/reel_demo", exist_ok=True)
     src = "/tmp/soccer.mp4"
-    _download(SAMPLE_GDRIVE_ID, src)
+    _gdrive(SAMPLE_GDRIVE_ID, src)
 
-    centers, fps, W, H, n = _track_target(src, seconds)
-    if centers is None:
-        return {"ok": False, "error": "타깃을 찾지 못함"}
+    # 2개 구간을 잘라 하이라이트 클립처럼 사용
+    seg_paths = []
+    for i, (ss, dur) in enumerate([(0, 5), (6, 5)]):
+        sp = f"/tmp/seg_{i}.mp4"
+        _run(["ffmpeg", "-y", "-ss", str(ss), "-i", src, "-t", str(dur),
+              "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p", sp])
+        seg_paths.append(sp)
 
-    name = "TARGET PLAYER  #7"
-    outputs = {}
-    for style in ("spotlight", "cone"):
-        out = f"/models/fx_demo/{style}.mp4"
-        _render(src, out, centers, fps, W, H, style, name)
-        outputs[style] = out
-        # 미리보기 프레임 3장 추출
-        cap = cv2.VideoCapture(out)
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        for j, frac in enumerate((0.3, 0.55, 0.8)):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, int(total * frac))
-            ok, fr = cap.read()
-            if ok:
-                cv2.imwrite(f"/models/fx_demo/{style}_{j+1}.jpg", fr)
-        cap.release()
+    profile = {
+        "name": "강도윤", "jerseyNumber": "1", "position": "GK",
+        "teamName": "AAFC 충암 U-12", "dob": "2014-02-24",
+        "heightCm": "173", "weightKg": "69", "nationality": "대한민국",
+    }
+    out = "/models/reel_demo/reel.mp4"
+    _make_reel(seg_paths, profile, out, style="spotlight")
 
+    cap = cv2.VideoCapture(out)
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    for j, frac in enumerate((0.05, 0.4, 0.65, 0.9)):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(total * frac))
+        ok, fr = cap.read()
+        if ok:
+            cv2.imwrite(f"/models/reel_demo/reel_{j+1}.jpg", fr)
+    cap.release()
     volume.commit()
-    return {"ok": True, "fps": fps, "size": [W, H], "frames": n, "outputs": outputs}
+    return {"ok": True, "out": "reel_demo/reel.mp4", "frames": total}

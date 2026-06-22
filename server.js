@@ -33,6 +33,12 @@ const MODAL_AUTH_TOKEN = (process.env.MODAL_AUTH_TOKEN || '').trim();
 const MODAL_SAMPLE_FPS = Number(process.env.MODAL_SAMPLE_FPS) || 8;
 const MODAL_ENABLED = Boolean(MODAL_ANALYZE_URL);
 
+// 하이라이트 효과 렌더(소개 카드 + 스포트라이트) — Modal 엔드포인트
+const MODAL_RENDER_URL = (
+  process.env.MODAL_RENDER_URL || 'https://kicklens--soccer-fx-render-highlights.modal.run'
+).trim();
+const HIGHLIGHT_FX_ENABLED = String(process.env.HIGHLIGHT_FX_ENABLED ?? '1') === '1';
+
 // 비용 최적화: Gemini 시각 검수 단계 파라미터 (환경변수로 조정 가능)
 const QC_FRAME_WIDTH = Number(process.env.QC_FRAME_WIDTH) || 768;
 const QC_FRAMES_PER_CLIP = Math.max(1, Math.min(2, Number(process.env.QC_FRAMES_PER_CLIP) || 2));
@@ -812,6 +818,48 @@ async function renderFinalHighlight(sourcePath, clips) {
   };
 }
 
+async function renderHighlightReel(clipsWithVideos, player = {}) {
+  const clips = (clipsWithVideos || [])
+    .map((c) => c.highlightVideoUrl || c.videoUrl)
+    .filter(Boolean);
+  if (!clips.length) throw new Error('렌더할 클립 URL이 없습니다.');
+
+  const profile = {
+    name: player.name || '',
+    jerseyNumber: String(player.jerseyNumber || ''),
+    position: player.position || '',
+    teamName: player.teamName || '',
+    dob: player.dob || '',
+    heightCm: String(player.heightCm || ''),
+    weightKg: String(player.weightKg || ''),
+    nationality: player.nationality || '',
+    photo: player.photo || '',
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20 * 60 * 1000);
+  const resp = await fetch(MODAL_RENDER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clips, profile, style: 'spotlight' }),
+    signal: controller.signal,
+  });
+  clearTimeout(timer);
+  if (!resp.ok) throw new Error(`Modal 렌더 오류 ${resp.status}`);
+
+  const buf = Buffer.from(await resp.arrayBuffer());
+  if (buf.length < 1024) throw new Error('렌더 결과가 비어 있습니다.');
+  const outputName = `highlight-fx-${Date.now()}.mp4`;
+  fs.writeFileSync(path.join(highlightsDir, outputName), buf);
+
+  return {
+    outputName,
+    outputPath: `/highlights/${outputName}`,
+    videoUrl: `${PUBLIC_BASE}/highlights/${outputName}`,
+    effects: true,
+  };
+}
+
 function adaptClipsForMainSite(clips) {
   return (clips || []).map((clip, index) => {
     const startSec = Number(clip.startSec) || 0;
@@ -857,6 +905,11 @@ function normalizePlayerInput(body = {}) {
     jerseyNumber: String(body.jerseyNumber || nested.jerseyNumber || '').trim(),
     uniformColor,
     traits,
+    dob: String(body.dob || nested.dob || '').trim(),
+    heightCm: String(body.heightCm || nested.heightCm || '').trim(),
+    weightKg: String(body.weightKg || nested.weightKg || '').trim(),
+    nationality: String(body.nationality || nested.nationality || '').trim(),
+    photo: String(body.photo || nested.photo || '').trim(),
   };
 }
 
@@ -952,7 +1005,17 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
 
   let finalHighlight = null;
   if (renderFinal) {
-    finalHighlight = await renderFinalHighlight(fullPath, clipsWithVideos);
+    if (HIGHLIGHT_FX_ENABLED && MODAL_ENABLED) {
+      try {
+        finalHighlight = await renderHighlightReel(clipsWithVideos, player);
+        console.log('[FX] 소개 카드 + 스포트라이트 하이라이트 완성');
+      } catch (err) {
+        console.warn('[FX] 효과 렌더 실패, 기본 합치기로 폴백:', err.message);
+      }
+    }
+    if (!finalHighlight) {
+      finalHighlight = await renderFinalHighlight(fullPath, clipsWithVideos);
+    }
   }
 
   return {
