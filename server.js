@@ -1005,17 +1005,8 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
 
   let finalHighlight = null;
   if (renderFinal) {
-    if (HIGHLIGHT_FX_ENABLED && MODAL_ENABLED) {
-      try {
-        finalHighlight = await renderHighlightReel(clipsWithVideos, player);
-        console.log('[FX] 소개 카드 + 스포트라이트 하이라이트 완성');
-      } catch (err) {
-        console.warn('[FX] 효과 렌더 실패, 기본 합치기로 폴백:', err.message);
-      }
-    }
-    if (!finalHighlight) {
-      finalHighlight = await renderFinalHighlight(fullPath, clipsWithVideos);
-    }
+    // 스포트라이트(Modal) 렌더는 응답을 막지 않도록 분리 → /api/highlights/spotlight 에서 처리
+    finalHighlight = await renderFinalHighlight(fullPath, clipsWithVideos);
   }
 
   return {
@@ -1428,6 +1419,38 @@ app.post('/api/extract-highlights', async (req, res) => {
       message: err.message,
       error: err.message,
     });
+  }
+});
+
+// 스포트라이트(선수 포착) 효과 적용 — AI분석과 분리된 별도 요청(응답 안 막음)
+app.post('/api/highlights/spotlight', async (req, res) => {
+  try {
+    if (!HIGHLIGHT_FX_ENABLED || !MODAL_ENABLED) {
+      res.status(503).json({ success: false, error: '스포트라이트 효과가 비활성화되어 있습니다.' });
+      return;
+    }
+    const { clips, player: bodyPlayer, ...rest } = req.body || {};
+    const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
+    const clipObjs = (Array.isArray(clips) ? clips : [])
+      .map((c) => (typeof c === 'string'
+        ? { highlightVideoUrl: c }
+        : { highlightVideoUrl: c.url || c.clipUrl || c.outputUrl || c.videoUrl || c.highlightVideoUrl }))
+      .filter((c) => c.highlightVideoUrl);
+    if (!clipObjs.length) {
+      res.status(400).json({ success: false, error: '효과를 적용할 클립이 없습니다.' });
+      return;
+    }
+
+    const out = await renderHighlightReel(clipObjs, player);
+    res.json({
+      success: true,
+      videoUrl: out.videoUrl,
+      outputPath: out.outputPath,
+      message: '스포트라이트 효과 적용 완료',
+    });
+  } catch (err) {
+    console.error('[spotlight]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

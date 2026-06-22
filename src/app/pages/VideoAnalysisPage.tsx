@@ -253,6 +253,7 @@ export default function VideoAnalysisPage() {
   const [isCheckingServer, setIsCheckingServer] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
+  const [isEnhancing, setIsEnhancing] = useState<boolean>(false);
 
   useEffect(() => {
     return () => {
@@ -379,6 +380,35 @@ export default function VideoAnalysisPage() {
     }
   };
 
+  const enhanceWithSpotlight = async (clips: HighlightClip[], player: ReturnType<typeof readSelectedPlayer>) => {
+    const clipList = (Array.isArray(clips) ? clips : [])
+      .map((c) => c.url || c.clipUrl || c.outputUrl)
+      .filter(Boolean);
+    if (!clipList.length) return;
+
+    try {
+      setIsEnhancing(true);
+      setStatusMessage('하이라이트에 선수 포착(스포트라이트) 효과를 적용하는 중입니다... (약 1~3분)');
+      const data = await fetchJson<{ success?: boolean; videoUrl?: string; error?: string }>(
+        '/api/highlights/spotlight',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clips: clipList, ...player, player }),
+        },
+      );
+      const fxUrl = toAbsoluteUrl(data.videoUrl || '');
+      if (data.success && fxUrl) {
+        setHighlightVideoUrl(fxUrl);
+        setStatusMessage('선수 포착(스포트라이트) 효과가 적용된 하이라이트가 준비되었습니다.');
+      }
+    } catch {
+      // 효과 적용 실패해도 기본 하이라이트는 그대로 유지
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const handleExtractHighlights = async () => {
     if (!uploadedVideoFileName) {
       setErrorMessage('먼저 영상을 업로드해주세요.');
@@ -415,6 +445,9 @@ export default function VideoAnalysisPage() {
       setCoachSummary(data.summary || null);
 
       setStatusMessage(data.message || '하이라이트 생성이 완료되었습니다. AI 분석으로 이어서 확인할 수 있습니다.');
+
+      // 스포트라이트 효과는 응답을 막지 않도록 별도 요청으로 적용(완료되면 영상 교체)
+      void enhanceWithSpotlight(nextClips, player);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '하이라이트 추출 중 오류가 발생했습니다.');
       setStatusMessage('');
@@ -618,7 +651,16 @@ export default function VideoAnalysisPage() {
                 <InfoRow label="유니폼 색상" value={selectedPlayer.uniformColor || '-'} />
                 <InfoRow label="분석 포지션" value={analysisPosition || readSelectedPlayerPosition()} />
                 <InfoRow label="선수 특징" value={selectedPlayer.traits || '-'} />
-                <InfoRow label="하이라이트 상태" value={highlightVideoUrl ? '생성 완료' : '아직 생성 전'} />
+                <InfoRow
+                  label="하이라이트 상태"
+                  value={
+                    isEnhancing
+                      ? '스포트라이트 효과 적용 중...'
+                      : highlightVideoUrl
+                        ? '생성 완료'
+                        : '아직 생성 전'
+                  }
+                />
                 <InfoRow label="하이라이트 영상" value={highlightVideoUrl ? '재생 가능' : '추출 필요'} />
                 <InfoRow label="추출된 클립 수" value={`${normalizedClips.length}개`} />
                 <InfoRow label="총 하이라이트 길이" value={formatSeconds(totalHighlightDuration)} />
