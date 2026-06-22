@@ -14,7 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { fetchJson, readSelectedPlayer, readSelectedPlayerPosition, toAbsoluteUrl } from '../lib/api';
 import { saveAnalysisToHistory } from '../lib/analysisHistory';
-import type { AiAnalysisPayload as HistoryAiAnalysisPayload } from '../lib/analysisFlow';
+import { uploadVideoFile, type AiAnalysisPayload as HistoryAiAnalysisPayload } from '../lib/analysisFlow';
 import PageNav from '../components/PageNav';
 
 const UPLOAD_ENDPOINT = '/api/upload';
@@ -342,17 +342,18 @@ export default function VideoAnalysisPage() {
     setStatusMessage('영상을 업로드하고 있습니다...');
 
     try {
-      const formData = new FormData();
-      formData.append('video', selectedFile);
+      // 대용량/모바일에서도 끊기지 않도록 진행률·긴 타임아웃이 있는 XHR 업로더 사용
+      const player = readSelectedPlayer();
+      const uploaded = await uploadVideoFile(
+        selectedFile,
+        player,
+        undefined,
+        (percent) => setStatusMessage(`영상을 업로드하고 있습니다... ${percent}%`),
+      );
 
-      const data = await fetchJson<UploadResponse>(UPLOAD_ENDPOINT, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const nextVideoUrl = toAbsoluteUrl(data.videoUrl || '');
-      const nextFileName = data.fileName || data.savedFilename || selectedFile.name || '';
-      const nextAnalysisId = data.analysisId || '';
+      const nextVideoUrl = toAbsoluteUrl(uploaded.videoUrl || '');
+      const nextFileName = uploaded.fileName || selectedFile.name || '';
+      const nextAnalysisId = uploaded.analysisId || '';
 
       if (!nextVideoUrl) {
         throw new Error('업로드는 완료되었지만 재생 가능한 영상 정보를 찾지 못했습니다.');
