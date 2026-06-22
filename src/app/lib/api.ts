@@ -40,16 +40,22 @@ export async function fetchJson<T>(input: string, init?: RequestInit): Promise<T
 
   if (!contentType.includes('application/json')) {
     const body = await response.text();
-    throw new Error(
+    const err = new Error(
       body.startsWith('<!DOCTYPE') || body.startsWith('<html')
         ? `서버 연결에 문제가 있습니다 (${response.status}). 잠시 후 다시 시도해 주세요.`
         : body || `API 응답 오류 (${response.status})`,
-    );
+    ) as Error & { status?: number };
+    err.status = response.status;
+    throw err;
   }
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || data.message || `API 요청 실패 (${response.status})`);
+    const err = new Error(data.error || data.message || `API 요청 실패 (${response.status})`) as Error & {
+      status?: number;
+    };
+    err.status = response.status;
+    throw err;
   }
 
   return data;

@@ -26,6 +26,7 @@ async function pollJob<T = unknown>(
   onStage?: (stage: string, progress?: number) => void,
 ): Promise<T> {
   let fails = 0;
+  let notFound = 0;
   for (;;) {
     await sleep(4000);
     try {
@@ -37,6 +38,7 @@ async function pollJob<T = unknown>(
         error?: string;
       }>(`/api/jobs/${jobId}`, { method: 'GET' });
       fails = 0;
+      notFound = 0;
       if (s.stage) onStage?.(s.stage, s.progress);
       if (s.status === 'done') return s.result as T;
       if (s.status === 'error') {
@@ -46,8 +48,23 @@ async function pollJob<T = unknown>(
       }
     } catch (e) {
       if ((e as { jobError?: boolean })?.jobError) throw e;
+      // 404 = 서버가 작업을 잃어버림(재시작 등). 네트워크 끊김과 구분해 처리.
+      if ((e as { status?: number })?.status === 404) {
+        notFound += 1;
+        if (notFound >= 3) {
+          const err = new Error(
+            '작업 정보를 찾을 수 없습니다. 서버가 재시작되었을 수 있어요. 다시 시도해 주세요.',
+          ) as Error & { jobError?: boolean; jobGone?: boolean };
+          err.jobError = true;
+          err.jobGone = true;
+          throw err;
+        }
+        continue;
+      }
       fails += 1;
-      if (fails >= 10) throw new Error('서버와 통신이 끊겼습니다. 잠시 후 다시 시도해주세요.');
+      if (fails >= 15) {
+        throw new Error('인터넷 연결이 불안정합니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.');
+      }
     }
   }
 }
@@ -506,7 +523,7 @@ export default function VideoAnalysisPage() {
   };
 
   // 시작된 추출 작업을 끝까지 따라가 결과를 채운다(페이지 복귀 시에도 재사용).
-  const consumeExtractJob = async (jobId: string) => {
+  const consumeExtractJob = async (jobId: string, opts?: { resume?: boolean }) => {
     setIsExtracting(true);
     setErrorMessage('');
     try {
@@ -535,9 +552,15 @@ export default function VideoAnalysisPage() {
       void enhanceWithSpotlight(nextClips, readSelectedPlayer());
     } catch (error) {
       clearActiveJob();
-      setErrorMessage(error instanceof Error ? error.message : '하이라이트 추출 중 오류가 발생했습니다.');
-      setStatusMessage('');
-      void showNotif('하이라이트 추출 실패', '다시 시도해 주세요.');
+      const gone = (error as { jobGone?: boolean })?.jobGone;
+      // 페이지 복귀 시 이미 사라진 옛 작업이면 조용히 정리(놀라게 하지 않음)
+      if (opts?.resume && gone) {
+        setStatusMessage('');
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : '하이라이트 추출 중 오류가 발생했습니다.');
+        setStatusMessage('');
+        void showNotif('하이라이트 추출 실패', '다시 시도해 주세요.');
+      }
     } finally {
       setIsExtracting(false);
     }
@@ -586,7 +609,7 @@ export default function VideoAnalysisPage() {
     const active = readActiveJob();
     if (active?.jobId) {
       setStatusMessage('이전에 시작한 하이라이트 추출을 이어서 확인하는 중입니다...');
-      void consumeExtractJob(active.jobId);
+      void consumeExtractJob(active.jobId, { resume: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
