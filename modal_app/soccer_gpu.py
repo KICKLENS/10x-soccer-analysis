@@ -83,6 +83,11 @@ with image.imports():
         sahi: bool = True
         assumedPlayerHeightM: float = 1.5
         maxTrackSeconds: float = 0.0  # 0=전체
+        detectCandidates: bool = False  # SAHI로 공-선수 하이라이트 후보 직접 탐지
+        candidateFps: float = 2.0
+        preRoll: float = 1.2
+        postRoll: float = 2.2
+        mergeGap: float = 1.8
 
 
 # ---------------------------------------------------------------------------
@@ -452,6 +457,119 @@ def _detect_ball_sahi(video_path: str, clips: list, sample_fps: float) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 하이라이트 후보 직접 탐지 (SAHI 공 + 선수 근접) — CPU 파이프라인 구제용
+# ---------------------------------------------------------------------------
+def _sec_to_mmss(sec: float) -> str:
+    total = max(0, int(sec))
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+def _detect_candidates(video_path: str, player: dict, sample_fps: float,
+                       pre_roll: float, post_roll: float, merge_gap: float) -> dict:
+    import cv2
+    from sahi import AutoDetectionModel
+    from sahi.predict import get_sliced_prediction
+
+    det_model = AutoDetectionModel.from_pretrained(
+        model_type="ultralytics",
+        model_path=DETECT_MODEL,
+        confidence_threshold=0.12,
+        device="cuda:0",
+    )
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return {"available": False, "reason": "cannot_open_video"}
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    duration = total / fps if fps > 0 and total > 0 else 0.0
+
+    color_ranges = _color_ranges(f"{player.get('uniformColor','')} {player.get('traits','')}")
+    position = player.get("position", "")
+    step_sec = 1.0 / max(0.5, sample_fps)
+
+    events = []  # {t, ballConf, interaction, targetMatch}
+    ball_seen = 0
+    t = 0.0
+    while t <= duration:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * fps))
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            t += step_sec
+            continue
+        h, w = frame.shape[:2]
+        pred = get_sliced_prediction(
+            frame, det_model,
+            slice_height=max(256, h // 2), slice_width=max(256, w // 2),
+            overlap_height_ratio=0.2, overlap_width_ratio=0.2, verbose=0,
+        )
+        balls = []
+        persons = []
+        for obj in pred.object_prediction_list:
+            bb = obj.bbox
+            if obj.category.id == SPORTS_BALL_CLASS_ID:
+                balls.append(((bb.minx + bb.maxx) / 2.0, (bb.miny + bb.maxy) / 2.0, float(obj.score.value)))
+            elif obj.category.id == PERSON_CLASS_ID:
+                persons.append((bb.minx, bb.miny, bb.maxx, bb.maxy))
+
+        if balls:
+            ball_seen += 1
+            bx, by, bconf = max(balls, key=lambda b: b[2])
+            interaction = False
+            target_match = 0.0
+            for (x1, y1, x2, y2) in persons:
+                ex = (x2 - x1) * 0.3
+                ey = (y2 - y1) * 0.25
+                if (x1 - ex) <= bx <= (x2 + ex) and (y1 - ey) <= by <= (y2 + ey):
+                    interaction = True
+                    crop = frame[max(0, int(y1)):int(y2), max(0, int(x1)):int(x2)]
+                    kit = _color_score(crop, color_ranges)
+                    zone = _position_zone_score(position, (x1 + x2) / 2.0 / w, (y1 + y2) / 2.0 / h)
+                    target_match = max(target_match, kit * 0.5 + zone * 0.5)
+            events.append({"t": round(t, 2), "ballConf": round(bconf, 3),
+                           "interaction": interaction, "targetMatch": round(target_match, 3)})
+        t += step_sec
+
+    cap.release()
+
+    focus = [e for e in events if e["interaction"]] or events
+    if not focus:
+        return {"available": True, "candidates": [], "ballSeenFrames": ball_seen, "sampledEvents": len(events)}
+
+    groups = [[focus[0]]]
+    for e in focus[1:]:
+        if e["t"] - groups[-1][-1]["t"] <= merge_gap:
+            groups[-1].append(e)
+        else:
+            groups.append([e])
+
+    candidates = []
+    for i, g in enumerate(groups):
+        start = max(0.0, g[0]["t"] - pre_roll)
+        end = min(duration, g[-1]["t"] + post_roll)
+        ball_frames = len(g)
+        inter_frames = sum(1 for x in g if x["interaction"])
+        avg_conf = sum(x["ballConf"] for x in g) / ball_frames
+        target_avg = sum(x["targetMatch"] for x in g) / ball_frames
+        candidates.append({
+            "id": f"gpu-{i:04d}",
+            "startSec": round(start, 2),
+            "endSec": round(end, 2),
+            "startTime": _sec_to_mmss(start),
+            "endTime": _sec_to_mmss(end),
+            "ballFrames": ball_frames,
+            "interactionFrames": inter_frames,
+            "avgBallConfidence": round(avg_conf, 3),
+            "targetMatchAvg": round(target_avg, 3),
+            "durationSec": round(end - start, 2),
+        })
+
+    candidates.sort(key=lambda c: (c["interactionFrames"], c["targetMatchAvg"], c["avgBallConfidence"]), reverse=True)
+    return {"available": True, "candidates": candidates[:15],
+            "ballSeenFrames": ball_seen, "sampledEvents": len(events)}
+
+
+# ---------------------------------------------------------------------------
 # 엔드포인트
 # ---------------------------------------------------------------------------
 def _check_auth(token: str):
@@ -488,13 +606,19 @@ def analyze(req: "AnalyzeRequest"):
         _download_video(req.videoUrl, tmp_path)
 
         player = req.player.model_dump() if hasattr(req.player, "model_dump") else dict(req.player)
+
+        if req.detectCandidates:
+            out["candidates"] = _detect_candidates(
+                tmp_path, player, req.candidateFps, req.preRoll, req.postRoll, req.mergeGap,
+            )
+
         tracking = _track_player(
             tmp_path, player, req.sampleFps, req.assumedPlayerHeightM, req.maxTrackSeconds,
         )
         out["tracking"] = tracking
 
-        if req.sahi:
-            clips = [c.model_dump() for c in req.clips] if req.clips else []
+        if req.sahi and req.clips:
+            clips = [c.model_dump() for c in req.clips]
             out["ball"] = _detect_ball_sahi(tmp_path, clips, req.sampleFps)
     except Exception as e:  # noqa: BLE001
         out["success"] = False

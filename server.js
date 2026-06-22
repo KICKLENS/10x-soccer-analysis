@@ -234,6 +234,83 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = []) {
   }
 }
 
+async function runGpuCandidates(videoUrl, player = {}) {
+  if (!MODAL_ENABLED) return null;
+
+  const payload = {
+    videoUrl,
+    authToken: MODAL_AUTH_TOKEN,
+    player: {
+      name: player.name || '',
+      position: player.position || '',
+      jerseyNumber: String(player.jerseyNumber || ''),
+      uniformColor: player.uniformColor || '',
+      traits: buildPlayerTraits(player) || '',
+    },
+    clips: [],
+    sahi: false,
+    detectCandidates: true,
+    candidateFps: Number(process.env.MODAL_CANDIDATE_FPS) || 2,
+  };
+
+  try {
+    console.log('[GPU] SAHI 후보 구제 탐지 요청...', videoUrl);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25 * 60 * 1000);
+    const resp = await fetch(MODAL_ANALYZE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) {
+      console.warn(`[GPU] 후보 탐지 응답 오류 ${resp.status}`);
+      return null;
+    }
+    const data = await resp.json();
+    if (!data.success) {
+      console.warn('[GPU] 후보 탐지 실패:', data.error);
+      return null;
+    }
+    const count = data.candidates?.candidates?.length || 0;
+    console.log(`[GPU] SAHI 후보 ${count}개 탐지 (공검출 프레임 ${data.candidates?.ballSeenFrames ?? '?'})`);
+    return data;
+  } catch (err) {
+    console.warn('[GPU] 후보 탐지 예외(건너뜀):', err.message);
+    return null;
+  }
+}
+
+function mapGpuCandidatesToClips(candidates = []) {
+  return (candidates || []).map((c, index) => {
+    const startSec = Number(c.startSec) || 0;
+    const endSec = Number(c.endSec) || startSec + 3;
+    const interactionFrames = Number(c.interactionFrames) || 0;
+    const ballConf = Number(c.avgBallConfidence) || 0;
+    return {
+      id: c.id || `gpu-${index}`,
+      startSec,
+      endSec,
+      startTime: c.startTime || secToMmss(startSec),
+      endTime: c.endTime || secToMmss(endSec),
+      label: '공 관여 추정 장면',
+      reason: 'GPU 정밀 분석(SAHI)으로 공과 선수의 근접이 감지된 구간',
+      score: Math.min(0.95, 0.55 + interactionFrames * 0.05),
+      framesMatched: Number(c.ballFrames) || 0,
+      interactionFrames,
+      ballDetectionsCount: Number(c.ballFrames) || 0,
+      avgBallConfidence: ballConf,
+      maxBallConfidence: ballConf,
+      durationSec: Number(c.durationSec) || Math.max(0, endSec - startSec),
+      targetPlayerFrames: interactionFrames,
+      targetPlayerInteractionFrames: interactionFrames,
+      targetPlayerMatchAvg: Number(c.targetMatchAvg) || 0,
+      source: 'gpu-sahi',
+    };
+  });
+}
+
 function buildGpuPromptSection(gpu) {
   if (!gpu) return '';
   const m = gpu.tracking?.available ? gpu.tracking.metrics : null;
@@ -336,7 +413,7 @@ function prefilterYoloClipsForCoach(clips, player = {}) {
   if (strict.length) return strict;
 
   return (clips || [])
-    .filter((clip) => Number(clip.avgBallConfidence) >= 0.34 && Number(clip.interactionFrames) >= 1)
+    .filter((clip) => Number(clip.avgBallConfidence) >= 0.24 && Number(clip.interactionFrames) >= 1)
     .sort((a, b) => {
       const scoreA = (Number(a.targetPlayerInteractionFrames) || 0) * 10 + (Number(a.score) || 0);
       const scoreB = (Number(b.targetPlayerInteractionFrames) || 0) * 10 + (Number(b.score) || 0);
@@ -792,7 +869,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   const yoloResult = await runYoloDetection(fullPath, player);
   if (!yoloResult.clips?.length) {
     console.warn('[YOLO] 1차 분석에서 클립 없음, 완화 조건으로 재시도...');
-    const relaxed = await runYoloDetection(fullPath, player, 15, { minScore: 0.45, conf: 0.15, imgsz: 512 });
+    const relaxed = await runYoloDetection(fullPath, player, 15, { minScore: 0.45, conf: 0.15, imgsz: 768 });
     if (relaxed.clips?.length) {
       Object.assign(yoloResult, relaxed);
     }
@@ -806,17 +883,32 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const coachCandidates = prefilterYoloClipsForCoach(yoloResult.clips, player);
+  let coachCandidates = prefilterYoloClipsForCoach(yoloResult.clips, player);
+  let gpuAnalysis = null;
+  let rescued = false;
+
+  // CPU가 공-선수 장면을 못 추리면(야간·원거리 등) GPU SAHI로 직접 후보 탐지해 구제
+  if (!coachCandidates.length && MODAL_ENABLED) {
+    const gpuCand = await runGpuCandidates(`${PUBLIC_BASE}/uploads/${savedFilename}`, player);
+    const mapped = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
+    if (mapped.length) {
+      coachCandidates = mapped;
+      yoloResult.clips = mapped;
+      gpuAnalysis = gpuCand;
+      rescued = true;
+      console.log(`[QC] GPU SAHI 구제 후보 ${mapped.length}개로 진행`);
+    }
+  }
+
   if (!coachCandidates.length) {
     const summary = yoloResult.summary || {};
     throw new Error(buildNoClipsError(summary, player));
   }
 
   yoloResult.clips = coachCandidates;
-  console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개`);
+  console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개${rescued ? ' (GPU 구제)' : ''}`);
 
-  let gpuAnalysis = null;
-  if (MODAL_ENABLED) {
+  if (!rescued && MODAL_ENABLED) {
     gpuAnalysis = await runGpuAnalysis(
       `${PUBLIC_BASE}/uploads/${savedFilename}`,
       player,
@@ -830,9 +922,17 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   const coachSelected = (parsed.clips || []).filter((clip) => clip.approved !== false);
   let mergedClips = mergeYoloAndCoachClips(yoloResult.clips, coachSelected.length ? coachSelected : parsed.clips);
 
-  console.log(`[QC] 2차 AI 코치 선정 ${mergedClips.length}개 → 시각 검수 시작...`);
-  const visualReviews = await verifyClipsVisually(genAI, fullPath, mergedClips.slice(0, QC_MAX_CLIPS), player);
-  mergedClips = applyQualityGate(mergedClips, player, visualReviews);
+  if (rescued) {
+    // GPU 구제 경로: 야간/원거리라 프레임 시각검수가 과하게 탈락시키므로 생략하고 상위 후보를 사용
+    mergedClips = (mergedClips || []).filter((clip) => clip.included !== false);
+    if (!mergedClips.length) mergedClips = yoloResult.clips;
+    mergedClips = mergedClips.slice(0, QC_MAX_CLIPS);
+    console.log(`[QC] GPU 구제 경로 → 시각검수 생략, ${mergedClips.length}개 렌더`);
+  } else {
+    console.log(`[QC] 2차 AI 코치 선정 ${mergedClips.length}개 → 시각 검수 시작...`);
+    const visualReviews = await verifyClipsVisually(genAI, fullPath, mergedClips.slice(0, QC_MAX_CLIPS), player);
+    mergedClips = applyQualityGate(mergedClips, player, visualReviews);
+  }
 
   if (!mergedClips.length) {
     throw new Error(
