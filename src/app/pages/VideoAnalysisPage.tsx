@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ChangeEvent, ReactNode } from 'react';
 import {
   ArrowLeft,
@@ -49,6 +49,69 @@ async function pollJob<T = unknown>(
       fails += 1;
       if (fails >= 10) throw new Error('서버와 통신이 끊겼습니다. 잠시 후 다시 시도해주세요.');
     }
+  }
+}
+
+// 진행 중인 작업을 기억해 페이지를 닫았다 와도 이어받는다.
+const ACTIVE_JOB_KEY = 'active-extract-job';
+
+function saveActiveJob(jobId: string, fileName: string) {
+  try {
+    localStorage.setItem(ACTIVE_JOB_KEY, JSON.stringify({ jobId, fileName, ts: Date.now() }));
+  } catch {
+    /* noop */
+  }
+}
+
+function clearActiveJob() {
+  try {
+    localStorage.removeItem(ACTIVE_JOB_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
+function readActiveJob(): { jobId: string; fileName?: string } | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_JOB_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    if (!j?.jobId || Date.now() - (j.ts || 0) > 60 * 60 * 1000) {
+      localStorage.removeItem(ACTIVE_JOB_KEY);
+      return null;
+    }
+    return j;
+  } catch {
+    return null;
+  }
+}
+
+// 완료 알림(권한 허용 시). PWA/모바일은 서비스워커 알림을 우선 사용.
+async function ensureNotifyPermission(): Promise<boolean> {
+  try {
+    if (typeof Notification === 'undefined') return false;
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'denied') return false;
+    const p = await Notification.requestPermission();
+    return p === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+async function showNotif(title: string, body: string) {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        reg.showNotification(title, { body, icon: '/icon-192.png', badge: '/icon-192.png' });
+        return;
+      }
+    }
+    new Notification(title, { body, icon: '/icon-192.png' });
+  } catch {
+    /* noop */
   }
 }
 const HEALTH_ENDPOINT = '/api/health';
@@ -442,31 +505,12 @@ export default function VideoAnalysisPage() {
     }
   };
 
-  const handleExtractHighlights = async () => {
-    if (!uploadedVideoFileName) {
-      setErrorMessage('먼저 영상을 업로드해주세요.');
-      return;
-    }
-
+  // 시작된 추출 작업을 끝까지 따라가 결과를 채운다(페이지 복귀 시에도 재사용).
+  const consumeExtractJob = async (jobId: string) => {
     setIsExtracting(true);
     setErrorMessage('');
-    setStatusMessage('하이라이트 자동추출을 시작합니다...');
-
     try {
-      const player = readSelectedPlayer();
-      const start = await fetchJson<{ jobId?: string }>('/api/jobs/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: uploadedVideoFileName,
-          savedFilename: uploadedVideoFileName,
-          ...player,
-          player,
-        }),
-      });
-      if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
-
-      const data = await pollJob<ExtractResponse>(start.jobId, (stage, progress) =>
+      const data = await pollJob<ExtractResponse>(jobId, (stage, progress) =>
         setStatusMessage(
           `하이라이트 추출 중: ${stage}${typeof progress === 'number' ? ` (${progress}%)` : ''}`,
         ),
@@ -481,20 +525,71 @@ export default function VideoAnalysisPage() {
 
       setHighlightClips(nextClips);
       setHighlightVideoUrl(mergedUrl);
-      setHighlightJobId(start.jobId);
+      setHighlightJobId(jobId);
       setCoachSummary(data.summary || null);
-
       setStatusMessage(data.message || '하이라이트 생성이 완료되었습니다. AI 분석으로 이어서 확인할 수 있습니다.');
+      clearActiveJob();
+      void showNotif('하이라이트 완성! ⚽', '분석이 끝났어요. 결과를 확인해 보세요.');
 
       // 스포트라이트 효과는 별도 작업으로 적용(완료되면 영상 교체)
-      void enhanceWithSpotlight(nextClips, player);
+      void enhanceWithSpotlight(nextClips, readSelectedPlayer());
     } catch (error) {
+      clearActiveJob();
       setErrorMessage(error instanceof Error ? error.message : '하이라이트 추출 중 오류가 발생했습니다.');
       setStatusMessage('');
+      void showNotif('하이라이트 추출 실패', '다시 시도해 주세요.');
     } finally {
       setIsExtracting(false);
     }
   };
+
+  const handleExtractHighlights = async () => {
+    if (!uploadedVideoFileName) {
+      setErrorMessage('먼저 영상을 업로드해주세요.');
+      return;
+    }
+
+    setErrorMessage('');
+    setStatusMessage('하이라이트 자동추출을 시작합니다...');
+    await ensureNotifyPermission();
+
+    let jobId = '';
+    try {
+      const player = readSelectedPlayer();
+      const start = await fetchJson<{ jobId?: string }>('/api/jobs/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: uploadedVideoFileName,
+          savedFilename: uploadedVideoFileName,
+          ...player,
+          player,
+        }),
+      });
+      if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
+      jobId = start.jobId;
+      saveActiveJob(jobId, uploadedVideoFileName);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '하이라이트 추출을 시작하지 못했습니다.');
+      setStatusMessage('');
+      return;
+    }
+
+    await consumeExtractJob(jobId);
+  };
+
+  // 페이지를 닫았다 다시 와도 진행 중이던 추출 작업을 이어서 확인한다.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current) return;
+    resumedRef.current = true;
+    const active = readActiveJob();
+    if (active?.jobId) {
+      setStatusMessage('이전에 시작한 하이라이트 추출을 이어서 확인하는 중입니다...');
+      void consumeExtractJob(active.jobId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGoToAiAnalysis = () => {
     if (!highlightVideoUrl && normalizedClips.length === 0) {
