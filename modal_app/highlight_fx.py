@@ -79,12 +79,44 @@ def _age_from_dob(dob: str) -> str:
 def _draw_card(profile: dict):
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
+    import math
+
     ORANGE = (255, 159, 2)
     W, H = 1920, 1080
     img = Image.new("RGB", (W, H), (10, 10, 13))
     glow = Image.new("RGB", (W, H), (10, 10, 13))
     ImageDraw.Draw(glow).ellipse([W - 700, -300, W + 200, 500], fill=(40, 28, 6))
     img = Image.blend(img, glow.filter(ImageFilter.GaussianBlur(160)), 0.6)
+
+    # ── 축구 배경 패턴(피치 라인 + 잔디 줄무늬 + 공 육각) : 아주 은은하게 ──
+    ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(ov)
+    LINE = (255, 255, 255, 16)
+    pcx, pcy = 1430, 430  # 선수 사진 중심
+    for sx in range(-200, W + 200, 150):  # 잔디 줄무늬
+        od.polygon([(sx, 0), (sx + 75, 0), (sx + 75 - 120, H), (sx - 120, H)],
+                   fill=(255, 255, 255, 4))
+    od.line([1120, 0, 1120, H], fill=LINE, width=3)  # 하프라인
+    od.ellipse([pcx - 380, pcy - 380, pcx + 380, pcy + 380], outline=LINE, width=3)  # 센터서클
+    od.ellipse([pcx - 10, pcy - 10, pcx + 10, pcy + 10], fill=LINE)  # 센터스폿
+    od.rectangle([-260, 300, 230, 780], outline=LINE, width=3)  # 좌측 페널티박스
+    od.rectangle([-260, 420, 90, 660], outline=LINE, width=3)  # 골에어리어
+    od.arc([40, 420, 380, 660], start=-68, end=68, fill=LINE, width=3)  # 페널티 아크
+    od.arc([-46, -46, 70, 70], start=0, end=90, fill=LINE, width=3)  # 코너 아크
+    od.arc([-46, H - 70, 70, H + 46], start=270, end=360, fill=LINE, width=3)
+    # 우상단 축구공 육각 패턴
+    HEX = (255, 159, 2, 16)
+    r, gx, gy = 46, 1560, 70
+    for row in range(3):
+        for col in range(4):
+            hx = gx + col * r * 1.74 + (row % 2) * r * 0.87
+            hy = gy + row * r * 1.5
+            pts = [(hx + r * math.cos(math.pi / 6 + k * math.pi / 3),
+                    hy + r * math.sin(math.pi / 6 + k * math.pi / 3)) for k in range(6)]
+            od.polygon(pts, outline=HEX)
+    ov = ov.filter(ImageFilter.GaussianBlur(0.4))
+    img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB")
+
     d = ImageDraw.Draw(img)
 
     def font(bold, size):
@@ -349,6 +381,21 @@ def render_highlights(req: dict):
     data = open(out, "rb").read()
     return Response(content=data, media_type="video/mp4",
                     headers={"X-Clip-Count": str(len(paths))})
+
+
+@app.function(image=image, timeout=300, volumes={"/models": volume})
+def card_preview():
+    import os
+
+    os.makedirs("/models/reel_demo", exist_ok=True)
+    profile = {
+        "name": "강도윤", "jerseyNumber": "1", "position": "GK",
+        "teamName": "AAFC 충암 U-12", "dob": "2014-02-24",
+        "heightCm": "173", "weightKg": "69", "nationality": "대한민국",
+    }
+    _draw_card(profile).save("/models/reel_demo/card_only.png")
+    volume.commit()
+    return {"ok": True, "out": "reel_demo/card_only.png"}
 
 
 @app.function(image=image, gpu="L4", timeout=1200, volumes={"/models": volume})
