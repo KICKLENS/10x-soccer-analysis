@@ -656,11 +656,6 @@ export default function HomePage() {
               </p>
 
               <div className="mt-7 flex w-full flex-wrap items-center justify-center gap-3 md:mt-8 md:gap-4">
-                <MetallicButton variant="dark" onClick={handleStartClick}>
-                  지금 시작하기
-                  <ArrowRight size={16} />
-                </MetallicButton>
-
                 <MetallicButton variant="outline" onClick={() => scrollToId('features')}>
                   기능 둘러보기
                 </MetallicButton>
