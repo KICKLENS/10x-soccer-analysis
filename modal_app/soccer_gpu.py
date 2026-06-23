@@ -717,8 +717,57 @@ def _sec_to_mmss(sec: float) -> str:
     return f"{total // 60:02d}:{total % 60:02d}"
 
 
+def _calc_hist(crop):
+    """HSV(H,S) 색 히스토그램 — 선수 외형 시그니처(crop이 None이면 None)."""
+    import cv2
+    if crop is None or crop.size == 0:
+        return None
+    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+    h = cv2.calcHist([hsv], [0, 1], None, [30, 32], [0, 180, 0, 256])
+    cv2.normalize(h, h, 0, 1, cv2.NORM_MINMAX)
+    return h
+
+
+def _extract_target_hist(video_path: str, fps: float, seed_point: tuple,
+                         person_model, person_class: int) -> "tuple | None":
+    """seed_point(timeSec, nx, ny) 위치에서 가장 가까운 선수의 외형 히스토그램과 크기를 반환."""
+    import cv2
+    cap = cv2.VideoCapture(video_path)
+    seed_t, seed_nx, seed_ny = seed_point
+    cap.set(cv2.CAP_PROP_POS_FRAMES, int(seed_t * fps))
+    ok, frame = cap.read()
+    cap.release()
+    if not ok or frame is None:
+        return None
+    H, W = frame.shape[:2]
+    res = person_model.predict(source=frame, classes=[person_class], conf=0.2, imgsz=960, verbose=False)[0]
+    if res.boxes is None or len(res.boxes) == 0:
+        return None
+    best_box, best_dist = None, 0.35  # 최대 35% 대각선 거리
+    for b in res.boxes.xyxy.cpu().numpy():
+        x1, y1, x2, y2 = b
+        bcx, bcy = (x1 + x2) / 2.0 / W, (y1 + y2) / 2.0 / H
+        d = ((bcx - seed_nx) ** 2 + (bcy - seed_ny) ** 2) ** 0.5
+        if d < best_dist:
+            best_dist, best_box = d, b
+    if best_box is None:
+        return None
+    x1, y1, x2, y2 = best_box
+    crop = frame[max(0, int(y1)):int(y2), max(0, int(x1)):int(x2)]
+    hist = _calc_hist(crop)
+    if hist is None:
+        return None
+    box_h = float(y2 - y1)
+    return hist, box_h  # (히스토그램, 참조 박스 높이)
+
+
 def _detect_candidates(video_path: str, player: dict, sample_fps: float,
-                       pre_roll: float, post_roll: float, merge_gap: float) -> dict:
+                       pre_roll: float, post_roll: float, merge_gap: float,
+                       seed_point=None) -> dict:
+    """공-선수 상호작용 후보 탐지.
+    seed_point(timeSec, nx, ny) 가 있으면 탭한 선수와 외형이 맞는 장면만 포함.
+    없으면 색/포지션 매칭 점수 기반(기존 동작).
+    """
     import cv2
     from sahi import AutoDetectionModel
     from sahi.predict import get_sliced_prediction
@@ -745,6 +794,33 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
     color_ranges = _color_ranges(f"{player.get('uniformColor','')} {player.get('traits','')}")
     position = player.get("position", "")
     step_sec = 1.0 / max(0.5, sample_fps)
+
+    # 수동 시드가 있으면 탭 시점 외형 히스토그램을 추출해 타깃 식별에 활용
+    seed_hist = None
+    seed_ref_h = None
+    if seed_point is not None:
+        result = _extract_target_hist(video_path, fps, seed_point, person_model, person_class)
+        if result is not None:
+            seed_hist, seed_ref_h = result
+            print(f"[cand] 타깃 히스토그램 추출 성공 (참조박스 높이={seed_ref_h:.1f}px)")
+        else:
+            print("[cand] 타깃 히스토그램 추출 실패 — 색/포지션 매칭으로 폴백")
+
+    def _person_target_score(crop, x1, y1, x2, y2, frame_w, frame_h):
+        """이 사람이 '탭한 선수'일 확률(0~1). seed_hist 있으면 히스토그램 우선."""
+        import cv2 as _cv2
+        if seed_hist is not None and crop is not None and crop.size > 0:
+            h = _calc_hist(crop)
+            if h is not None:
+                sim = float(_cv2.compareHist(seed_hist, h, _cv2.HISTCMP_CORREL))
+                # 히스토그램 매칭이 0.35 미만이면 다른 선수 가능성 높음
+                if sim < 0.2:
+                    return 0.0  # 명백히 다른 선수
+                return min(1.0, (sim + 0.3) / 1.3)  # 0.2→0.38, 1.0→1.0
+        # 시드 없음: 색+포지션 매칭(기존)
+        kit = _color_score(crop, color_ranges) if color_ranges else 0.0
+        zone = _position_zone_score(position, (x1 + x2) / 2.0 / frame_w, (y1 + y2) / 2.0 / frame_h)
+        return kit * 0.5 + zone * 0.5
 
     events = []  # {t, ballConf, interaction, targetMatch}
     ball_seen = 0
@@ -784,18 +860,25 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
                 ex = (x2 - x1) * 0.3
                 ey = (y2 - y1) * 0.25
                 if (x1 - ex) <= bx <= (x2 + ex) and (y1 - ey) <= by <= (y2 + ey):
-                    interaction = True
                     crop = frame[max(0, int(y1)):int(y2), max(0, int(x1)):int(x2)]
-                    kit = _color_score(crop, color_ranges)
-                    zone = _position_zone_score(position, (x1 + x2) / 2.0 / w, (y1 + y2) / 2.0 / h)
-                    target_match = max(target_match, kit * 0.5 + zone * 0.5)
+                    score = _person_target_score(crop, x1, y1, x2, y2, w, h)
+                    if score > 0.0:  # seed_hist 있을 때 명백히 다른 선수(0.0)는 제외
+                        interaction = True
+                        target_match = max(target_match, score)
             events.append({"t": round(t, 2), "ballConf": round(bconf, 3),
                            "interaction": interaction, "targetMatch": round(target_match, 3)})
         t += step_sec
 
     cap.release()
 
-    focus = [e for e in events if e["interaction"]] or events
+    # seed가 있으면 타깃 매칭 이벤트만, 없으면 기존대로 상호작용 이벤트 우선
+    if seed_hist is not None:
+        focus = [e for e in events if e["interaction"] and e["targetMatch"] >= 0.25]
+        if not focus:  # 타깃 매칭이 너무 엄격하면 임계 낮춰서 재시도
+            focus = [e for e in events if e["interaction"]] or events
+    else:
+        focus = [e for e in events if e["interaction"]] or events
+
     if not focus:
         return {"available": True, "candidates": [], "ballSeenFrames": ball_seen, "sampledEvents": len(events)}
 
@@ -872,14 +955,15 @@ def analyze(req: "AnalyzeRequest"):
 
         player = req.player.model_dump() if hasattr(req.player, "model_dump") else dict(req.player)
 
-        if req.detectCandidates:
-            out["candidates"] = _detect_candidates(
-                tmp_path, player, req.candidateFps, req.preRoll, req.postRoll, req.mergeGap,
-            )
-
         seed_point = None
         if req.seedNx >= 0 and req.seedNy >= 0:
             seed_point = (max(0.0, req.seedTimeSec), req.seedNx, req.seedNy)
+
+        if req.detectCandidates:
+            out["candidates"] = _detect_candidates(
+                tmp_path, player, req.candidateFps, req.preRoll, req.postRoll, req.mergeGap,
+                seed_point=seed_point,  # 탭한 선수 위치 → 그 선수 외형으로 클립 필터링
+            )
 
         tracking = _track_player(
             tmp_path, player, req.sampleFps, req.assumedPlayerHeightM, req.maxTrackSeconds,

@@ -334,7 +334,7 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
   }
 }
 
-async function runGpuCandidates(videoUrl, player = {}) {
+async function runGpuCandidates(videoUrl, player = {}, seed = null) {
   if (!MODAL_ENABLED) return null;
 
   const payload = {
@@ -352,6 +352,14 @@ async function runGpuCandidates(videoUrl, player = {}) {
     detectCandidates: true,
     candidateFps: Number(process.env.MODAL_CANDIDATE_FPS) || 2,
   };
+
+  // 수동 시드가 있으면 GPU가 탭한 선수 외형으로 클립을 직접 필터링
+  if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
+    payload.seedTimeSec = Number.isFinite(seed.timeSec) ? seed.timeSec : 0;
+    payload.seedNx = seed.nx;
+    payload.seedNy = seed.ny;
+    console.log(`[GPU] 수동 시드 전달: t=${payload.seedTimeSec}s (${seed.nx.toFixed(3)}, ${seed.ny.toFixed(3)})`);
+  }
 
   try {
     console.log('[GPU] SAHI 후보 구제 탐지 요청...', videoUrl);
@@ -1064,13 +1072,19 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   let gpuAnalysis = null;
   let rescued = false;
 
+  // 수동 시드(사용자가 탭한 선수)가 있으면 CPU 결과를 무시하고 GPU가 직접 탭한 선수 기준으로 클립 선택
+  // CPU는 등번호/색상/포지션으로 추정하므로 타깃이 틀릴 수 있음; 시드가 있으면 GPU가 훨씬 정확
+  if (seed && coachCandidates.length && MODAL_ENABLED) {
+    console.log('[QC] 수동 시드 있음 → CPU 후보를 GPU 시드 추적으로 교체');
+    coachCandidates = [];
+  }
+
   // CPU가 대상 선수를 특정하지 못하거나(원거리·작게 찍힘) 후보가 없으면
   // → GPU 구제: SAHI로 공 장면을 찾고, center-seed 추적으로 '시작 시 중앙에 둔 선수'를 잠가 분석.
-  // (CPU가 클립 0개여도 즉시 실패하지 않고 GPU를 먼저 시도)
   if (!coachCandidates.length && MODAL_ENABLED) {
     report('정밀 추적·이동 분석 중 (GPU 구제)', 40);
-    console.warn('[QC] CPU가 대상-공 장면을 못 찾음 → GPU SAHI + center-seed 구제 시도');
-    const gpuCand = await runGpuCandidates(videoUrl, player);
+    console.warn('[QC] CPU가 대상-공 장면을 못 찾음 → GPU SAHI + seed 구제 시도');
+    const gpuCand = await runGpuCandidates(videoUrl, player, seed);
     const mapped = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
     if (mapped.length) {
       coachCandidates = mapped;
