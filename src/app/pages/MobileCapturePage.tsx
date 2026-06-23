@@ -735,7 +735,13 @@ export default function MobileCapturePage() {
         <section style={playerPanelStyle}>
           <div style={sectionHeaderStyle}>
             <h2 style={sectionTitleStyle}>선택된 선수 정보</h2>
-            <span style={sectionHintStyle}>선수등록 페이지에서 저장한 선수 기준으로 촬영</span>
+            <button
+              type="button"
+              onClick={() => navigate('/player-registration')}
+              style={changePlayerButtonStyle}
+            >
+              선수 변경 / 정보 수정
+            </button>
           </div>
 
           {selectedPlayer ? (
@@ -776,6 +782,13 @@ export default function MobileCapturePage() {
           ) : (
             <div style={emptyStateStyle}>
               아직 선택된 선수 정보가 없습니다. 먼저 선수등록 페이지에서 선수를 저장하거나 불러와 주세요.
+              <button
+                type="button"
+                onClick={() => navigate('/player-registration')}
+                style={emptyStateButtonStyle}
+              >
+                선수 등록 페이지로 가기
+              </button>
             </div>
           )}
         </section>
@@ -1208,6 +1221,33 @@ const sectionTitleStyle: CSSProperties = {
 const sectionHintStyle: CSSProperties = {
   color: 'rgba(255,255,255,0.58)',
   fontSize: 13,
+};
+
+const changePlayerButtonStyle: CSSProperties = {
+  flexShrink: 0,
+  minHeight: 36,
+  padding: '0 14px',
+  borderRadius: 999,
+  border: '1px solid rgba(255,159,2,0.55)',
+  background: 'rgba(255,159,2,0.14)',
+  color: '#FFB347',
+  fontSize: 13,
+  fontWeight: 800,
+  cursor: 'pointer',
+};
+
+const emptyStateButtonStyle: CSSProperties = {
+  display: 'inline-block',
+  marginTop: 12,
+  minHeight: 40,
+  padding: '0 16px',
+  borderRadius: 12,
+  border: 'none',
+  background: '#FF9F02',
+  color: '#171717',
+  fontSize: 14,
+  fontWeight: 800,
+  cursor: 'pointer',
 };
 
 const sectionLabelStyle: CSSProperties = {
