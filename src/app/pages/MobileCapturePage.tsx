@@ -741,38 +741,6 @@ export default function MobileCapturePage() {
                 </button>
               )}
 
-              {isCameraReady && zoomSupported && (
-                <div style={zoomControlStyle}>
-                  <button
-                    type="button"
-                    onClick={() => applyZoom(zoom - zoomRange.step * 2)}
-                    style={zoomButtonStyle}
-                    aria-label="줌 아웃"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="range"
-                    min={zoomRange.min}
-                    max={zoomRange.max}
-                    step={zoomRange.step}
-                    value={zoom}
-                    onChange={(event) => applyZoom(Number(event.target.value))}
-                    style={zoomSliderStyle}
-                    aria-label="카메라 줌"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => applyZoom(zoom + zoomRange.step * 2)}
-                    style={zoomButtonStyle}
-                    aria-label="줌 인"
-                  >
-                    +
-                  </button>
-                  <span style={zoomLabelStyle}>{zoom.toFixed(1)}×</span>
-                </div>
-              )}
-
               {!isLandscape && !allowPortrait && (
                 <div style={rotateOverlayStyle}>
                   <div style={rotateCardStyle}>
@@ -808,8 +776,42 @@ export default function MobileCapturePage() {
                 <div style={guideLabelStyle}>분석할 선수를 중앙에</div>
               </div>
 
-              <div style={bottomGuideTextStyle}>
-                시작할 때 분석할 선수를 중앙에 두세요 · 너무 당기지 말고 공이 오가는 흐름까지 함께
+              <div style={bottomStackStyle}>
+                {isCameraReady && zoomSupported && (
+                  <div style={zoomControlStyle}>
+                    <button
+                      type="button"
+                      onClick={() => applyZoom(zoom - zoomRange.step * 2)}
+                      style={zoomButtonStyle}
+                      aria-label="줌 아웃"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="range"
+                      min={zoomRange.min}
+                      max={zoomRange.max}
+                      step={zoomRange.step}
+                      value={zoom}
+                      onChange={(event) => applyZoom(Number(event.target.value))}
+                      style={zoomSliderStyle}
+                      aria-label="카메라 줌"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => applyZoom(zoom + zoomRange.step * 2)}
+                      style={zoomButtonStyle}
+                      aria-label="줌 인"
+                    >
+                      +
+                    </button>
+                    <span style={zoomLabelStyle}>{zoom.toFixed(1)}×</span>
+                  </div>
+                )}
+
+                <div style={bottomGuideTextStyle}>
+                  시작할 때 분석할 선수를 중앙에 두세요 · 너무 당기지 말고 공이 오가는 흐름까지 함께
+                </div>
               </div>
             </div>
           </div>
@@ -1287,12 +1289,18 @@ const cameraOverlayStyle: CSSProperties = {
   padding: 16,
 };
 
+const bottomStackStyle: CSSProperties = {
+  alignSelf: 'center',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 10,
+  width: '100%',
+  maxWidth: 'min(92vw, 460px)',
+};
+
 const zoomControlStyle: CSSProperties = {
   pointerEvents: 'auto',
-  position: 'absolute',
-  left: '50%',
-  bottom: 16,
-  transform: 'translateX(-50%)',
   display: 'inline-flex',
   alignItems: 'center',
   gap: 10,
