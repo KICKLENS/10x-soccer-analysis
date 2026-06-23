@@ -274,7 +274,7 @@ async function runYoloDetection(videoPath, player = {}, topK = 15, { minScore = 
   return result;
 }
 
-async function runGpuAnalysis(videoUrl, player = {}, clips = []) {
+async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
   if (!MODAL_ENABLED) return null;
 
   const windows = (clips || [])
@@ -298,6 +298,13 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = []) {
     centerSeed: true,
     seedSeconds: 3.0,
   };
+
+  // 업로드 영상: 사용자가 직접 지정(탭)한 선수를 시드로 전달
+  if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
+    payload.seedTimeSec = Number.isFinite(seed.timeSec) ? seed.timeSec : 0;
+    payload.seedNx = seed.nx;
+    payload.seedNy = seed.ny;
+  }
 
   try {
     console.log('[GPU] Modal 고급 분석 요청...', videoUrl);
@@ -411,6 +418,8 @@ function buildGpuPromptSection(gpu) {
   const lines = ['\n[GPU 정밀 분석 데이터 — 실제 측정 수치이므로 코칭에 적극 활용]'];
   if (gpu.tracking?.targetSelectedBy === 'center_seed') {
     lines.push('- 대상 선수: 촬영 시작 시 화면 중앙에 둔 선수를 지목해 끝까지 추적함(등번호 무관). 이 선수 기준으로 분석.');
+  } else if (gpu.tracking?.targetSelectedBy === 'manual_seed') {
+    lines.push('- 대상 선수: 사용자가 영상 프레임에서 직접 지정(탭)한 선수를 끝까지 추적함(등번호·근접촬영 무관). 이 선수 기준으로 분석.');
   }
   if (m) {
     lines.push(
@@ -978,6 +987,21 @@ function buildPlayerTraits(player = {}) {
   return parts.join(', ');
 }
 
+// 업로드 영상에서 사용자가 직접 지정(탭)한 선수 시드 정규화. 유효하지 않으면 null.
+function normalizeSeedInput(seed) {
+  if (!seed || typeof seed !== 'object') return null;
+  const nx = Number(seed.nx);
+  const ny = Number(seed.ny);
+  const timeSec = Number(seed.timeSec);
+  if (!Number.isFinite(nx) || !Number.isFinite(ny)) return null;
+  if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return null;
+  return {
+    nx,
+    ny,
+    timeSec: Number.isFinite(timeSec) && timeSec >= 0 ? timeSec : 0,
+  };
+}
+
 function normalizePlayerInput(body = {}) {
   const nested = body.player && typeof body.player === 'object' ? body.player : {};
   const uniformColor = String(body.uniformColor || nested.uniformColor || '').trim();
@@ -998,7 +1022,7 @@ function normalizePlayerInput(body = {}) {
   };
 }
 
-async function runFullHighlightPipeline(savedFilename, player = {}, { renderFinal = false, onProgress } = {}) {
+async function runFullHighlightPipeline(savedFilename, player = {}, { renderFinal = false, onProgress, seed = null } = {}) {
   const report = (stage, progress) => {
     if (typeof onProgress === 'function') {
       try { onProgress(stage, progress); } catch { /* noop */ }
@@ -1044,8 +1068,8 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     if (mapped.length) {
       coachCandidates = mapped;
       yoloResult.clips = mapped;
-      // center-seed 추적으로 대상-공 근접 정밀 분석(구제 경로에서도 수행)
-      const seedAnalysis = await runGpuAnalysis(videoUrl, player, mapped);
+      // center-seed(또는 수동 시드) 추적으로 대상-공 근접 정밀 분석(구제 경로에서도 수행)
+      const seedAnalysis = await runGpuAnalysis(videoUrl, player, mapped, seed);
       gpuAnalysis = seedAnalysis || gpuCand;
       rescued = true;
       console.log(`[QC] GPU 구제 후보 ${mapped.length}개로 진행 (center-seed 추적 ${seedAnalysis ? '성공' : '생략'})`);
@@ -1064,7 +1088,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
 
   report('정밀 추적·이동 분석 중', 40);
   if (!rescued && MODAL_ENABLED) {
-    gpuAnalysis = await runGpuAnalysis(videoUrl, player, coachCandidates);
+    gpuAnalysis = await runGpuAnalysis(videoUrl, player, coachCandidates, seed);
   }
 
   report('AI 코치가 장면 선정 중', 60);
@@ -1580,6 +1604,7 @@ function jobToPersist(job) {
     filename: job.filename || null,
     srcKey: job.srcKey || null,
     player: job.player || null,
+    seed: job.seed || null,
   };
 }
 
@@ -1645,6 +1670,7 @@ async function runExtractJob(job) {
 
     const result = await runFullHighlightPipeline(filename, player, {
       renderFinal: true,
+      seed: job.seed || null,
       onProgress: (stage, progress) => {
         job.stage = stage;
         if (typeof progress === 'number') job.progress = progress;
@@ -1696,8 +1722,94 @@ async function runExtractJob(job) {
 }
 
 // 하이라이트 자동추출 시작 → jobId 즉시 반환(백그라운드 진행)
+function ffprobeDuration(videoPath) {
+  return runProcess('ffprobe', [
+    '-v', 'error',
+    '-show_entries', 'format=duration',
+    '-of', 'default=noprint_wrappers=1:nokey=1',
+    videoPath,
+  ])
+    .then(({ stdout }) => Number(String(stdout).trim()) || 0)
+    .catch(() => 0);
+}
+
+// 오래된 시드 프레임 폴더 정리(2시간 경과)
+function cleanupOldSeedFrames() {
+  const base = path.join(uploadsDir, 'seed-frames');
+  if (!fs.existsSync(base)) return;
+  const now = Date.now();
+  for (const name of fs.readdirSync(base)) {
+    const dir = path.join(base, name);
+    try {
+      const stat = fs.statSync(dir);
+      if (now - stat.mtimeMs > 2 * 60 * 60 * 1000) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    } catch (_e) { /* ignore */ }
+  }
+}
+
+// 업로드 영상에서 선수 지정용 후보 프레임 추출 → 프론트가 보여주고 사용자가 탭
+app.post('/api/videos/seed-frames', async (req, res) => {
+  try {
+    const { savedFilename, fileName, count } = req.body || {};
+    const filename = savedFilename || fileName;
+    if (!filename) {
+      res.status(400).json({ success: false, error: 'savedFilename이 필요합니다.' });
+      return;
+    }
+    const localPath = path.join(uploadsDir, filename);
+    if (!fs.existsSync(localPath)) {
+      res.status(400).json({ success: false, error: '업로드된 영상을 찾을 수 없습니다. 다시 업로드해 주세요.' });
+      return;
+    }
+
+    cleanupOldSeedFrames();
+
+    const dur = await ffprobeDuration(localPath);
+    const n = Math.min(12, Math.max(3, Number(count) || 8));
+    const startFrac = 0.06;
+    const endFrac = 0.94;
+    const token = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const dir = path.join(uploadsDir, 'seed-frames', token);
+    fs.mkdirSync(dir, { recursive: true });
+
+    const frames = [];
+    for (let i = 0; i < n; i += 1) {
+      const frac = n === 1 ? 0.5 : startFrac + (endFrac - startFrac) * (i / (n - 1));
+      const t = dur > 0 ? dur * frac : i * 3;
+      const out = path.join(dir, `frame-${i}.jpg`);
+      try {
+        await runProcess('ffmpeg', [
+          '-ss', String(t),
+          '-i', localPath,
+          '-frames:v', '1',
+          '-vf', "scale='min(1100,iw)':-2",
+          '-q:v', '3',
+          '-y', out,
+        ]);
+        if (fs.existsSync(out)) {
+          frames.push({
+            url: `${PUBLIC_BASE}/uploads/seed-frames/${token}/frame-${i}.jpg`,
+            timeSec: Math.round(t * 10) / 10,
+          });
+        }
+      } catch (_e) { /* 일부 프레임 실패는 건너뜀 */ }
+    }
+
+    if (!frames.length) {
+      res.status(500).json({ success: false, error: '프레임을 추출하지 못했습니다.' });
+      return;
+    }
+    res.json({ success: true, durationSec: dur, frames });
+  } catch (err) {
+    console.error('[seed-frames]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/jobs/extract', (req, res) => {
-  const { savedFilename, fileName, player: bodyPlayer, ...rest } = req.body || {};
+  const { savedFilename, fileName, player: bodyPlayer, seed: bodySeed, ...rest } = req.body || {};
   const filename = savedFilename || fileName;
   if (!filename) {
     res.status(400).json({ success: false, error: 'fileName 또는 savedFilename이 필요합니다.' });
@@ -1709,7 +1821,8 @@ app.post('/api/jobs/extract', (req, res) => {
     return;
   }
   const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
-  const job = createJob('extract', { filename, player, srcKey: null });
+  const seed = normalizeSeedInput(bodySeed);
+  const job = createJob('extract', { filename, player, seed, srcKey: null });
   res.json({ success: true, jobId: job.id });
 
   (async () => {

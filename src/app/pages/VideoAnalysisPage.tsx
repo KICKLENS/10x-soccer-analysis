@@ -367,6 +367,12 @@ export default function VideoAnalysisPage() {
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [isEnhancing, setIsEnhancing] = useState<boolean>(false);
 
+  // 업로드 영상에서 분석 대상 선수를 직접 지정(탭)하기 위한 상태
+  const [seedFrames, setSeedFrames] = useState<{ url: string; timeSec: number }[]>([]);
+  const [activeSeedFrame, setActiveSeedFrame] = useState<{ url: string; timeSec: number } | null>(null);
+  const [seed, setSeed] = useState<{ nx: number; ny: number; timeSec: number } | null>(null);
+  const [isLoadingSeedFrames, setIsLoadingSeedFrames] = useState<boolean>(false);
+
   useEffect(() => {
     return () => {
       if (localPreviewUrl && localPreviewUrl.startsWith('blob:')) {
@@ -427,6 +433,10 @@ export default function VideoAnalysisPage() {
     setHighlightVideoUrl('');
     setHighlightClips([]);
     setHighlightJobId('');
+
+    setSeedFrames([]);
+    setActiveSeedFrame(null);
+    setSeed(null);
   };
 
   const handleCheckServer = async () => {
@@ -483,7 +493,11 @@ export default function VideoAnalysisPage() {
       setHighlightJobId('');
       setCoachSummary(null);
 
-      setStatusMessage('업로드가 완료되었습니다. 이제 AI가 하이라이트를 분석합니다.');
+      setSeedFrames([]);
+      setActiveSeedFrame(null);
+      setSeed(null);
+
+      setStatusMessage('업로드가 완료되었습니다. 멀리서/예전에 찍은 영상이라면 아래에서 분석할 선수를 직접 지정하면 정확도가 올라갑니다.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '업로드 중 오류가 발생했습니다.');
       setStatusMessage('');
@@ -566,6 +580,50 @@ export default function VideoAnalysisPage() {
     }
   };
 
+  // 업로드 영상에서 선수 지정용 후보 프레임을 불러온다.
+  const loadSeedFrames = async () => {
+    if (!uploadedVideoFileName) {
+      setErrorMessage('먼저 영상을 업로드해주세요.');
+      return;
+    }
+    setIsLoadingSeedFrames(true);
+    setErrorMessage('');
+    try {
+      const data = await fetchJson<{ frames?: { url: string; timeSec: number }[] }>(
+        '/api/videos/seed-frames',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ savedFilename: uploadedVideoFileName }),
+        },
+      );
+      const frames = (data.frames || []).map((f) => ({ url: toAbsoluteUrl(f.url), timeSec: f.timeSec }));
+      if (!frames.length) throw new Error('프레임을 추출하지 못했습니다.');
+      setSeedFrames(frames);
+      setActiveSeedFrame(frames[Math.floor(frames.length / 2)] || frames[0]);
+      setSeed(null);
+      setStatusMessage('분석할 선수가 가장 잘 보이는 프레임을 고른 뒤, 그 선수를 손가락으로 탭(클릭)하세요.');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '프레임을 불러오지 못했습니다.');
+    } finally {
+      setIsLoadingSeedFrames(false);
+    }
+  };
+
+  // 확대된 프레임에서 선수를 탭하면 정규화 좌표(0~1)를 시드로 저장
+  const handleSeedTap = (event: React.MouseEvent<HTMLImageElement>) => {
+    if (!activeSeedFrame) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const nx = (event.clientX - rect.left) / rect.width;
+    const ny = (event.clientY - rect.top) / rect.height;
+    setSeed({
+      nx: Math.min(1, Math.max(0, nx)),
+      ny: Math.min(1, Math.max(0, ny)),
+      timeSec: activeSeedFrame.timeSec,
+    });
+  };
+
   const handleExtractHighlights = async () => {
     if (!uploadedVideoFileName) {
       setErrorMessage('먼저 영상을 업로드해주세요.');
@@ -587,6 +645,7 @@ export default function VideoAnalysisPage() {
           savedFilename: uploadedVideoFileName,
           ...player,
           player,
+          seed: seed || undefined,
         }),
       });
       if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
@@ -759,6 +818,82 @@ export default function VideoAnalysisPage() {
                 <InfoRow label="준비 상태" value={uploadedVideoUrl ? '업로드 완료' : '대기 중'} />
                 <InfoRow label="원본 영상 재생" value={uploadedVideoUrl ? '사용 가능' : '업로드 필요'} />
               </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="1.5 분석할 선수 직접 지정 (업로드 영상 권장)"
+            description="멀리서·예전에 찍어 선수가 작게 보이는 영상은, 화면에서 우리 아이를 직접 한 번 찍어주면 그 선수를 끝까지 추적해 정확도가 크게 올라갑니다. (생략 가능)"
+          >
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <ActionButton
+                  onClick={loadSeedFrames}
+                  variant="outline"
+                  disabled={!uploadedVideoFileName || isLoadingSeedFrames}
+                >
+                  {isLoadingSeedFrames ? <Loader2 size={16} className="animate-spin" /> : <Film size={16} />}
+                  {isLoadingSeedFrames ? '프레임 불러오는 중' : '선수 지정용 프레임 불러오기'}
+                </ActionButton>
+                {seed ? (
+                  <ActionButton onClick={() => setSeed(null)} variant="dark">
+                    선택 해제
+                  </ActionButton>
+                ) : null}
+              </div>
+
+              {activeSeedFrame ? (
+                <div className="space-y-3">
+                  <div
+                    className="relative w-full overflow-hidden rounded-[18px] border border-white/10"
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <img
+                      src={activeSeedFrame.url}
+                      alt="선수 지정용 프레임"
+                      onClick={handleSeedTap}
+                      className="block w-full cursor-crosshair select-none"
+                      draggable={false}
+                    />
+                    {seed && seed.timeSec === activeSeedFrame.timeSec ? (
+                      <span
+                        className="pointer-events-none absolute z-10 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF9F02] bg-[#FF9F02]/30 shadow-[0_0_0_3px_rgba(0,0,0,0.45)]"
+                        style={{ left: `${seed.nx * 100}%`, top: `${seed.ny * 100}%` }}
+                      />
+                    ) : null}
+                  </div>
+                  <p className={`text-sm ${seed ? 'text-[#FF9F02]' : 'text-white/72'}`}>
+                    {seed
+                      ? `선택 완료 ✅ 이 위치의 선수를 끝까지 추적합니다. (${activeSeedFrame.timeSec}초 지점)`
+                      : '분석할 선수가 잘 보이는 프레임을 아래에서 고른 뒤, 위 화면에서 그 선수를 탭하세요.'}
+                  </p>
+                </div>
+              ) : null}
+
+              {seedFrames.length ? (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {seedFrames.map((f) => (
+                    <button
+                      key={f.url}
+                      type="button"
+                      onClick={() => setActiveSeedFrame(f)}
+                      className={`relative shrink-0 overflow-hidden rounded-lg border ${
+                        activeSeedFrame?.url === f.url ? 'border-[#FF9F02]' : 'border-white/10'
+                      }`}
+                    >
+                      <img src={f.url} alt={`${f.timeSec}초`} className="h-16 w-28 object-cover" draggable={false} />
+                      <span className="absolute bottom-0 right-0 bg-black/60 px-1 text-[10px] text-white">
+                        {f.timeSec}s
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <InfoRow
+                label="선수 지정 상태"
+                value={seed ? '지정 완료 (이 선수로 추적)' : '미지정 (자동 인식 사용)'}
+              />
             </div>
           </SectionCard>
 

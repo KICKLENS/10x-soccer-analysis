@@ -152,6 +152,10 @@ with image.imports():
         maxTrackSeconds: float = 0.0  # 0=전체
         centerSeed: bool = True  # 시작 구간 화면 중앙 선수를 타겟으로 잠그고 추적(등번호 불필요)
         seedSeconds: float = 3.0  # 중앙 지목 판단에 쓰는 시작 구간(초)
+        # 수동 시드(업로드 영상에서 사용자가 직접 탭한 위치). seedNx>=0 이면 활성.
+        seedTimeSec: float = -1.0  # 사용자가 탭한 프레임의 시각(초)
+        seedNx: float = -1.0  # 탭 위치 x (전체 프레임 기준 0~1)
+        seedNy: float = -1.0  # 탭 위치 y (전체 프레임 기준 0~1)
         detectCandidates: bool = False  # SAHI로 공-선수 하이라이트 후보 직접 탐지
         candidateFps: float = 2.0
         preRoll: float = 1.2
@@ -285,7 +289,8 @@ def _write_reid_tracker() -> str:
 
 def _track_player(video_path: str, player: dict, sample_fps: float,
                   assumed_height_m: float, max_seconds: float,
-                  center_seed: bool = True, seed_seconds: float = 3.0) -> dict:
+                  center_seed: bool = True, seed_seconds: float = 3.0,
+                  seed_point: tuple = None) -> dict:
     import cv2
     import numpy as np
     from ultralytics import YOLO
@@ -402,7 +407,7 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
             match = kit * 0.5 + zone * 0.5
 
             rec = tracks.setdefault(
-                tid, {"pts": [], "scores": [], "seed": [], "hist": None, "histw": 0.0}
+                tid, {"pts": [], "scores": [], "seed": [], "mseed": [], "hist": None, "histw": 0.0}
             )
             rec["pts"].append((t, sx, sy, box_h))
             rec["scores"].append(match)
@@ -423,6 +428,20 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
                 size_norm = min(1.0, (box_h / frame_h) / 0.6)  # 화면 높이 60%면 만점
                 rec["seed"].append(closeness * (0.6 + 0.4 * size_norm))
 
+            # 수동 시드 점수: 사용자가 탭한 시각 근처에서, 탭 위치가 박스 안/근처면 높음
+            if seed_point is not None:
+                s_time, s_nx, s_ny = seed_point
+                if abs(t - s_time) <= max(0.5, dt * 1.5):
+                    bx1, by1 = x1 / frame_w, y1 / frame_h
+                    bx2, by2 = x2 / frame_w, y2 / frame_h
+                    inside = (bx1 <= s_nx <= bx2) and (by1 <= s_ny <= by2)
+                    bcx, bcy = (bx1 + bx2) / 2.0, (by1 + by2) / 2.0
+                    d = ((s_nx - bcx) ** 2 + (s_ny - bcy) ** 2) ** 0.5
+                    prox = max(0.0, 1.0 - d / 0.25)  # 박스중심 가까울수록 1
+                    # 박스 안이면 강한 보너스, 시각 일치도 가중
+                    time_w = max(0.0, 1.0 - abs(t - s_time) / max(0.5, dt * 1.5))
+                    rec["mseed"].append((1.0 if inside else prox * 0.6) * (0.5 + 0.5 * time_w))
+
         frame_idx += 1
 
     cap.release()
@@ -440,11 +459,23 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
         return (avg, len(r["pts"]))
 
     seed_select = "kit_zone"
+    # 0순위: 수동 시드(사용자가 직접 탭한 선수) — 가장 신뢰도 높음
+    mseeded = {
+        tid: r for tid, r in tracks.items()
+        if r.get("mseed") and sum(r["mseed"]) > 0
+    }
     seeded = {
         tid: r for tid, r in tracks.items()
         if r.get("seed") and len(r["seed"]) >= 2
     }
-    if center_seed and seeded:
+    if seed_point is not None and mseeded:
+        def mseed_rank(item):
+            _tid, r = item
+            return (sum(r["mseed"]), len(r["pts"]))
+
+        target_id, target = max(mseeded.items(), key=mseed_rank)
+        seed_select = "manual_seed"
+    elif center_seed and seeded:
         def seed_rank(item):
             _tid, r = item
             s = r["seed"]
@@ -838,9 +869,14 @@ def analyze(req: "AnalyzeRequest"):
                 tmp_path, player, req.candidateFps, req.preRoll, req.postRoll, req.mergeGap,
             )
 
+        seed_point = None
+        if req.seedNx >= 0 and req.seedNy >= 0:
+            seed_point = (max(0.0, req.seedTimeSec), req.seedNx, req.seedNy)
+
         tracking = _track_player(
             tmp_path, player, req.sampleFps, req.assumedPlayerHeightM, req.maxTrackSeconds,
             center_seed=req.centerSeed, seed_seconds=req.seedSeconds,
+            seed_point=seed_point,
         )
         out["tracking"] = tracking
 
