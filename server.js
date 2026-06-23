@@ -467,7 +467,7 @@ function buildNoClipsError(summary = {}, player = {}) {
 
   const ballRatio = sampled > 0 ? ball / sampled : 0;
   if (ballRatio >= 0.12 && target === 0) {
-    return `공은 ${ball}회 탐지됐지만, ${playerLabel}와 공이 함께 잡힌 장면을 찾지 못했습니다. 등번호·유니폼 색상·포지션을 확인하거나, 선수가 더 크게 보이는 영상으로 시도해 주세요.`;
+    return `공은 ${ball}회 탐지됐지만, ${playerLabel}를 영상에서 특정하지 못했습니다(너무 멀리·작게 찍히면 어렵습니다). 다음을 확인해 주세요: ① 녹화 시작 5초간 분석할 선수를 화면 중앙에 크게(전신이 잘 보이게) 둔 뒤 천천히 줌아웃, ② '오늘 경기 유니폼 색상' 입력, ③ 등록 포지션이 실제와 일치하는지 확인.`;
   }
 
   if (candidates > 0) {
@@ -1016,6 +1016,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   }
 
   report('영상에서 후보 장면 탐지 중', 8);
+  const videoUrl = `${PUBLIC_BASE}/uploads/${savedFilename}`;
   const yoloResult = await runYoloDetection(fullPath, player);
   if (!yoloResult.clips?.length) {
     console.warn('[YOLO] 1차 분석에서 클립 없음, 완화 조건으로 재시도...');
@@ -1025,34 +1026,37 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     }
   }
 
-  if (!yoloResult.clips?.length) {
-    const summary = yoloResult.summary || {};
-    const error = new Error(buildNoClipsError(summary, player));
-    error.yoloSummary = summary;
-    throw error;
-  }
-
   const genAI = new GoogleGenerativeAI(apiKey);
-  let coachCandidates = prefilterYoloClipsForCoach(yoloResult.clips, player);
+  let coachCandidates = yoloResult.clips?.length
+    ? prefilterYoloClipsForCoach(yoloResult.clips, player)
+    : [];
   let gpuAnalysis = null;
   let rescued = false;
 
-  // CPU가 공-선수 장면을 못 추리면(야간·원거리 등) GPU SAHI로 직접 후보 탐지해 구제
+  // CPU가 대상 선수를 특정하지 못하거나(원거리·작게 찍힘) 후보가 없으면
+  // → GPU 구제: SAHI로 공 장면을 찾고, center-seed 추적으로 '시작 시 중앙에 둔 선수'를 잠가 분석.
+  // (CPU가 클립 0개여도 즉시 실패하지 않고 GPU를 먼저 시도)
   if (!coachCandidates.length && MODAL_ENABLED) {
-    const gpuCand = await runGpuCandidates(`${PUBLIC_BASE}/uploads/${savedFilename}`, player);
+    report('정밀 추적·이동 분석 중 (GPU 구제)', 40);
+    console.warn('[QC] CPU가 대상-공 장면을 못 찾음 → GPU SAHI + center-seed 구제 시도');
+    const gpuCand = await runGpuCandidates(videoUrl, player);
     const mapped = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
     if (mapped.length) {
       coachCandidates = mapped;
       yoloResult.clips = mapped;
-      gpuAnalysis = gpuCand;
+      // center-seed 추적으로 대상-공 근접 정밀 분석(구제 경로에서도 수행)
+      const seedAnalysis = await runGpuAnalysis(videoUrl, player, mapped);
+      gpuAnalysis = seedAnalysis || gpuCand;
       rescued = true;
-      console.log(`[QC] GPU SAHI 구제 후보 ${mapped.length}개로 진행`);
+      console.log(`[QC] GPU 구제 후보 ${mapped.length}개로 진행 (center-seed 추적 ${seedAnalysis ? '성공' : '생략'})`);
     }
   }
 
   if (!coachCandidates.length) {
     const summary = yoloResult.summary || {};
-    throw new Error(buildNoClipsError(summary, player));
+    const error = new Error(buildNoClipsError(summary, player));
+    error.yoloSummary = summary;
+    throw error;
   }
 
   yoloResult.clips = coachCandidates;
@@ -1060,11 +1064,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
 
   report('정밀 추적·이동 분석 중', 40);
   if (!rescued && MODAL_ENABLED) {
-    gpuAnalysis = await runGpuAnalysis(
-      `${PUBLIC_BASE}/uploads/${savedFilename}`,
-      player,
-      coachCandidates,
-    );
+    gpuAnalysis = await runGpuAnalysis(videoUrl, player, coachCandidates);
   }
 
   report('AI 코치가 장면 선정 중', 60);
