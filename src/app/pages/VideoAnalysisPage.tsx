@@ -514,7 +514,7 @@ export default function VideoAnalysisPage() {
 
     try {
       setIsEnhancing(true);
-      setStatusMessage('하이라이트에 선수 포착(스포트라이트) 효과를 적용하는 중입니다... (약 1~3분)');
+      setStatusMessage('하이라이트에 선수 추적 박스(코너 브라켓) 효과를 적용하는 중입니다... (약 1~3분)');
       const start = await fetchJson<{ jobId?: string }>('/api/jobs/spotlight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -522,12 +522,12 @@ export default function VideoAnalysisPage() {
       });
       if (!start.jobId) return;
       const result = await pollJob<{ videoUrl?: string }>(start.jobId, (stage) =>
-        setStatusMessage(`선수 포착(스포트라이트) ${stage}...`),
+        setStatusMessage(`선수 추적 박스 ${stage}...`),
       );
       const fxUrl = toAbsoluteUrl(result?.videoUrl || '');
       if (fxUrl) {
         setHighlightVideoUrl(fxUrl);
-        setStatusMessage('선수 포착(스포트라이트) 효과가 적용된 하이라이트가 준비되었습니다.');
+        setStatusMessage('선수 추적 박스(코너 브라켓) 효과가 적용된 하이라이트가 준비되었습니다.');
       }
     } catch {
       // 효과 적용 실패해도 기본 하이라이트는 그대로 유지

@@ -935,7 +935,7 @@ async function renderHighlightReel(clipsWithVideos, player = {}) {
   const resp = await fetch(MODAL_RENDER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clips, profile, style: 'spotlight' }),
+    body: JSON.stringify({ clips, profile, style: process.env.HIGHLIGHT_FX_STYLE || 'bracket' }),
     signal: controller.signal,
   });
   clearTimeout(timer);

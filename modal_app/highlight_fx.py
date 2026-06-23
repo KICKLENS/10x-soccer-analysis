@@ -332,8 +332,8 @@ def _track_target(video_path: str, seconds: float = 600.0):
             xyxy = res.boxes.xyxy.cpu().numpy()
             ids = res.boxes.id.cpu().numpy().astype(int)
             for (x1, y1, x2, y2), tid in zip(xyxy, ids):
-                cx, cy, h = (x1 + x2) / 2.0, (y1 + y2) / 2.0, y2 - y1
-                boxes[int(tid)] = (cx, cy, h)
+                cx, cy, w, h = (x1 + x2) / 2.0, (y1 + y2) / 2.0, x2 - x1, y2 - y1
+                boxes[int(tid)] = (cx, cy, w, h)
                 if idx < seed_frames:
                     dd = np.hypot((cx - cx0) / W, (cy - cy0) / H)
                     seed_score[int(tid)] = seed_score.get(int(tid), 0.0) + (1.0 - min(dd, 1.0)) * (h / H)
@@ -355,6 +355,7 @@ def _track_target(video_path: str, seconds: float = 600.0):
             0.35 * last[0] + 0.65 * ema[0],
             0.35 * last[1] + 0.65 * ema[1],
             0.35 * last[2] + 0.65 * ema[2],
+            0.35 * last[3] + 0.65 * ema[3],
         )
         centers.append(ema)
     return centers, fps, W, H, len(per_frame)
@@ -382,7 +383,7 @@ def _render_spotlight(video_path: str, out_path: str, centers, fps, W, H, name_t
         c = centers[idx]
         frame = frame.astype(np.float32)
         if c is not None:
-            cx, cy, h = c
+            cx, cy, _w, h = c
             radius = max(70.0, h * 1.5)
             dist = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
             mask = np.clip(1.0 - (dist - radius) / (radius * 0.9), 0.0, 1.0)[..., None]
@@ -404,6 +405,88 @@ def _render_spotlight(video_path: str, out_path: str, centers, fps, W, H, name_t
     )
     _run(["ffmpeg", "-y", "-i", raw, "-vf", vf, "-c:v", "libx264",
           "-pix_fmt", "yuv420p", "-preset", "veryfast", "-crf", "22", out_path])
+    import os
+    os.remove(raw)
+
+
+def _make_label_sprite(name_text: str):
+    """이름표(코너 박스 위에 붙는 작은 태그) 스프라이트를 1회 생성 → BGR + 알파 반환."""
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFont
+
+    try:
+        font = ImageFont.truetype(FONT_BOLD, 28)
+    except Exception:
+        font = ImageFont.load_default()
+    pad_x, pad_y = 14, 8
+    dummy = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
+    bb = ImageDraw.Draw(dummy).textbbox((0, 0), name_text, font=font)
+    tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    w, h = tw + pad_x * 2, th + pad_y * 2
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    # 주황 바탕 + 살짝 둥근 모서리
+    d.rounded_rectangle([0, 0, w - 1, h - 1], radius=8, fill=(255, 159, 2, 235))
+    d.text((pad_x - bb[0], pad_y - bb[1]), name_text, font=font, fill=(15, 15, 17, 255))
+    arr = np.array(img)  # RGBA
+    rgb = arr[:, :, :3][:, :, ::-1].copy()  # → BGR
+    alpha = (arr[:, :, 3].astype(np.float32) / 255.0)[..., None]
+    return rgb.astype(np.float32), alpha
+
+
+def _render_bracket(video_path: str, out_path: str, boxes, fps, W, H, name_text: str):
+    """대상 선수를 코너 브라켓(모서리 ㄱ자) 박스로 감싸 따라가며 표시 + 이름표."""
+    import cv2
+    import numpy as np
+
+    cap = cv2.VideoCapture(video_path)
+    raw = out_path + ".raw.mp4"
+    vw = cv2.VideoWriter(raw, cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
+    accent = (2, 159, 255)  # #FF9F02 (BGR)
+    sprite, salpha = _make_label_sprite(name_text)
+    sh, sw = sprite.shape[:2]
+
+    idx = 0
+    while True:
+        ok, frame = cap.read()
+        if not ok or idx >= len(boxes):
+            break
+        c = boxes[idx]
+        if c is not None:
+            cx, cy, w, h = c
+            # 박스를 사람보다 약간 넉넉하게
+            bw = max(40.0, w * 1.18)
+            bh = max(60.0, h * 1.12)
+            x1 = int(max(0, cx - bw / 2)); y1 = int(max(0, cy - bh / 2))
+            x2 = int(min(W - 1, cx + bw / 2)); y2 = int(min(H - 1, cy + bh / 2))
+            seg = int(max(14, min(bw, bh) * 0.28))  # 모서리 선 길이
+            th = 3
+            # 4개 모서리 ㄱ자
+            for (px, py, dx, dy) in [
+                (x1, y1, 1, 1), (x2, y1, -1, 1), (x1, y2, 1, -1), (x2, y2, -1, -1),
+            ]:
+                cv2.line(frame, (px, py), (px + dx * seg, py), accent, th, cv2.LINE_AA)
+                cv2.line(frame, (px, py), (px, py + dy * seg), accent, th, cv2.LINE_AA)
+            # 발끝 중심 작은 마커
+            cv2.drawMarker(frame, (int(cx), y2), accent, cv2.MARKER_TRIANGLE_UP, 14, 2, cv2.LINE_AA)
+
+            # 이름표(박스 좌상단 위)
+            lx = int(max(0, min(W - sw, x1)))
+            ly = int(y1 - sh - 6)
+            if ly < 0:
+                ly = min(H - sh, y2 + 6)
+            if 0 <= ly <= H - sh and 0 <= lx <= W - sw:
+                roi = frame[ly:ly + sh, lx:lx + sw].astype(np.float32)
+                frame[ly:ly + sh, lx:lx + sw] = (sprite * salpha + roi * (1.0 - salpha)).astype(np.uint8)
+        vw.write(frame)
+        idx += 1
+    cap.release()
+    vw.release()
+
+    _run(["ffmpeg", "-y", "-i", raw, "-vf",
+          f"scale={TARGET_W}:{TARGET_H},setsar=1,fps={TARGET_FPS}",
+          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
+          "-crf", "22", out_path])
     import os
     os.remove(raw)
 
@@ -438,8 +521,10 @@ def _make_reel(clip_paths, profile, out_path, style="spotlight", with_card=True)
         fx = f"/tmp/fx_{i}.mp4"
         try:
             centers, fps, W, H, _ = _track_target(cp)
-            if centers is None or style != "spotlight":
+            if centers is None or style not in ("spotlight", "bracket"):
                 _normalize(cp, fx)
+            elif style == "bracket":
+                _render_bracket(cp, fx, centers, fps, W, H, name_text)
             else:
                 _render_spotlight(cp, fx, centers, fps, W, H, name_text)
         except Exception as e:  # noqa: BLE001
