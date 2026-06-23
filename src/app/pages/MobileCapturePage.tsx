@@ -146,11 +146,13 @@ export default function MobileCapturePage() {
   const [guideCount, setGuideCount] = useState(0);
   const guideIntervalRef = useRef<number | null>(null);
   const guideTimeoutsRef = useRef<number[]>([]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     return () => {
       if (guideIntervalRef.current) window.clearInterval(guideIntervalRef.current);
       guideTimeoutsRef.current.forEach((t) => window.clearTimeout(t));
+      try { void audioCtxRef.current?.close(); } catch { /* noop */ }
     };
   }, []);
 
@@ -478,25 +480,74 @@ export default function MobileCapturePage() {
     guideTimeoutsRef.current = [];
   };
 
+  // 사용자 제스처(녹화 시작 버튼) 안에서 오디오 컨텍스트를 준비/재개해야 모바일에서 소리가 난다
+  const ensureAudio = (): AudioContext | null => {
+    try {
+      if (!audioCtxRef.current) {
+        const AC = window.AudioContext
+          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AC) audioCtxRef.current = new AC();
+      }
+      if (audioCtxRef.current?.state === 'suspended') void audioCtxRef.current.resume();
+      return audioCtxRef.current;
+    } catch {
+      return null;
+    }
+  };
+
+  const beep = (freq = 880, durationMs = 120, volume = 0.16) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000);
+      osc.start(now);
+      osc.stop(now + durationMs / 1000 + 0.02);
+    } catch {
+      /* noop */
+    }
+  };
+
+  const vibrate = (pattern: number | number[]) => {
+    try {
+      navigator.vibrate?.(pattern);
+    } catch {
+      /* noop */
+    }
+  };
+
   const startCaptureGuide = () => {
     clearCaptureGuide();
     const FULLBODY_SEC = 5;
     const ZOOMOUT_SEC = 6;
 
+    ensureAudio();
     setGuidePhase('fullbody');
     setGuideCount(FULLBODY_SEC);
+    beep(880, 120); // 시작(5) 비프
 
+    let remaining = FULLBODY_SEC;
     guideIntervalRef.current = window.setInterval(() => {
-      setGuideCount((c) => {
-        if (c <= 1) {
-          if (guideIntervalRef.current) {
-            window.clearInterval(guideIntervalRef.current);
-            guideIntervalRef.current = null;
-          }
-          return 0;
+      remaining -= 1;
+      if (remaining > 0) {
+        setGuideCount(remaining);
+        beep(880, 120); // 4·3·2·1 매초 비프
+      } else {
+        setGuideCount(0);
+        if (guideIntervalRef.current) {
+          window.clearInterval(guideIntervalRef.current);
+          guideIntervalRef.current = null;
         }
-        return c - 1;
-      });
+        beep(1320, 280, 0.2); // 완료 비프(조금 높고 길게)
+        vibrate(220); // 완료 진동
+      }
     }, 1000);
 
     guideTimeoutsRef.current.push(
