@@ -685,6 +685,11 @@ export default function MobileCapturePage() {
           }
         },
         (percent) => setUploadProgress(percent),
+        (stage, progress) => {
+          setStatusMessage(
+            `분석 중: ${stage}${typeof progress === 'number' ? ` (${progress}%)` : ''}`,
+          );
+        },
       );
 
       saveAnalysisToHistory(payload);

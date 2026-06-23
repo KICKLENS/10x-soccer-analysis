@@ -206,13 +206,53 @@ export async function uploadVideoFile(
   };
 }
 
+// 잡 폴링 — 네트워크 일시 오류는 재시도, 404(서버 재시작으로 잡 사라짐)는 일정 횟수 후 포기
+async function pollExtractJob<T>(
+  jobId: string,
+  onStage?: (stage: string, progress?: number) => void,
+): Promise<T> {
+  const POLL_MS = 4000;
+  const MAX_NET_FAILS = 15;
+  const MAX_NOT_FOUND = 3;
+  let netFails = 0;
+  let notFound = 0;
+  for (;;) {
+    await new Promise((r) => setTimeout(r, POLL_MS));
+    let job: { success?: boolean; status?: string; stage?: string; progress?: number; result?: T; error?: string };
+    try {
+      job = await fetchJson<typeof job>(`/api/jobs/${jobId}`);
+      netFails = 0;
+      notFound = 0;
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status;
+      if (status === 404) {
+        notFound += 1;
+        if (notFound >= MAX_NOT_FOUND) {
+          const e = new Error('분석 작업을 찾을 수 없습니다. 다시 시도해 주세요.');
+          (e as unknown as { jobGone: boolean }).jobGone = true;
+          throw e;
+        }
+        continue;
+      }
+      netFails += 1;
+      if (netFails >= MAX_NET_FAILS) throw new Error('서버와의 연결이 끊겼습니다. 잠시 후 다시 시도해 주세요.');
+      continue;
+    }
+    onStage?.(job.stage || '', job.progress);
+    if (job.status === 'done') return job.result as T;
+    if (job.status === 'error') throw new Error(job.error || '분석 중 오류가 발생했습니다.');
+  }
+}
+
 export async function extractHighlightsForPlayer(
   fileName: string,
   player?: SelectedPlayer,
+  onStage?: (stage: string, progress?: number) => void,
 ): Promise<ExtractResponse> {
   const resolvedPlayer = player ?? readSelectedPlayer();
 
-  return fetchJson<ExtractResponse>('/api/extract-highlights', {
+  // 비동기 잡 시작
+  const start = await fetchJson<{ jobId?: string; success?: boolean }>('/api/jobs/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -222,6 +262,11 @@ export async function extractHighlightsForPlayer(
       player: resolvedPlayer,
     }),
   });
+
+  if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
+
+  // 잡 완료까지 폴링
+  return pollExtractJob<ExtractResponse>(start.jobId, onStage);
 }
 
 export function buildAiAnalysisPayload(input: {
@@ -263,12 +308,13 @@ export async function runMobileAnalysisPipeline(
   extras?: Record<string, string>,
   onStep?: (step: AnalysisPipelineStep) => void,
   onUploadProgress?: (percent: number) => void,
+  onAnalysisStage?: (stage: string, progress?: number) => void,
 ): Promise<AiAnalysisPayload> {
   onStep?.('uploading');
   const upload = await uploadVideoFile(file, player, extras, onUploadProgress);
 
   onStep?.('analyzing');
-  const extract = await extractHighlightsForPlayer(upload.fileName, player);
+  const extract = await extractHighlightsForPlayer(upload.fileName, player, onAnalysisStage);
 
   const mergedUrl = toAbsoluteUrl(extract.mergedHighlightUrl || extract.highlightVideoUrl || '');
   const clips = Array.isArray(extract.clips) ? extract.clips : [];
