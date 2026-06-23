@@ -1609,11 +1609,13 @@ const guideFrameStyle: CSSProperties = {
   left: '50%',
   top: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '58%',
-  height: '80%',
-  minWidth: 180,
-  maxWidth: 460,
-  borderRadius: 24,
+  // 선수만 작게 잡도록 가이드를 줄여 주변 경기 공간(흐름)이 충분히 보이게 함
+  width: '20%',
+  height: '50%',
+  minWidth: 84,
+  maxWidth: 180,
+  minHeight: 150,
+  borderRadius: 18,
   border: '2px dashed rgba(255,159,2,0.75)',
   boxShadow: '0 0 0 1px rgba(255,255,255,0.06) inset',
 };
