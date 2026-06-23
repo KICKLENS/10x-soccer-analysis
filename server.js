@@ -912,7 +912,7 @@ async function renderFinalHighlight(sourcePath, clips) {
   };
 }
 
-async function renderHighlightReel(clipsWithVideos, player = {}) {
+async function renderHighlightReel(clipsWithVideos, player = {}, seed = null) {
   const clips = (clipsWithVideos || [])
     .map((c) => c.highlightVideoUrl || c.videoUrl)
     .filter(Boolean);
@@ -928,14 +928,21 @@ async function renderHighlightReel(clipsWithVideos, player = {}) {
     weightKg: String(player.weightKg || ''),
     nationality: player.nationality || '',
     photo: player.photo || '',
+    uniformColor: player.uniformColor || '',
+    traits: player.traits || '',
   };
+
+  const body = { clips, profile, style: process.env.HIGHLIGHT_FX_STYLE || 'bracket' };
+  if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
+    body.seed = { nx: seed.nx, ny: seed.ny };
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20 * 60 * 1000);
   const resp = await fetch(MODAL_RENDER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clips, profile, style: process.env.HIGHLIGHT_FX_STYLE || 'bracket' }),
+    body: JSON.stringify(body),
     signal: controller.signal,
   });
   clearTimeout(timer);
@@ -1850,8 +1857,9 @@ app.post('/api/jobs/spotlight', (req, res) => {
     res.status(503).json({ success: false, error: '스포트라이트 효과가 비활성화되어 있습니다.' });
     return;
   }
-  const { clips, player: bodyPlayer, ...rest } = req.body || {};
+  const { clips, player: bodyPlayer, seed: bodySeed, ...rest } = req.body || {};
   const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
+  const seed = normalizeSeedInput(bodySeed);
   const clipObjs = (Array.isArray(clips) ? clips : [])
     .map((c) => (typeof c === 'string'
       ? { highlightVideoUrl: c }
@@ -1869,7 +1877,7 @@ app.post('/api/jobs/spotlight', (req, res) => {
       job.stage = '선수 포착 효과 적용 중';
       job.progress = 30;
       setJob(job);
-      const out = await renderHighlightReel(clipObjs, player);
+      const out = await renderHighlightReel(clipObjs, player, seed);
       const jobResult = { videoUrl: out.videoUrl, outputPath: out.outputPath };
       await mirrorJobResultOutputs(jobResult);
       job.result = jobResult;

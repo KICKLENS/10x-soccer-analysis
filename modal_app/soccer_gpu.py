@@ -264,22 +264,30 @@ def _estimate_camera_affine(prev_gray, cur_gray, orb, max_features: int = 500):
 # A) 선수 추적 + 이동 지표
 # ---------------------------------------------------------------------------
 def _write_reid_tracker() -> str:
-    """BoT-SORT + ReID(외형모델) 트래커 설정 파일을 생성하고 경로를 반환."""
+    """BoT-SORT + ReID(외형모델) 트래커 설정 파일을 생성하고 경로를 반환.
+
+    환경변수로 정확도/비용 튜닝:
+      SOCCER_REID_MODEL  : ReID 특징용 YOLO 가중치 경로. 미지정 시 'auto'(탐지모델 특징 사용).
+      SOCCER_TRACK_BUFFER: 끊긴 트랙 유지 프레임수(기본 90, 클수록 가림에 강함).
+    """
+    import os
     import tempfile
 
+    reid_model = os.environ.get("SOCCER_REID_MODEL", "auto")
+    track_buffer = os.environ.get("SOCCER_TRACK_BUFFER", "90")
     cfg = (
         "tracker_type: botsort\n"
         "track_high_thresh: 0.25\n"
         "track_low_thresh: 0.1\n"
         "new_track_thresh: 0.25\n"
-        "track_buffer: 60\n"          # 끊긴 트랙을 더 오래 유지(가림/줌에 강함)
+        f"track_buffer: {track_buffer}\n"   # 끊긴 트랙을 더 오래 유지(가림/줌에 강함)
         "match_thresh: 0.8\n"
         "fuse_score: true\n"
         "gmc_method: sparseOptFlow\n"
         "proximity_thresh: 0.5\n"
-        "appearance_thresh: 0.25\n"
-        "with_reid: true\n"           # 외형 임베딩으로 ID 유지
-        "model: auto\n"
+        "appearance_thresh: 0.2\n"          # 외형 가중 ↑ → 같은 팀 교차 시 스위치 ↓
+        "with_reid: true\n"                  # 외형 임베딩으로 ID 유지
+        f"model: {reid_model}\n"
     )
     f = tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False)
     f.write(cfg)

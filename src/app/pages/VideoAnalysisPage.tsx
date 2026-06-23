@@ -506,7 +506,11 @@ export default function VideoAnalysisPage() {
     }
   };
 
-  const enhanceWithSpotlight = async (clips: HighlightClip[], player: ReturnType<typeof readSelectedPlayer>) => {
+  const enhanceWithSpotlight = async (
+    clips: HighlightClip[],
+    player: ReturnType<typeof readSelectedPlayer>,
+    seedOverride?: { nx: number; ny: number; timeSec: number } | null,
+  ) => {
     const clipList = (Array.isArray(clips) ? clips : [])
       .map((c) => c.url || c.clipUrl || c.outputUrl)
       .filter(Boolean);
@@ -518,7 +522,7 @@ export default function VideoAnalysisPage() {
       const start = await fetchJson<{ jobId?: string }>('/api/jobs/spotlight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clips: clipList, ...player, player }),
+        body: JSON.stringify({ clips: clipList, ...player, player, seed: seedOverride || seed || undefined }),
       });
       if (!start.jobId) return;
       const result = await pollJob<{ videoUrl?: string }>(start.jobId, (stage) =>
@@ -534,6 +538,19 @@ export default function VideoAnalysisPage() {
     } finally {
       setIsEnhancing(false);
     }
+  };
+
+  // 추적이 다른 선수를 따라갔을 때: 위에서 선수를 다시 지정한 뒤 추적 박스를 재생성
+  const regenerateTracking = async () => {
+    if (!highlightClips.length) {
+      setErrorMessage('먼저 하이라이트를 생성해주세요.');
+      return;
+    }
+    if (!seed) {
+      setErrorMessage('먼저 위 "1.5 분석할 선수 직접 지정"에서 추적할 선수를 탭해주세요.');
+      return;
+    }
+    await enhanceWithSpotlight(highlightClips, readSelectedPlayer(), seed);
   };
 
   // 시작된 추출 작업을 끝까지 따라가 결과를 채운다(페이지 복귀 시에도 재사용).
@@ -937,6 +954,17 @@ export default function VideoAnalysisPage() {
                   AI 영상분석
                   <ArrowRight size={16} />
                 </ActionButton>
+
+                {highlightVideoUrl ? (
+                  <ActionButton
+                    onClick={regenerateTracking}
+                    variant="outline"
+                    disabled={isEnhancing}
+                  >
+                    {isEnhancing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                    추적이 빗나갔나요? 선수 다시 지정·재생성
+                  </ActionButton>
+                ) : null}
               </div>
 
               <div className="grid gap-3">
