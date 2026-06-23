@@ -141,6 +141,19 @@ export default function MobileCapturePage() {
     step: 0.1,
   });
 
+  // 촬영 시작 직후 단계별 안내(전신 5초 카운트다운 → 줌아웃 안내 → 사라짐)
+  const [guidePhase, setGuidePhase] = useState<'idle' | 'fullbody' | 'zoomout'>('idle');
+  const [guideCount, setGuideCount] = useState(0);
+  const guideIntervalRef = useRef<number | null>(null);
+  const guideTimeoutsRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    return () => {
+      if (guideIntervalRef.current) window.clearInterval(guideIntervalRef.current);
+      guideTimeoutsRef.current.forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+
   const hasRecordedVideo = useMemo(() => Boolean(recordedBlob && recordedPreviewUrl), [recordedBlob, recordedPreviewUrl]);
   const isPipelineRunning = pipelineStep === 'uploading' || pipelineStep === 'analyzing';
   const canStartAnalysis = useMemo(
@@ -456,6 +469,42 @@ export default function MobileCapturePage() {
     setStatusMessage('카메라를 중지했습니다.');
   };
 
+  const clearCaptureGuide = () => {
+    if (guideIntervalRef.current) {
+      window.clearInterval(guideIntervalRef.current);
+      guideIntervalRef.current = null;
+    }
+    guideTimeoutsRef.current.forEach((t) => window.clearTimeout(t));
+    guideTimeoutsRef.current = [];
+  };
+
+  const startCaptureGuide = () => {
+    clearCaptureGuide();
+    const FULLBODY_SEC = 5;
+    const ZOOMOUT_SEC = 6;
+
+    setGuidePhase('fullbody');
+    setGuideCount(FULLBODY_SEC);
+
+    guideIntervalRef.current = window.setInterval(() => {
+      setGuideCount((c) => {
+        if (c <= 1) {
+          if (guideIntervalRef.current) {
+            window.clearInterval(guideIntervalRef.current);
+            guideIntervalRef.current = null;
+          }
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+
+    guideTimeoutsRef.current.push(
+      window.setTimeout(() => setGuidePhase('zoomout'), FULLBODY_SEC * 1000),
+      window.setTimeout(() => setGuidePhase('idle'), (FULLBODY_SEC + ZOOMOUT_SEC) * 1000),
+    );
+  };
+
   const startRecording = async () => {
     clearMessages();
 
@@ -505,6 +554,8 @@ export default function MobileCapturePage() {
         setRecordedPreviewUrl(preview);
         setStatusMessage('녹화가 완료되었습니다. 아래 미리보기에서 확인 후 업로드할 수 있습니다.');
         setIsRecording(false);
+        clearCaptureGuide();
+        setGuidePhase('idle');
         stopTimer();
         void releaseWakeLock();
       };
@@ -513,6 +564,7 @@ export default function MobileCapturePage() {
       setRecordSeconds(0);
       setIsRecording(true);
       setStatusMessage('녹화 중입니다. 선수가 중앙 가이드 박스 안에 계속 오도록 유지해 주세요.');
+      startCaptureGuide();
       await requestWakeLock();
       startTimer();
     } catch (error) {
@@ -727,9 +779,28 @@ export default function MobileCapturePage() {
             />
 
             <div style={cameraOverlayStyle}>
-              <div style={topHintPillStyle}>
-                선수를 중앙 가이드 안에 맞춰 주세요
-              </div>
+              {guidePhase === 'idle' ? (
+                <div style={topHintPillStyle}>
+                  선수를 중앙 가이드 안에 맞춰 주세요
+                </div>
+              ) : (
+                <div style={captureGuideStyle}>
+                  {guidePhase === 'fullbody' ? (
+                    <>
+                      <div style={captureGuideTitleStyle}>선수 전신을 5초간 촬영해 주세요</div>
+                      <div style={captureGuideCountStyle}>{guideCount}</div>
+                      <div style={captureGuideSubStyle}>중앙에 선수가 잘 보이도록 잡아 주세요</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={captureGuideTitleStyle}>이제 아주 천천히 줌아웃하세요</div>
+                      <div style={captureGuideSubStyle}>
+                        가운데 선수를 포커싱한 채로 경기 흐름까지 함께 촬영해 주세요
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {isLandscape && (
                 <button
@@ -1354,6 +1425,43 @@ const topHintPillStyle: CSSProperties = {
   fontSize: 13,
   fontWeight: 700,
   backdropFilter: 'blur(8px)',
+};
+
+const captureGuideStyle: CSSProperties = {
+  alignSelf: 'center',
+  pointerEvents: 'none',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+  padding: '14px 22px',
+  borderRadius: 18,
+  background: 'rgba(0,0,0,0.62)',
+  border: '1px solid rgba(255,159,2,0.5)',
+  backdropFilter: 'blur(8px)',
+  textAlign: 'center',
+  maxWidth: 'min(88vw, 460px)',
+};
+
+const captureGuideTitleStyle: CSSProperties = {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 800,
+  lineHeight: 1.4,
+};
+
+const captureGuideCountStyle: CSSProperties = {
+  color: '#FF9F02',
+  fontSize: 52,
+  fontWeight: 900,
+  lineHeight: 1.05,
+};
+
+const captureGuideSubStyle: CSSProperties = {
+  color: 'rgba(255,255,255,0.82)',
+  fontSize: 13,
+  fontWeight: 600,
+  lineHeight: 1.5,
 };
 
 const landscapeExitButtonStyle: CSSProperties = {
