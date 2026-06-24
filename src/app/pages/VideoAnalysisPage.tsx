@@ -839,30 +839,64 @@ export default function VideoAnalysisPage() {
           </SectionCard>
 
           <SectionCard
-            title="1.5 분석할 선수 직접 지정 (업로드 영상 권장)"
-            description="멀리서·예전에 찍어 선수가 작게 보이는 영상은, 화면에서 우리 아이를 직접 한 번 찍어주면 그 선수를 끝까지 추적해 정확도가 크게 올라갑니다. (생략 가능)"
+            title="분석할 선수 직접 지정"
+            description="영상에서 분석할 선수를 직접 탭해주면 AI가 그 선수만 끝까지 추적합니다. 정확도가 크게 올라가므로 꼭 지정해주세요."
           >
             <div className="space-y-4">
-              <div className="flex flex-wrap gap-3">
-                <ActionButton
-                  onClick={loadSeedFrames}
-                  variant="outline"
-                  disabled={!uploadedVideoFileName || isLoadingSeedFrames}
-                >
-                  {isLoadingSeedFrames ? <Loader2 size={16} className="animate-spin" /> : <Film size={16} />}
-                  {isLoadingSeedFrames ? '프레임 불러오는 중' : '선수 지정용 프레임 불러오기'}
-                </ActionButton>
-                {seed ? (
-                  <ActionButton onClick={() => setSeed(null)} variant="dark">
-                    선택 해제
-                  </ActionButton>
-                ) : null}
+              {/* 상태 배지 */}
+              <div className={`flex items-center gap-2 rounded-2xl px-4 py-3 ${seed ? 'bg-[#FF9F02]/15 border border-[#FF9F02]/40' : 'bg-white/[0.04] border border-white/10'}`}>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base ${seed ? 'bg-[#FF9F02] text-black' : 'bg-white/10 text-white/50'}`}>
+                  {seed ? '✓' : '!'}
+                </span>
+                <div>
+                  <p className={`text-sm font-semibold ${seed ? 'text-[#FF9F02]' : 'text-white/50'}`}>
+                    {seed ? '선수 지정 완료' : '선수 미지정 (아래에서 지정해주세요)'}
+                  </p>
+                  <p className="text-xs text-white/40">
+                    {seed ? `영상 ${seed.timeSec}초 지점의 선수를 기준으로 추적합니다` : '지정하지 않으면 자동 인식을 사용합니다 (정확도 낮음)'}
+                  </p>
+                </div>
+                {seed && (
+                  <button
+                    type="button"
+                    onClick={() => setSeed(null)}
+                    className="ml-auto text-xs text-white/40 hover:text-white/70 underline"
+                  >
+                    다시 지정
+                  </button>
+                )}
               </div>
 
-              {activeSeedFrame ? (
+              {/* Step 1: 프레임 불러오기 */}
+              {!activeSeedFrame && (
+                <div className="rounded-2xl border border-dashed border-white/20 p-4 text-center space-y-3">
+                  <p className="text-sm text-white/60">
+                    <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#FF9F02] text-[11px] font-bold text-black">1</span>
+                    영상에서 선수가 잘 보이는 장면을 불러오세요
+                  </p>
+                  <ActionButton
+                    onClick={loadSeedFrames}
+                    variant="outline"
+                    disabled={!uploadedVideoFileName || isLoadingSeedFrames}
+                  >
+                    {isLoadingSeedFrames ? <Loader2 size={16} className="animate-spin" /> : <Film size={16} />}
+                    {isLoadingSeedFrames ? '장면 불러오는 중...' : '장면 불러오기'}
+                  </ActionButton>
+                  {!uploadedVideoFileName && (
+                    <p className="text-xs text-white/30">영상을 먼저 업로드해주세요</p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: 프레임 탭 */}
+              {activeSeedFrame && (
                 <div className="space-y-3">
+                  <p className="text-sm text-white/60">
+                    <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#FF9F02] text-[11px] font-bold text-black">2</span>
+                    아래 화면에서 <strong className="text-white">분석할 선수를 탭</strong>하세요
+                  </p>
                   <div
-                    className="relative w-full overflow-hidden rounded-[18px] border border-white/10"
+                    className={`relative w-full overflow-hidden rounded-[18px] border-2 transition-colors ${seed ? 'border-[#FF9F02]' : 'border-white/20 hover:border-white/40'}`}
                     style={{ touchAction: 'manipulation' }}
                   >
                     <img
@@ -872,45 +906,54 @@ export default function VideoAnalysisPage() {
                       className="block w-full cursor-crosshair select-none"
                       draggable={false}
                     />
-                    {seed && seed.timeSec === activeSeedFrame.timeSec ? (
-                      <span
-                        className="pointer-events-none absolute z-10 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF9F02] bg-[#FF9F02]/30 shadow-[0_0_0_3px_rgba(0,0,0,0.45)]"
-                        style={{ left: `${seed.nx * 100}%`, top: `${seed.ny * 100}%` }}
-                      />
-                    ) : null}
+                    {/* 탭 전 안내 오버레이 */}
+                    {!seed && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <div className="rounded-xl bg-black/60 px-4 py-2 text-center backdrop-blur-sm">
+                          <p className="text-sm font-semibold text-white">👆 분석할 선수를 탭하세요</p>
+                        </div>
+                      </div>
+                    )}
+                    {/* 탭 위치 마커 */}
+                    {seed && seed.timeSec === activeSeedFrame.timeSec && (
+                      <>
+                        <span
+                          className="pointer-events-none absolute z-10 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#FF9F02] bg-[#FF9F02]/20 shadow-[0_0_0_4px_rgba(0,0,0,0.5)]"
+                          style={{ left: `${seed.nx * 100}%`, top: `${seed.ny * 100}%` }}
+                        />
+                        <span
+                          className="pointer-events-none absolute z-10 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FF9F02]"
+                          style={{ left: `${seed.nx * 100}%`, top: `${seed.ny * 100}%` }}
+                        />
+                      </>
+                    )}
                   </div>
-                  <p className={`text-sm ${seed ? 'text-[#FF9F02]' : 'text-white/72'}`}>
-                    {seed
-                      ? `선택 완료 ✅ 이 위치의 선수를 끝까지 추적합니다. (${activeSeedFrame.timeSec}초 지점)`
-                      : '분석할 선수가 잘 보이는 프레임을 아래에서 고른 뒤, 위 화면에서 그 선수를 탭하세요.'}
-                  </p>
-                </div>
-              ) : null}
 
-              {seedFrames.length ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {seedFrames.map((f) => (
-                    <button
-                      key={f.url}
-                      type="button"
-                      onClick={() => setActiveSeedFrame(f)}
-                      className={`relative shrink-0 overflow-hidden rounded-lg border ${
-                        activeSeedFrame?.url === f.url ? 'border-[#FF9F02]' : 'border-white/10'
-                      }`}
-                    >
-                      <img src={f.url} alt={`${f.timeSec}초`} className="h-16 w-28 object-cover" draggable={false} />
-                      <span className="absolute bottom-0 right-0 bg-black/60 px-1 text-[10px] text-white">
-                        {f.timeSec}s
-                      </span>
-                    </button>
-                  ))}
+                  {/* 썸네일 선택 */}
+                  {seedFrames.length > 1 && (
+                    <div>
+                      <p className="mb-2 text-xs text-white/40">다른 장면 선택:</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {seedFrames.map((f) => (
+                          <button
+                            key={f.url}
+                            type="button"
+                            onClick={() => setActiveSeedFrame(f)}
+                            className={`relative shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
+                              activeSeedFrame?.url === f.url ? 'border-[#FF9F02]' : 'border-white/10 hover:border-white/30'
+                            }`}
+                          >
+                            <img src={f.url} alt={`${f.timeSec}초`} className="h-16 w-28 object-cover" draggable={false} />
+                            <span className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 text-center text-[10px] text-white">
+                              {f.timeSec}초
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : null}
-
-              <InfoRow
-                label="선수 지정 상태"
-                value={seed ? '지정 완료 (이 선수로 추적)' : '미지정 (자동 인식 사용)'}
-              />
+              )}
             </div>
           </SectionCard>
 

@@ -62,7 +62,7 @@ def _resolve_person_model():
 
 # 파인튜닝 모델(우리 전용)은 볼륨 /models 에 저장됨. 검증 후 SOCCER_USE_FINETUNED=1 로 활성화.
 FINETUNED_PATH = os.environ.get("SOCCER_FINETUNED_MODEL", "/models/soccer_best.pt")
-USE_FINETUNED = os.environ.get("SOCCER_USE_FINETUNED", "") == "1"
+USE_FINETUNED = os.environ.get("SOCCER_USE_FINETUNED", "1") == "1"  # 학습된 모델 기본 활성화
 
 
 @lru_cache(maxsize=1)
@@ -379,7 +379,7 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
         try:
             res = model.track(
                 source=frame, persist=True, tracker=tracker_cfg,
-                classes=[person_class], conf=0.25, imgsz=960, verbose=False,
+                classes=[person_class], conf=0.15, imgsz=1280, verbose=False,
             )[0]
         except Exception:
             if reid_active:
@@ -740,10 +740,10 @@ def _extract_target_hist(video_path: str, fps: float, seed_point: tuple,
     if not ok or frame is None:
         return None
     H, W = frame.shape[:2]
-    res = person_model.predict(source=frame, classes=[person_class], conf=0.2, imgsz=960, verbose=False)[0]
+    res = person_model.predict(source=frame, classes=[person_class], conf=0.12, imgsz=1280, verbose=False)[0]
     if res.boxes is None or len(res.boxes) == 0:
         return None
-    best_box, best_dist = None, 0.35  # 최대 35% 대각선 거리
+    best_box, best_dist = None, 0.45  # 최대 45% 대각선 거리 (멀리서 탭해도 인식)
     for b in res.boxes.xyxy.cpu().numpy():
         x1, y1, x2, y2 = b
         bcx, bcy = (x1 + x2) / 2.0 / W, (y1 + y2) / 2.0 / H
@@ -813,10 +813,10 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
             h = _calc_hist(crop)
             if h is not None:
                 sim = float(_cv2.compareHist(seed_hist, h, _cv2.HISTCMP_CORREL))
-                # 히스토그램 매칭이 0.35 미만이면 다른 선수 가능성 높음
-                if sim < 0.2:
+                # 히스토그램 매칭이 0.05 미만이면 다른 선수 가능성 높음
+                if sim < 0.05:
                     return 0.0  # 명백히 다른 선수
-                return min(1.0, (sim + 0.3) / 1.3)  # 0.2→0.38, 1.0→1.0
+                return min(1.0, (sim + 0.3) / 1.3)
         # 시드 없음: 색+포지션 매칭(기존)
         kit = _color_score(crop, color_ranges) if color_ranges else 0.0
         zone = _position_zone_score(position, (x1 + x2) / 2.0 / frame_w, (y1 + y2) / 2.0 / frame_h)
@@ -834,8 +834,8 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
         h, w = frame.shape[:2]
         pred = get_sliced_prediction(
             frame, ball_det,
-            slice_height=max(256, h // 2), slice_width=max(256, w // 2),
-            overlap_height_ratio=0.2, overlap_width_ratio=0.2, verbose=0,
+            slice_height=max(256, h // 3), slice_width=max(256, w // 3),
+            overlap_height_ratio=0.3, overlap_width_ratio=0.3, verbose=0,
         )
         balls = []
         for obj in pred.object_prediction_list:
@@ -845,7 +845,7 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
 
         persons = []
         pres = person_model.predict(
-            frame, classes=[person_class], conf=0.25, imgsz=960, verbose=False,
+            frame, classes=[person_class], conf=0.15, imgsz=1280, verbose=False,
         )[0]
         if pres.boxes is not None:
             for b in pres.boxes.xyxy.cpu().numpy():
@@ -873,7 +873,7 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
 
     # seed가 있으면 타깃 매칭 이벤트만, 없으면 기존대로 상호작용 이벤트 우선
     if seed_hist is not None:
-        focus = [e for e in events if e["interaction"] and e["targetMatch"] >= 0.25]
+        focus = [e for e in events if e["interaction"] and e["targetMatch"] >= 0.1]
         if not focus:  # 타깃 매칭이 너무 엄격하면 임계 낮춰서 재시도
             focus = [e for e in events if e["interaction"]] or events
     else:
