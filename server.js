@@ -299,11 +299,15 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
     seedSeconds: 3.0,
   };
 
-  // 업로드 영상: 사용자가 직접 지정(탭)한 선수를 시드로 전달
-  if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
+  // 업로드 영상: 사용자가 직접 지정(탭)한 선수를 시드로 전달 (다중 우선)
+  if (seed && Number.isFinite(seed.nx) && seed.nx >= 0) {
     payload.seedTimeSec = Number.isFinite(seed.timeSec) ? seed.timeSec : 0;
     payload.seedNx = seed.nx;
     payload.seedNy = seed.ny;
+  }
+  if (seed && Array.isArray(seed.seeds) && seed.seeds.length > 0) {
+    payload.seedPoints = seed.seeds.map(s => ({ timeSec: s.timeSec, nx: s.nx, ny: s.ny }));
+    console.log(`[GPU] 다중 시드 ${payload.seedPoints.length}개 전달`);
   }
 
   try {
@@ -353,12 +357,16 @@ async function runGpuCandidates(videoUrl, player = {}, seed = null) {
     candidateFps: Number(process.env.MODAL_CANDIDATE_FPS) || 2,
   };
 
-  // 수동 시드가 있으면 GPU가 탭한 선수 외형으로 클립을 직접 필터링
-  if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
+  // 수동 시드: 다중 우선, 단일 폴백
+  if (seed && Number.isFinite(seed.nx) && seed.nx >= 0) {
     payload.seedTimeSec = Number.isFinite(seed.timeSec) ? seed.timeSec : 0;
     payload.seedNx = seed.nx;
     payload.seedNy = seed.ny;
-    console.log(`[GPU] 수동 시드 전달: t=${payload.seedTimeSec}s (${seed.nx.toFixed(3)}, ${seed.ny.toFixed(3)})`);
+    console.log(`[GPU] 단일 시드: t=${payload.seedTimeSec}s (${seed.nx.toFixed(3)}, ${seed.ny.toFixed(3)})`);
+  }
+  if (seed && Array.isArray(seed.seeds) && seed.seeds.length > 0) {
+    payload.seedPoints = seed.seeds.map(s => ({ timeSec: s.timeSec, nx: s.nx, ny: s.ny }));
+    console.log(`[GPU] 다중 시드 ${payload.seedPoints.length}개 전달`);
   }
 
   try {
@@ -1830,7 +1838,7 @@ app.post('/api/videos/seed-frames', async (req, res) => {
 });
 
 app.post('/api/jobs/extract', (req, res) => {
-  const { savedFilename, fileName, player: bodyPlayer, seed: bodySeed, ...rest } = req.body || {};
+  const { savedFilename, fileName, player: bodyPlayer, seed: bodySeed, seeds: bodySeeds, ...rest } = req.body || {};
   const filename = savedFilename || fileName;
   if (!filename) {
     res.status(400).json({ success: false, error: 'fileName 또는 savedFilename이 필요합니다.' });
@@ -1843,7 +1851,11 @@ app.post('/api/jobs/extract', (req, res) => {
   }
   const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
   const seed = normalizeSeedInput(bodySeed);
-  const job = createJob('extract', { filename, player, seed, srcKey: null });
+  // 다중 시드: seeds 배열이 있으면 seed 객체에 포함시켜 전달
+  const seedWithMulti = seed
+    ? { ...seed, seeds: Array.isArray(bodySeeds) && bodySeeds.length > 0 ? bodySeeds : undefined }
+    : (Array.isArray(bodySeeds) && bodySeeds.length > 0 ? { seeds: bodySeeds, nx: bodySeeds[0]?.nx, ny: bodySeeds[0]?.ny, timeSec: bodySeeds[0]?.timeSec } : null);
+  const job = createJob('extract', { filename, player, seed: seedWithMulti, srcKey: null });
   res.json({ success: true, jobId: job.id });
 
   (async () => {

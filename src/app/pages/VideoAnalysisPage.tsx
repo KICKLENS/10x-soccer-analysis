@@ -370,8 +370,11 @@ export default function VideoAnalysisPage() {
   // 업로드 영상에서 분석 대상 선수를 직접 지정(탭)하기 위한 상태
   const [seedFrames, setSeedFrames] = useState<{ url: string; timeSec: number }[]>([]);
   const [activeSeedFrame, setActiveSeedFrame] = useState<{ url: string; timeSec: number } | null>(null);
-  const [seed, setSeed] = useState<{ nx: number; ny: number; timeSec: number } | null>(null);
+  // 다중 프레임 탭 지원: 프레임별로 하나씩 탭 위치 저장
+  const [seeds, setSeeds] = useState<{ nx: number; ny: number; timeSec: number }[]>([]);
   const [isLoadingSeedFrames, setIsLoadingSeedFrames] = useState<boolean>(false);
+  // 하위 호환: 단일 seed (첫 번째 seeds 항목 또는 null)
+  const seed = seeds.length > 0 ? seeds[0] : null;
 
   useEffect(() => {
     return () => {
@@ -436,7 +439,7 @@ export default function VideoAnalysisPage() {
 
     setSeedFrames([]);
     setActiveSeedFrame(null);
-    setSeed(null);
+    setSeeds([]);
   };
 
   const handleCheckServer = async () => {
@@ -495,7 +498,7 @@ export default function VideoAnalysisPage() {
 
       setSeedFrames([]);
       setActiveSeedFrame(null);
-      setSeed(null);
+      setSeeds([]);
 
       setStatusMessage('업로드가 완료되었습니다. 멀리서/예전에 찍은 영상이라면 아래에서 분석할 선수를 직접 지정하면 정확도가 올라갑니다.');
     } catch (error) {
@@ -522,7 +525,7 @@ export default function VideoAnalysisPage() {
       const start = await fetchJson<{ jobId?: string }>('/api/jobs/spotlight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clips: clipList, ...player, player, seed: seedOverride || seed || undefined }),
+        body: JSON.stringify({ clips: clipList, ...player, player, seed: seedOverride || seed || undefined, seeds: seeds.length > 0 ? seeds : undefined }),
       });
       if (!start.jobId) return;
       const result = await pollJob<{ videoUrl?: string }>(start.jobId, (stage) =>
@@ -617,9 +620,9 @@ export default function VideoAnalysisPage() {
       const frames = (data.frames || []).map((f) => ({ url: toAbsoluteUrl(f.url), timeSec: f.timeSec }));
       if (!frames.length) throw new Error('프레임을 추출하지 못했습니다.');
       setSeedFrames(frames);
-      setActiveSeedFrame(frames[Math.floor(frames.length / 2)] || frames[0]);
-      setSeed(null);
-      setStatusMessage('분석할 선수가 가장 잘 보이는 프레임을 고른 뒤, 그 선수를 손가락으로 탭(클릭)하세요.');
+      setActiveSeedFrame(frames[0] || null);
+      setSeeds([]);
+      setStatusMessage('여러 장면에서 분석할 선수를 탭하세요. 많이 탭할수록 추적 정확도가 올라갑니다.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '프레임을 불러오지 못했습니다.');
     } finally {
@@ -627,18 +630,24 @@ export default function VideoAnalysisPage() {
     }
   };
 
-  // 확대된 프레임에서 선수를 탭하면 정규화 좌표(0~1)를 시드로 저장
+  // 확대된 프레임에서 선수를 탭하면 해당 프레임의 시드를 추가/교체
   const handleSeedTap = (event: React.MouseEvent<HTMLImageElement>) => {
     if (!activeSeedFrame) return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const nx = (event.clientX - rect.left) / rect.width;
-    const ny = (event.clientY - rect.top) / rect.height;
-    setSeed({
-      nx: Math.min(1, Math.max(0, nx)),
-      ny: Math.min(1, Math.max(0, ny)),
-      timeSec: activeSeedFrame.timeSec,
+    const nx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const ny = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    const newSeed = { nx, ny, timeSec: activeSeedFrame.timeSec };
+    // 같은 프레임(timeSec)이면 교체, 새 프레임이면 추가
+    setSeeds((prev) => {
+      const filtered = prev.filter((s) => s.timeSec !== activeSeedFrame.timeSec);
+      return [...filtered, newSeed];
     });
+  };
+
+  // 특정 프레임의 시드 제거
+  const removeSeedForFrame = (timeSec: number) => {
+    setSeeds((prev) => prev.filter((s) => s.timeSec !== timeSec));
   };
 
   const handleExtractHighlights = async () => {
@@ -663,6 +672,7 @@ export default function VideoAnalysisPage() {
           ...player,
           player,
           seed: seed || undefined,
+          seeds: seeds.length > 0 ? seeds : undefined,
         }),
       });
       if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
@@ -844,25 +854,27 @@ export default function VideoAnalysisPage() {
           >
             <div className="space-y-4">
               {/* 상태 배지 */}
-              <div className={`flex items-center gap-2 rounded-2xl px-4 py-3 ${seed ? 'bg-[#FF9F02]/15 border border-[#FF9F02]/40' : 'bg-white/[0.04] border border-white/10'}`}>
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base ${seed ? 'bg-[#FF9F02] text-black' : 'bg-white/10 text-white/50'}`}>
-                  {seed ? '✓' : '!'}
+              <div className={`flex items-center gap-2 rounded-2xl px-4 py-3 ${seeds.length > 0 ? 'bg-[#FF9F02]/15 border border-[#FF9F02]/40' : 'bg-white/[0.04] border border-white/10'}`}>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base font-bold ${seeds.length > 0 ? 'bg-[#FF9F02] text-black' : 'bg-white/10 text-white/50'}`}>
+                  {seeds.length > 0 ? seeds.length : '!'}
                 </span>
                 <div>
-                  <p className={`text-sm font-semibold ${seed ? 'text-[#FF9F02]' : 'text-white/50'}`}>
-                    {seed ? '선수 지정 완료' : '선수 미지정 (아래에서 지정해주세요)'}
+                  <p className={`text-sm font-semibold ${seeds.length > 0 ? 'text-[#FF9F02]' : 'text-white/50'}`}>
+                    {seeds.length > 0 ? `${seeds.length}개 프레임에서 선수 지정 완료` : '선수 미지정 (아래에서 지정해주세요)'}
                   </p>
                   <p className="text-xs text-white/40">
-                    {seed ? `영상 ${seed.timeSec}초 지점의 선수를 기준으로 추적합니다` : '지정하지 않으면 자동 인식을 사용합니다 (정확도 낮음)'}
+                    {seeds.length > 0
+                      ? `여러 장면에서 지정할수록 추적 정확도가 올라갑니다`
+                      : '지정하지 않으면 자동 인식을 사용합니다 (정확도 낮음)'}
                   </p>
                 </div>
-                {seed && (
+                {seeds.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setSeed(null)}
+                    onClick={() => setSeeds([])}
                     className="ml-auto text-xs text-white/40 hover:text-white/70 underline"
                   >
-                    다시 지정
+                    전체 해제
                   </button>
                 )}
               </div>
@@ -872,7 +884,7 @@ export default function VideoAnalysisPage() {
                 <div className="rounded-2xl border border-dashed border-white/20 p-4 text-center space-y-3">
                   <p className="text-sm text-white/60">
                     <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#FF9F02] text-[11px] font-bold text-black">1</span>
-                    영상에서 선수가 잘 보이는 장면을 불러오세요
+                    영상에서 선수가 잘 보이는 장면들을 불러오세요
                   </p>
                   <ActionButton
                     onClick={loadSeedFrames}
@@ -893,10 +905,12 @@ export default function VideoAnalysisPage() {
                 <div className="space-y-3">
                   <p className="text-sm text-white/60">
                     <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#FF9F02] text-[11px] font-bold text-black">2</span>
-                    아래 화면에서 <strong className="text-white">분석할 선수를 탭</strong>하세요
+                    각 장면에서 <strong className="text-white">분석할 선수를 탭</strong>하세요 — 여러 장면 탭할수록 정확도↑
                   </p>
                   <div
-                    className={`relative w-full overflow-hidden rounded-[18px] border-2 transition-colors ${seed ? 'border-[#FF9F02]' : 'border-white/20 hover:border-white/40'}`}
+                    className={`relative w-full overflow-hidden rounded-[18px] border-2 transition-colors ${
+                      seeds.some(s => s.timeSec === activeSeedFrame.timeSec) ? 'border-[#FF9F02]' : 'border-white/20 hover:border-white/40'
+                    }`}
                     style={{ touchAction: 'manipulation' }}
                   >
                     <img
@@ -907,7 +921,7 @@ export default function VideoAnalysisPage() {
                       draggable={false}
                     />
                     {/* 탭 전 안내 오버레이 */}
-                    {!seed && (
+                    {!seeds.some(s => s.timeSec === activeSeedFrame.timeSec) && (
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                         <div className="rounded-xl bg-black/60 px-4 py-2 text-center backdrop-blur-sm">
                           <p className="text-sm font-semibold text-white">👆 분석할 선수를 탭하세요</p>
@@ -915,40 +929,47 @@ export default function VideoAnalysisPage() {
                       </div>
                     )}
                     {/* 탭 위치 마커 */}
-                    {seed && seed.timeSec === activeSeedFrame.timeSec && (
-                      <>
+                    {seeds.filter(s => s.timeSec === activeSeedFrame.timeSec).map((s) => (
+                      <span key={s.timeSec}>
                         <span
                           className="pointer-events-none absolute z-10 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#FF9F02] bg-[#FF9F02]/20 shadow-[0_0_0_4px_rgba(0,0,0,0.5)]"
-                          style={{ left: `${seed.nx * 100}%`, top: `${seed.ny * 100}%` }}
+                          style={{ left: `${s.nx * 100}%`, top: `${s.ny * 100}%` }}
                         />
                         <span
                           className="pointer-events-none absolute z-10 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FF9F02]"
-                          style={{ left: `${seed.nx * 100}%`, top: `${seed.ny * 100}%` }}
+                          style={{ left: `${s.nx * 100}%`, top: `${s.ny * 100}%` }}
                         />
-                      </>
-                    )}
+                      </span>
+                    ))}
                   </div>
 
-                  {/* 썸네일 선택 */}
+                  {/* 썸네일 선택 — 탭 완료된 장면에 체크 표시 */}
                   {seedFrames.length > 1 && (
                     <div>
-                      <p className="mb-2 text-xs text-white/40">다른 장면 선택:</p>
+                      <p className="mb-2 text-xs text-white/40">장면 선택 (탭한 장면: <span className="text-[#FF9F02]">{seeds.length}개</span>):</p>
                       <div className="flex gap-2 overflow-x-auto pb-1">
-                        {seedFrames.map((f) => (
-                          <button
-                            key={f.url}
-                            type="button"
-                            onClick={() => setActiveSeedFrame(f)}
-                            className={`relative shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
-                              activeSeedFrame?.url === f.url ? 'border-[#FF9F02]' : 'border-white/10 hover:border-white/30'
-                            }`}
-                          >
-                            <img src={f.url} alt={`${f.timeSec}초`} className="h-16 w-28 object-cover" draggable={false} />
-                            <span className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 text-center text-[10px] text-white">
-                              {f.timeSec}초
-                            </span>
-                          </button>
-                        ))}
+                        {seedFrames.map((f) => {
+                          const tapped = seeds.some(s => s.timeSec === f.timeSec);
+                          return (
+                            <button
+                              key={f.url}
+                              type="button"
+                              onClick={() => setActiveSeedFrame(f)}
+                              className={`relative shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
+                                activeSeedFrame?.url === f.url ? 'border-[#FF9F02]' : tapped ? 'border-[#FF9F02]/50' : 'border-white/10 hover:border-white/30'
+                              }`}
+                            >
+                              <img src={f.url} alt={`${f.timeSec}초`} className="h-16 w-28 object-cover" draggable={false} />
+                              <span className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 text-center text-[10px] text-white">
+                                {f.timeSec}초
+                              </span>
+                              {/* 탭 완료 체크 */}
+                              {tapped && (
+                                <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF9F02] text-[10px] font-bold text-black shadow">✓</span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

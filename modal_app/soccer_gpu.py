@@ -156,6 +156,8 @@ with image.imports():
         seedTimeSec: float = -1.0  # 사용자가 탭한 프레임의 시각(초)
         seedNx: float = -1.0  # 탭 위치 x (전체 프레임 기준 0~1)
         seedNy: float = -1.0  # 탭 위치 y (전체 프레임 기준 0~1)
+        # 다중 시드: 여러 프레임에서 탭한 경우 [{timeSec, nx, ny}, ...]
+        seedPoints: List[dict] = []
         detectCandidates: bool = False  # SAHI로 공-선수 하이라이트 후보 직접 탐지
         candidateFps: float = 2.0
         preRoll: float = 1.2
@@ -743,7 +745,7 @@ def _extract_target_hist(video_path: str, fps: float, seed_point: tuple,
     res = person_model.predict(source=frame, classes=[person_class], conf=0.12, imgsz=1280, verbose=False)[0]
     if res.boxes is None or len(res.boxes) == 0:
         return None
-    best_box, best_dist = None, 0.45  # 최대 45% 대각선 거리 (멀리서 탭해도 인식)
+    best_box, best_dist = None, 0.45
     for b in res.boxes.xyxy.cpu().numpy():
         x1, y1, x2, y2 = b
         bcx, bcy = (x1 + x2) / 2.0 / W, (y1 + y2) / 2.0 / H
@@ -758,14 +760,42 @@ def _extract_target_hist(video_path: str, fps: float, seed_point: tuple,
     if hist is None:
         return None
     box_h = float(y2 - y1)
-    return hist, box_h  # (히스토그램, 참조 박스 높이)
+    return hist, box_h
+
+
+def _extract_merged_hist(video_path: str, fps: float, seed_points: list,
+                         person_model, person_class: int) -> "tuple | None":
+    """여러 seed_point에서 히스토그램을 추출해 평균 합산 → 더 강한 외형 모델."""
+    import cv2
+    import numpy as np
+
+    hists = []
+    box_hs = []
+    for sp in seed_points:
+        result = _extract_target_hist(video_path, fps, sp, person_model, person_class)
+        if result is not None:
+            h, bh = result
+            hists.append(h)
+            box_hs.append(bh)
+            print(f"[seed] {sp[0]:.1f}s 히스토그램 추출 성공")
+        else:
+            print(f"[seed] {sp[0]:.1f}s 히스토그램 추출 실패 (선수 탐지 안 됨)")
+
+    if not hists:
+        return None
+    # 히스토그램 평균 → 여러 각도/조명에서의 외형을 종합
+    merged = np.mean(np.stack(hists, axis=0), axis=0).astype(np.float32)
+    cv2.normalize(merged, merged, 0, 1, cv2.NORM_MINMAX)
+    avg_h = float(np.mean(box_hs))
+    print(f"[seed] 총 {len(hists)}개 프레임 히스토그램 평균 완료 (참조높이={avg_h:.1f}px)")
+    return merged, avg_h
 
 
 def _detect_candidates(video_path: str, player: dict, sample_fps: float,
                        pre_roll: float, post_roll: float, merge_gap: float,
-                       seed_point=None) -> dict:
+                       seed_point=None, seed_points=None) -> dict:
     """공-선수 상호작용 후보 탐지.
-    seed_point(timeSec, nx, ny) 가 있으면 탭한 선수와 외형이 맞는 장면만 포함.
+    seed_points(다중) 또는 seed_point(단일)가 있으면 탭한 선수 외형 기반 필터링.
     없으면 색/포지션 매칭 점수 기반(기존 동작).
     """
     import cv2
@@ -795,16 +825,20 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
     position = player.get("position", "")
     step_sec = 1.0 / max(0.5, sample_fps)
 
-    # 수동 시드가 있으면 탭 시점 외형 히스토그램을 추출해 타깃 식별에 활용
+    # 수동 시드: 다중 우선, 단일 폴백 → 히스토그램 추출
     seed_hist = None
     seed_ref_h = None
-    if seed_point is not None:
-        result = _extract_target_hist(video_path, fps, seed_point, person_model, person_class)
+    effective_points = seed_points if seed_points else ([seed_point] if seed_point else [])
+    if effective_points:
+        if len(effective_points) > 1:
+            result = _extract_merged_hist(video_path, fps, effective_points, person_model, person_class)
+        else:
+            result = _extract_target_hist(video_path, fps, effective_points[0], person_model, person_class)
         if result is not None:
             seed_hist, seed_ref_h = result
-            print(f"[cand] 타깃 히스토그램 추출 성공 (참조박스 높이={seed_ref_h:.1f}px)")
+            print(f"[cand] 타깃 히스토그램 완성 ({len(effective_points)}개 프레임, 참조높이={seed_ref_h:.1f}px)")
         else:
-            print("[cand] 타깃 히스토그램 추출 실패 — 색/포지션 매칭으로 폴백")
+            print("[cand] 히스토그램 추출 실패 — 색/포지션 매칭으로 폴백")
 
     def _person_target_score(crop, x1, y1, x2, y2, frame_w, frame_h):
         """이 사람이 '탭한 선수'일 확률(0~1). seed_hist 있으면 히스토그램 우선."""
@@ -955,20 +989,37 @@ def analyze(req: "AnalyzeRequest"):
 
         player = req.player.model_dump() if hasattr(req.player, "model_dump") else dict(req.player)
 
+        # 단일 시드
         seed_point = None
         if req.seedNx >= 0 and req.seedNy >= 0:
             seed_point = (max(0.0, req.seedTimeSec), req.seedNx, req.seedNy)
 
+        # 다중 시드 파싱 [{timeSec, nx, ny}, ...]
+        seed_points = []
+        for sp in (req.seedPoints or []):
+            t = float(sp.get("timeSec", -1))
+            nx = float(sp.get("nx", -1))
+            ny = float(sp.get("ny", -1))
+            if nx >= 0 and ny >= 0:
+                seed_points.append((max(0.0, t), nx, ny))
+        # 다중 없으면 단일로 폴백
+        if not seed_points and seed_point:
+            seed_points = [seed_point]
+        # 추적엔 첫 번째 시드(시간순 정렬) 사용
+        primary_seed = sorted(seed_points, key=lambda x: x[0])[0] if seed_points else seed_point
+        print(f"[analyze] 시드 {len(seed_points)}개 사용 (primary={primary_seed})")
+
         if req.detectCandidates:
             out["candidates"] = _detect_candidates(
                 tmp_path, player, req.candidateFps, req.preRoll, req.postRoll, req.mergeGap,
-                seed_point=seed_point,  # 탭한 선수 위치 → 그 선수 외형으로 클립 필터링
+                seed_point=primary_seed,
+                seed_points=seed_points if len(seed_points) > 1 else None,
             )
 
         tracking = _track_player(
             tmp_path, player, req.sampleFps, req.assumedPlayerHeightM, req.maxTrackSeconds,
             center_seed=req.centerSeed, seed_seconds=req.seedSeconds,
-            seed_point=seed_point,
+            seed_point=primary_seed,
         )
         out["tracking"] = tracking
 
