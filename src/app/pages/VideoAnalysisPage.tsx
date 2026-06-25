@@ -631,18 +631,20 @@ export default function VideoAnalysisPage() {
   };
 
   // 확대된 프레임에서 선수를 탭하면 해당 프레임의 시드를 추가/교체
+  // 이미 탭된 프레임을 다시 탭하면 선택 해제(토글)
   const handleSeedTap = (event: React.MouseEvent<HTMLImageElement>) => {
     if (!activeSeedFrame) return;
+    const alreadyTapped = seeds.some((s) => s.timeSec === activeSeedFrame.timeSec);
+    if (alreadyTapped) {
+      // 두 번째 탭 → 선택 해제
+      setSeeds((prev) => prev.filter((s) => s.timeSec !== activeSeedFrame.timeSec));
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const nx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     const ny = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
-    const newSeed = { nx, ny, timeSec: activeSeedFrame.timeSec };
-    // 같은 프레임(timeSec)이면 교체, 새 프레임이면 추가
-    setSeeds((prev) => {
-      const filtered = prev.filter((s) => s.timeSec !== activeSeedFrame.timeSec);
-      return [...filtered, newSeed];
-    });
+    setSeeds((prev) => [...prev, { nx, ny, timeSec: activeSeedFrame.timeSec }]);
   };
 
   // 특정 프레임의 시드 제거
