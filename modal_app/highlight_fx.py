@@ -23,6 +23,29 @@ TARGET_W, TARGET_H, TARGET_FPS = 1280, 720, 30
 FONT_BOLD = "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"
 FONT_REG = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 
+OSNET_WEIGHTS_URL = (
+    "https://github.com/KaiyangZhou/deep-person-reid/releases/download/"
+    "v1.0.6/osnet_x1_0_imagenet.pth"
+)
+OSNET_LOCAL = "/root/models/osnet_x1_0.pth"
+
+
+def _preload_reid():
+    """이미지 빌드 시 OSNet 가중치 미리 다운로드."""
+    import os
+    import urllib.request
+
+    os.makedirs("/root/models", exist_ok=True)
+    if not os.path.exists(OSNET_LOCAL):
+        print(f"[reid] OSNet 가중치 다운로드: {OSNET_WEIGHTS_URL}")
+        req = urllib.request.Request(
+            OSNET_WEIGHTS_URL, headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=300) as r, open(OSNET_LOCAL, "wb") as f:
+            f.write(r.read())
+        print(f"[reid] 다운로드 완료: {os.path.getsize(OSNET_LOCAL)//1024}KB")
+
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("libgl1", "libglib2.0-0", "ffmpeg", "fonts-nanum", "fonts-dejavu")
@@ -34,7 +57,9 @@ image = (
         "gdown==5.2.0",
         "pillow==10.4.0",
         "fastapi[standard]==0.115.4",
+        "torchreid==0.2.5",
     )
+    .run_function(_preload_reid)
 )
 
 volume = modal.Volume.from_name("soccer-models", create_if_missing=True)
@@ -353,6 +378,7 @@ def _color_score(crop, ranges) -> float:
 
 
 def _hist(crop):
+    """HSV 히스토그램 - OSNet 폴백용."""
     import cv2
     if crop is None or crop.size == 0:
         return None
@@ -360,6 +386,83 @@ def _hist(crop):
     h = cv2.calcHist([hsv], [0, 1], None, [30, 32], [0, 180, 0, 256])
     cv2.normalize(h, h, 0, 1, cv2.NORM_MINMAX)
     return h
+
+
+# ────────────── OSNet Re-ID ──────────────
+_reid_model_cache = {}
+
+
+def _get_reid_model():
+    """OSNet 모델 로드 (프로세스당 1회 캐시)."""
+    if "model" in _reid_model_cache:
+        return _reid_model_cache["model"], _reid_model_cache["transform"]
+    try:
+        import os
+        import torch
+        import torchreid
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = torchreid.models.build_model(
+            name="osnet_x1_0", num_classes=1000, pretrained=False
+        )
+        state = torch.load(OSNET_LOCAL, map_location=device)
+        # state_dict 키 정규화
+        if "state_dict" in state:
+            state = state["state_dict"]
+        state = {k.replace("module.", ""): v for k, v in state.items()}
+        model.load_state_dict(state, strict=False)
+        model.eval()
+        model = model.to(device)
+        # classifier 제거 → 512-dim 특징 벡터 출력
+        model.classifier = torch.nn.Identity()
+
+        import torchvision.transforms as T
+        transform = T.Compose([
+            T.ToPILImage(),
+            T.Resize((256, 128)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        _reid_model_cache["model"] = model
+        _reid_model_cache["transform"] = transform
+        _reid_model_cache["device"] = device
+        print(f"[reid] OSNet 로드 완료 (device={device})")
+        return model, transform
+    except Exception as e:
+        print(f"[reid] OSNet 로드 실패 → 히스토그램 폴백: {e}")
+        return None, None
+
+
+def _reid_feat(crop_bgr):
+    """OSNet으로 512-dim 특징 벡터 추출. 실패 시 None."""
+    if crop_bgr is None or crop_bgr.size == 0:
+        return None
+    try:
+        import cv2
+        import torch
+
+        model, transform = _get_reid_model()
+        if model is None:
+            return None
+        device = _reid_model_cache.get("device", "cpu")
+        rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
+        tensor = transform(rgb).unsqueeze(0).to(device)
+        with torch.no_grad():
+            feat = model(tensor)
+        feat = feat.squeeze(0).cpu().numpy()
+        norm = float((feat ** 2).sum() ** 0.5) + 1e-8
+        return feat / norm  # L2 정규화
+    except Exception as e:
+        print(f"[reid] 특징 추출 실패: {e}")
+        return None
+
+
+def _reid_sim(f1, f2) -> float:
+    """두 특징 벡터의 코사인 유사도 (0~1). 벡터 없으면 -1."""
+    if f1 is None or f2 is None:
+        return -1.0
+    import numpy as np
+    return float(np.dot(f1, f2))  # L2 정규화됐으므로 내적 = 코사인
 
 
 def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
@@ -386,7 +489,12 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
     cx0 = (seed_hint[0] * W) if seed_hint else W / 2.0
     cy0 = (seed_hint[1] * H) if seed_hint else H / 2.0
 
-    # 1) 탐지 패스: 프레임별 사람 박스 + 외형(hist)·팀색 점수 적재(짧은 클립이므로 메모리 OK)
+    # OSNet Re-ID 모델 미리 로드
+    _get_reid_model()
+    use_reid = _reid_model_cache.get("model") is not None
+    print(f"[track] Re-ID 모드: {'OSNet' if use_reid else 'HSV 히스토그램(폴백)'}")
+
+    # 1) 탐지 패스: 프레임별 사람 박스 + Re-ID 특징 적재
     per_frame, idx = [], 0
     while idx < max_frames:
         ok, frame = cap.read()
@@ -402,7 +510,9 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
                 dets.append({
                     "cx": (x1 + x2) / 2.0, "cy": (y1 + y2) / 2.0,
                     "w": x2 - x1, "h": y2 - y1,
-                    "hist": _hist(crop), "color": _color_score(crop, ranges),
+                    "feat": _reid_feat(crop) if use_reid else None,
+                    "hist": _hist(crop),
+                    "color": _color_score(crop, ranges),
                 })
         per_frame.append(dets)
         idx += 1
@@ -423,41 +533,53 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
         return best
 
     locked = _seed_pick()
-    if locked is None or locked["hist"] is None:
+    if locked is None:
         return None, fps, W, H, n
 
-    lock_hist = locked["hist"].copy()  # 초기 외형 완전 고정 — 절대 업데이트 안 함
-    lock_h = locked["h"]  # 참조 박스 높이 (크기 일관성 체크)
+    # 초기 외형 완전 고정 (업데이트 없음)
+    lock_feat = locked.get("feat")   # OSNet 512-dim 특징
+    lock_hist = locked["hist"].copy() if locked["hist"] is not None else None  # 폴백
+    lock_h = locked["h"]
     last = (locked["cx"], locked["cy"], locked["w"], locked["h"])
     vel = (0.0, 0.0)
     gap = 0
-    MAX_GAP = int(fps * 1.0)  # 1초 이상 놓치면 브라켓 숨김
+    MAX_GAP = int(fps * 1.0)
     centers, ema = [], None
 
     for f in per_frame:
         pred_x = last[0] + vel[0]
         pred_y = last[1] + vel[1]
         best, best_score, best_app = None, -1.0, 0.0
+
         for d in f:
-            app = 0.0
-            if d["hist"] is not None:
+            # Re-ID 유사도: OSNet 우선, 없으면 HSV 폴백
+            if use_reid and lock_feat is not None and d.get("feat") is not None:
+                app = max(0.0, _reid_sim(lock_feat, d["feat"]))
+            elif lock_hist is not None and d["hist"] is not None:
                 app = max(0.0, float(cv2.compareHist(lock_hist, d["hist"], cv2.HISTCMP_CORREL)))
+            else:
+                app = 0.0
+
             dist = np.hypot(d["cx"] - pred_x, d["cy"] - pred_y) / diag
-            pos = max(0.0, 1.0 - dist / 0.30)  # 위치 범위 좁힘
-            size = max(0.0, 1.0 - abs(d["h"] - lock_h) / max(1.0, lock_h))  # 초기 크기 기준
-            # 외형 가중치 대폭 상향: 색/위치보다 외형을 믿는다
-            score = 0.65 * app + 0.20 * pos + 0.10 * d["color"] + 0.05 * size
+            pos = max(0.0, 1.0 - dist / 0.30)
+            size = max(0.0, 1.0 - abs(d["h"] - lock_h) / max(1.0, lock_h))
+            # OSNet일 때 외형 가중치 더 높임 (딥 특징 신뢰)
+            w_app = 0.75 if use_reid else 0.65
+            score = w_app * app + 0.15 * pos + 0.07 * d["color"] + 0.03 * size
             if score > best_score:
                 best_score, best, best_app = score, d, app
 
+        # OSNet 임계값 (딥 특징은 유사도가 낮아도 더 신뢰)
+        thresh_track = 0.38 if use_reid else 0.42
+        thresh_app = 0.25 if use_reid else 0.30
+        thresh_reacq = 0.55 if use_reid else 0.65
+
         chosen = None
         if gap <= MAX_GAP:
-            # 추적 중: 외형 유사도가 충분히 높아야만 인정
-            if best is not None and best_score >= 0.42 and best_app >= 0.30:
+            if best is not None and best_score >= thresh_track and best_app >= thresh_app:
                 chosen = best
         else:
-            # 오래 놓침: 외형이 매우 비슷할 때만 재포착 (엉뚱한 선수 완전 차단)
-            if best is not None and best_app >= 0.65:
+            if best is not None and best_app >= thresh_reacq:
                 chosen = best
 
         if chosen is not None:
@@ -466,13 +588,13 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
                    0.5 * (new[1] - last[1]) + 0.5 * vel[1])
             last = new
             gap = 0
-            # ★ 외형 업데이트 완전 잠금 — lock_hist 절대 수정 안 함 (드리프트 원천 차단)
+            # ★ 외형 잠금 유지 — lock_feat/lock_hist 절대 수정 안 함
         else:
             gap += 1
             last = (pred_x, pred_y, last[2], last[3])
 
         if gap > MAX_GAP:
-            centers.append(None)  # None = 이 프레임에선 브라켓 숨김
+            centers.append(None)
             ema = None
             continue
         ema = last if ema is None else (
@@ -481,7 +603,6 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
             0.35 * last[2] + 0.65 * ema[2],
             0.35 * last[3] + 0.65 * ema[3],
         )
-        # 낮은 신뢰도 프레임: 브라켓은 표시하되 이름 숨김용 신뢰도 점수 포함
         centers.append((*ema, best_score if best is not None else 0.0))
 
     return centers, fps, W, H, n
