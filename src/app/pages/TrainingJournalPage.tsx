@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Trash2, Star, Trophy, Video, X, Play } from 'lucide-react';
 import { isTrainingUploadEnabled, uploadTrainingVideo } from '../lib/trainingVideo';
 import TacticalBoard, { type BoardToken } from '../components/TacticalBoard';
+import TacticalCard from '../components/TacticalCard';
 import PageNav from '../components/PageNav';
 
 const STORAGE_KEY = 'training-journal-entries';
@@ -359,6 +360,23 @@ export default function TrainingJournalPage() {
         )}
 
         <div style={cardsWrapStyle}>
+
+        {/* 오늘의 전술 카드 */}
+        <TacticalCard onXpGained={(xp) => {
+          // 전술 카드 XP는 별도 토스트로만 표시 (일지 XP와 분리)
+          const el = document.createElement('div');
+          el.textContent = `🧠 전술 퀴즈 정답! +${xp}XP`;
+          Object.assign(el.style, {
+            position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+            background: '#60D394', color: '#0a1f14', padding: '10px 20px',
+            borderRadius: '20px', fontWeight: '700', fontSize: '14px',
+            zIndex: '9999', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            animation: 'fadeIn 0.3s ease',
+          });
+          document.body.appendChild(el);
+          setTimeout(() => el.remove(), 3000);
+        }} />
+
         {/* 오늘의 기분 */}
         <Card title="오늘 기분은 어때요?" emoji="💛">
           <div style={moodRowStyle}>
