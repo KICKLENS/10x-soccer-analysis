@@ -373,8 +373,19 @@ export default function VideoAnalysisPage() {
   // 다중 프레임 탭 지원: 프레임별로 하나씩 탭 위치 저장
   const [seeds, setSeeds] = useState<{ nx: number; ny: number; timeSec: number }[]>([]);
   const [isLoadingSeedFrames, setIsLoadingSeedFrames] = useState<boolean>(false);
+  const [showSeedOverlay, setShowSeedOverlay] = useState<boolean>(false);
   // 하위 호환: 단일 seed (첫 번째 seeds 항목 또는 null)
   const seed = seeds.length > 0 ? seeds[0] : null;
+
+  // 프레임이 바뀔 때마다 오버레이를 3초간 표시
+  useEffect(() => {
+    if (!activeSeedFrame) return;
+    const alreadyTapped = seeds.some((s) => s.timeSec === activeSeedFrame.timeSec);
+    if (alreadyTapped) return;
+    setShowSeedOverlay(true);
+    const t = setTimeout(() => setShowSeedOverlay(false), 3000);
+    return () => clearTimeout(t);
+  }, [activeSeedFrame]);
 
   useEffect(() => {
     return () => {
@@ -636,14 +647,17 @@ export default function VideoAnalysisPage() {
     if (!activeSeedFrame) return;
     const alreadyTapped = seeds.some((s) => s.timeSec === activeSeedFrame.timeSec);
     if (alreadyTapped) {
-      // 두 번째 탭 → 선택 해제
+      // 두 번째 탭 → 선택 해제 + 오버레이 다시 표시
       setSeeds((prev) => prev.filter((s) => s.timeSec !== activeSeedFrame.timeSec));
+      setShowSeedOverlay(true);
+      setTimeout(() => setShowSeedOverlay(false), 3000);
       return;
     }
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const nx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     const ny = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    setShowSeedOverlay(false); // 탭 즉시 오버레이 숨김
     setSeeds((prev) => [...prev, { nx, ny, timeSec: activeSeedFrame.timeSec }]);
   };
 
@@ -922,10 +936,10 @@ export default function VideoAnalysisPage() {
                       className="block w-full cursor-crosshair select-none"
                       draggable={false}
                     />
-                    {/* 탭 전 안내 오버레이 */}
-                    {!seeds.some(s => s.timeSec === activeSeedFrame.timeSec) && (
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <div className="rounded-xl bg-black/60 px-4 py-2 text-center backdrop-blur-sm">
+                    {/* 탭 전 안내 오버레이 (3초 후 자동 사라짐) */}
+                    {showSeedOverlay && !seeds.some(s => s.timeSec === activeSeedFrame.timeSec) && (
+                      <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-4 transition-opacity duration-500">
+                        <div className="rounded-xl bg-black/70 px-4 py-2 text-center backdrop-blur-sm">
                           <p className="text-sm font-semibold text-white">👆 분석할 선수를 탭하세요</p>
                         </div>
                       </div>
