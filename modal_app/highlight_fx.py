@@ -392,7 +392,7 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
         ok, frame = cap.read()
         if not ok:
             break
-        res = model.predict(source=frame, classes=[0], conf=0.25, imgsz=960, verbose=False)[0]
+        res = model.predict(source=frame, classes=[0], conf=0.15, imgsz=1280, verbose=False)[0]
         dets = []
         if res.boxes is not None and len(res.boxes) > 0:
             xyxy = res.boxes.xyxy.cpu().numpy()
@@ -426,11 +426,12 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
     if locked is None or locked["hist"] is None:
         return None, fps, W, H, n
 
-    lock_hist = locked["hist"].copy()
+    lock_hist = locked["hist"].copy()  # 초기 외형 완전 고정 — 절대 업데이트 안 함
+    lock_h = locked["h"]  # 참조 박스 높이 (크기 일관성 체크)
     last = (locked["cx"], locked["cy"], locked["w"], locked["h"])
     vel = (0.0, 0.0)
     gap = 0
-    MAX_GAP = int(fps * 1.2)
+    MAX_GAP = int(fps * 1.0)  # 1초 이상 놓치면 브라켓 숨김
     centers, ema = [], None
 
     for f in per_frame:
@@ -442,20 +443,21 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
             if d["hist"] is not None:
                 app = max(0.0, float(cv2.compareHist(lock_hist, d["hist"], cv2.HISTCMP_CORREL)))
             dist = np.hypot(d["cx"] - pred_x, d["cy"] - pred_y) / diag
-            pos = max(0.0, 1.0 - dist / 0.35)
-            size = max(0.0, 1.0 - abs(d["h"] - last[3]) / max(1.0, last[3]))
-            score = 0.45 * app + 0.30 * pos + 0.15 * d["color"] + 0.10 * size
+            pos = max(0.0, 1.0 - dist / 0.30)  # 위치 범위 좁힘
+            size = max(0.0, 1.0 - abs(d["h"] - lock_h) / max(1.0, lock_h))  # 초기 크기 기준
+            # 외형 가중치 대폭 상향: 색/위치보다 외형을 믿는다
+            score = 0.65 * app + 0.20 * pos + 0.10 * d["color"] + 0.05 * size
             if score > best_score:
                 best_score, best, best_app = score, d, app
 
         chosen = None
         if gap <= MAX_GAP:
-            # 추적 중: 위치+외형 점수가 일정 이상이어야 인정(아니면 잠깐 놓침 처리)
-            if best is not None and best_score >= 0.32:
+            # 추적 중: 외형 유사도가 충분히 높아야만 인정
+            if best is not None and best_score >= 0.42 and best_app >= 0.30:
                 chosen = best
         else:
-            # 오래 놓침: 위치 무관, 외형이 매우 비슷할 때만 재포착(엉뚱한 선수 방지)
-            if best is not None and best_app >= 0.55:
+            # 오래 놓침: 외형이 매우 비슷할 때만 재포착 (엉뚱한 선수 완전 차단)
+            if best is not None and best_app >= 0.65:
                 chosen = best
 
         if chosen is not None:
@@ -464,14 +466,13 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
                    0.5 * (new[1] - last[1]) + 0.5 * vel[1])
             last = new
             gap = 0
-            if chosen["hist"] is not None and best_app >= 0.4:
-                lock_hist = 0.9 * lock_hist + 0.1 * chosen["hist"]  # 천천히 갱신(드리프트 억제)
+            # ★ 외형 업데이트 완전 잠금 — lock_hist 절대 수정 안 함 (드리프트 원천 차단)
         else:
             gap += 1
-            last = (pred_x, pred_y, last[2], last[3])  # 예측 위치로 잠깐 유지
+            last = (pred_x, pred_y, last[2], last[3])
 
         if gap > MAX_GAP:
-            centers.append(None)
+            centers.append(None)  # None = 이 프레임에선 브라켓 숨김
             ema = None
             continue
         ema = last if ema is None else (
@@ -480,7 +481,8 @@ def _track_target(video_path: str, seconds: float = 600.0, kit_text: str = "",
             0.35 * last[2] + 0.65 * ema[2],
             0.35 * last[3] + 0.65 * ema[3],
         )
-        centers.append(ema)
+        # 낮은 신뢰도 프레임: 브라켓은 표시하되 이름 숨김용 신뢰도 점수 포함
+        centers.append((*ema, best_score if best is not None else 0.0))
 
     return centers, fps, W, H, n
 
@@ -577,31 +579,37 @@ def _render_bracket(video_path: str, out_path: str, boxes, fps, W, H, name_text:
             break
         c = boxes[idx]
         if c is not None:
-            cx, cy, w, h = c
+            # 신뢰도 점수 추출 (5번째 요소, 없으면 1.0)
+            conf_score = float(c[4]) if len(c) > 4 else 1.0
+            cx, cy, w, h = c[0], c[1], c[2], c[3]
             # 박스를 사람보다 약간 넉넉하게
             bw = max(40.0, w * 1.18)
             bh = max(60.0, h * 1.12)
             x1 = int(max(0, cx - bw / 2)); y1 = int(max(0, cy - bh / 2))
             x2 = int(min(W - 1, cx + bw / 2)); y2 = int(min(H - 1, cy + bh / 2))
-            seg = int(max(14, min(bw, bh) * 0.28))  # 모서리 선 길이
+            seg = int(max(14, min(bw, bh) * 0.28))
             th = 3
+            # 신뢰도 낮으면 브라켓 색을 흐리게
+            alpha = min(1.0, conf_score / 0.45) if conf_score < 0.45 else 1.0
+            a_color = tuple(int(v * alpha) for v in accent)
             # 4개 모서리 ㄱ자
             for (px, py, dx, dy) in [
                 (x1, y1, 1, 1), (x2, y1, -1, 1), (x1, y2, 1, -1), (x2, y2, -1, -1),
             ]:
-                cv2.line(frame, (px, py), (px + dx * seg, py), accent, th, cv2.LINE_AA)
-                cv2.line(frame, (px, py), (px, py + dy * seg), accent, th, cv2.LINE_AA)
+                cv2.line(frame, (px, py), (px + dx * seg, py), a_color, th, cv2.LINE_AA)
+                cv2.line(frame, (px, py), (px, py + dy * seg), a_color, th, cv2.LINE_AA)
             # 발끝 중심 작은 마커
-            cv2.drawMarker(frame, (int(cx), y2), accent, cv2.MARKER_TRIANGLE_UP, 14, 2, cv2.LINE_AA)
+            cv2.drawMarker(frame, (int(cx), y2), a_color, cv2.MARKER_TRIANGLE_UP, 14, 2, cv2.LINE_AA)
 
-            # 이름표(박스 좌상단 위)
-            lx = int(max(0, min(W - sw, x1)))
-            ly = int(y1 - sh - 6)
-            if ly < 0:
-                ly = min(H - sh, y2 + 6)
-            if 0 <= ly <= H - sh and 0 <= lx <= W - sw:
-                roi = frame[ly:ly + sh, lx:lx + sw].astype(np.float32)
-                frame[ly:ly + sh, lx:lx + sw] = (sprite * salpha + roi * (1.0 - salpha)).astype(np.uint8)
+            # 이름표: 신뢰도 0.42 이상일 때만 표시 (틀린 선수에 이름 붙이기 방지)
+            if conf_score >= 0.42:
+                lx = int(max(0, min(W - sw, x1)))
+                ly = int(y1 - sh - 6)
+                if ly < 0:
+                    ly = min(H - sh, y2 + 6)
+                if 0 <= ly <= H - sh and 0 <= lx <= W - sw:
+                    roi = frame[ly:ly + sh, lx:lx + sw].astype(np.float32)
+                    frame[ly:ly + sh, lx:lx + sw] = (sprite * salpha + roi * (1.0 - salpha)).astype(np.uint8)
         vw.write(frame)
         idx += 1
     cap.release()
