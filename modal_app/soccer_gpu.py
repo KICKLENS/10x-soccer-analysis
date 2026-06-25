@@ -67,7 +67,7 @@ USE_FINETUNED = os.environ.get("SOCCER_USE_FINETUNED", "1") == "1"  # 학습된 
 
 @lru_cache(maxsize=1)
 def _finetuned():
-    """파인튜닝 모델이 있으면 {path, player, ball, names} 반환, 없으면 None."""
+    """파인튜닝 모델이 있으면 {path, player, ball, penalty_box, center_circle, names} 반환."""
     if not USE_FINETUNED or not FINETUNED_PATH or not os.path.exists(FINETUNED_PATH):
         return None
     from ultralytics import YOLO
@@ -77,7 +77,20 @@ def _finetuned():
         (i for i, n in names.items() if n in ("player", "person", "goalkeeper")), None
     )
     ball_id = next((i for i, n in names.items() if n == "ball" or "ball" in n), None)
-    return {"path": FINETUNED_PATH, "player": player_id, "ball": ball_id, "names": names}
+    penalty_id = next(
+        (i for i, n in names.items() if "penalty" in n and "arc" not in n), None
+    )
+    circle_id = next(
+        (i for i, n in names.items() if "center" in n or "centre" in n), None
+    )
+    return {
+        "path": FINETUNED_PATH,
+        "player": player_id,
+        "ball": ball_id,
+        "penalty_box": penalty_id,
+        "center_circle": circle_id,
+        "names": names,
+    }
 
 
 image = (
@@ -814,6 +827,14 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
     person_model_path, person_class = _resolve_person_model()
     person_model = YOLO(person_model_path)
 
+    # 페널티박스/센터서클 위치 클래스 (파인튜닝 모델에 학습된 경우만)
+    ft = _finetuned()
+    penalty_class_id = ft.get("penalty_box") if ft else None
+    circle_class_id = ft.get("center_circle") if ft else None
+    has_location_classes = penalty_class_id is not None
+    if has_location_classes:
+        print(f"[cand] 위치 탐지 활성화: penalty_box={penalty_class_id}, center_circle={circle_class_id}")
+
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return {"available": False, "reason": "cannot_open_video"}
@@ -885,6 +906,18 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
             for b in pres.boxes.xyxy.cpu().numpy():
                 persons.append((float(b[0]), float(b[1]), float(b[2]), float(b[3])))
 
+        # 페널티박스/센터서클 위치 탐지 (학습됐을 때만)
+        location_tag = "unknown"
+        if has_location_classes and pres.boxes is not None:
+            all_classes = pres.boxes.cls.cpu().numpy().astype(int)
+            all_boxes_xy = pres.boxes.xyxy.cpu().numpy()
+            for cls_idx, lbox in zip(all_classes, all_boxes_xy):
+                if cls_idx == penalty_class_id:
+                    location_tag = "penalty_box"
+                    break
+                if circle_class_id is not None and cls_idx == circle_class_id:
+                    location_tag = "center_circle"
+
         if balls:
             ball_seen += 1
             bx, by, bconf = max(balls, key=lambda b: b[2])
@@ -896,11 +929,12 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
                 if (x1 - ex) <= bx <= (x2 + ex) and (y1 - ey) <= by <= (y2 + ey):
                     crop = frame[max(0, int(y1)):int(y2), max(0, int(x1)):int(x2)]
                     score = _person_target_score(crop, x1, y1, x2, y2, w, h)
-                    if score > 0.0:  # seed_hist 있을 때 명백히 다른 선수(0.0)는 제외
+                    if score > 0.0:
                         interaction = True
                         target_match = max(target_match, score)
             events.append({"t": round(t, 2), "ballConf": round(bconf, 3),
-                           "interaction": interaction, "targetMatch": round(target_match, 3)})
+                           "interaction": interaction, "targetMatch": round(target_match, 3),
+                           "location": location_tag})
         t += step_sec
 
     cap.release()
@@ -931,6 +965,12 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
         inter_frames = sum(1 for x in g if x["interaction"])
         avg_conf = sum(x["ballConf"] for x in g) / ball_frames
         target_avg = sum(x["targetMatch"] for x in g) / ball_frames
+        # 위치: 그룹 내에서 가장 많이 탐지된 위치 태그 사용
+        loc_counts = {}
+        for x in g:
+            loc = x.get("location", "unknown")
+            loc_counts[loc] = loc_counts.get(loc, 0) + 1
+        dominant_location = max(loc_counts, key=loc_counts.get) if loc_counts else "unknown"
         candidates.append({
             "id": f"gpu-{i:04d}",
             "startSec": round(start, 2),
@@ -942,6 +982,7 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
             "avgBallConfidence": round(avg_conf, 3),
             "targetMatchAvg": round(target_avg, 3),
             "durationSec": round(end - start, 2),
+            "location": dominant_location,  # penalty_box | center_circle | unknown
         })
 
     candidates.sort(key=lambda c: (c["interactionFrames"], c["targetMatchAvg"], c["avgBallConfidence"]), reverse=True)

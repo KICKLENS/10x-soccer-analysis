@@ -604,6 +604,12 @@ function buildCoachPrompt(yoloResult, player = {}, gpu = null) {
   const traits = player.traits || '-';
   const targetPlayer = yoloResult.targetPlayer || null;
 
+  const LOCATION_KR = {
+    penalty_box: '페널티 박스 안',
+    center_circle: '센터서클 근처',
+    unknown: null,
+  };
+
   const candidates = (yoloResult.clips || []).slice(0, 20).map((clip, index) => ({
     rank: index + 1,
     id: clip.id,
@@ -621,6 +627,7 @@ function buildCoachPrompt(yoloResult, player = {}, gpu = null) {
     targetPlayerMatchAvg: clip.targetPlayerMatchAvg,
     avgBallConfidence: clip.avgBallConfidence,
     ballDetectionsCount: clip.ballDetectionsCount,
+    location: LOCATION_KR[clip.location] || null,
   }));
 
   return `당신은 유소년부터 프로까지 선수를 육성해 온 축구 코치이자 감독입니다.
@@ -661,6 +668,7 @@ ${buildGpuPromptSection(gpu)}
 - targetPlayerInteractionFrames >= 2 이거나, GK/등록 선수의 세이브·펀칭·킥·캐치·분배 등 **공을 직접 다루는** 동작
 - coachComment에 **구체적 동작**(예: "크로스를 펀칭", "1대1에서 스프링")을 반드시 명시
 - importanceScore >= 75
+- location 필드가 있으면 반드시 활용 (예: "페널티 박스 안에서 슈팅 시도", "센터서클 근처에서 볼 배급")
 
 [규칙]
 - 반드시 한국어

@@ -1,17 +1,23 @@
 """
 Soccer detector fine-tuning on Modal (우리 전용 축구 검출 모델 학습).
 
-공개 데이터셋(Adit-jain/Soccana_player_ball_detection_v1, 약 2.5만 장, 선수/심판/공,
-노이즈·배경 등 다양한 증강 포함)으로 yolo11m을 파인튜닝한다.
-결과 가중치는 Modal 볼륨 'soccer-models'의 /models/soccer_best.pt 로 저장되어,
-분석 서비스(soccer_gpu.py)에서 SOCCER_FINETUNED_MODEL 로 불러 쓸 수 있다.
+데이터 소스:
+  1. HuggingFace (Adit-jain/Soccana_player_ball_detection_v1) — 약 25,000장, 선수/심판/공
+  2. Roboflow Universe 공식 축구 데이터셋 (API 키 있을 때):
+       - roboflow-jvuqo/football-ball-detection-rejhg  (공 특화, ~4,948장)
+       - roboflow-jvuqo/football-players-detection-3zvbc (선수+공, ~400장)
+       - akash1/football-field-segmentation  (페널티박스·센터서클, 502장)
+  3. 우리 로컬 Roboflow zip (422장)
+
+결과 가중치: Modal 볼륨 'soccer-models' /models/soccer_best.pt
+클래스: player(0), goalkeeper(1), referee(2), ball(3), penalty_box(4), center_circle(5)
 
 사용:
-  # 스모크(소량·1에폭): 파이프라인 검증
-  modal run modal_app/train_soccer.py::train --epochs 1 --fraction 0.03 --imgsz 640
+  # Roboflow API 키 없이 (HuggingFace + 로컬 zip):
+  modal run --detach modal_app/train_soccer.py::train_universe
 
-  # 본 학습(백그라운드 권장):
-  modal run --detach modal_app/train_soccer.py::train --epochs 40 --imgsz 768
+  # Roboflow API 키 있을 때 (31,000장 통합):
+  modal run --detach modal_app/train_soccer.py::train_universe --use_roboflow 1
 """
 
 import modal
@@ -20,12 +26,15 @@ APP_NAME = "soccer-train"
 DATASET_REPO = "Adit-jain/Soccana_player_ball_detection_v1"
 BASE_MODEL = "yolo11m.pt"
 
-# Roboflow Universe에서 가져올 대용량 공개 데이터셋 목록
-# (workspace, project, version) 형식
+# Roboflow Universe 공식 공개 데이터셋 (workspace, project, version)
+# 모두 무료 공개, API 키만 있으면 자동 다운로드 가능
 ROBOFLOW_UNIVERSE_DATASETS = [
-    ("roboflow-100", "soccer-players-detection5", 1),
-    ("sports-1ivbt", "football-players-detection", 1),
-    ("nfl-players", "football-player-detection-by-team", 1),
+    # Roboflow 공식 — 공 특화 (4,948장, 타일링 적용)
+    ("roboflow-jvuqo", "football-ball-detection-rejhg", 4),
+    # Roboflow 공식 — 선수+공+심판+GK
+    ("roboflow-jvuqo", "football-players-detection-3zvbc", 12),
+    # 페널티박스·센터서클·페널티아크 탐지 (502장)
+    ("akash1", "football-field-segmentation", 1),
 ]
 
 image = (
@@ -334,6 +343,7 @@ def train_roboflow(
     gpu="A10G",
     timeout=24 * 3600,
     volumes={"/models": volume},
+    secrets=[modal.Secret.from_name("roboflow-api", required=False)],
 )
 def train_from_universe(
     epochs: int = 50,
@@ -342,8 +352,18 @@ def train_from_universe(
     base: str = BASE_MODEL,
     run_name: str = "soccer_universe",
     extra_zip_bytes: bytes = None,
+    use_roboflow: int = 0,
 ):
-    """HuggingFace 대용량 데이터(25,000장) + 로컬 zip 합쳐서 학습."""
+    """HuggingFace 25,000장 + Roboflow Universe 공식 데이터셋 + 로컬 zip 통합 학습.
+
+    클래스:
+      0: player       — 필드 선수
+      1: goalkeeper   — 골키퍼
+      2: referee      — 심판
+      3: ball         — 공
+      4: penalty_box  — 페널티 박스 (새 추가!)
+      5: center_circle — 센터서클 (새 추가!)
+    """
     import glob
     import os
     import shutil
@@ -359,20 +379,27 @@ def train_from_universe(
         os.makedirs(os.path.join(merged_root, "images", split), exist_ok=True)
         os.makedirs(os.path.join(merged_root, "labels", split), exist_ok=True)
 
-    UNIFIED_CLASSES = ["player", "goalkeeper", "referee", "ball"]
+    # 기존 4개 + 새로 추가된 위치 클래스 2개
+    UNIFIED_CLASSES = ["player", "goalkeeper", "referee", "ball", "penalty_box", "center_circle"]
 
     def _class_map(names: list) -> dict:
+        """소스 데이터셋 클래스 → UNIFIED_CLASSES 인덱스 매핑."""
         mapping = {}
         for i, n in enumerate(names):
-            nl = n.lower().strip()
-            if nl in ("player", "person", "field player", "outfield player", "players"):
+            nl = n.lower().strip().replace("-", "_").replace(" ", "_")
+            if nl in ("player", "person", "field_player", "outfield_player", "players"):
                 mapping[i] = 0
-            elif nl in ("goalkeeper", "goalie", "gk", "goal keeper"):
+            elif nl in ("goalkeeper", "goalie", "gk", "goal_keeper"):
                 mapping[i] = 1
             elif nl in ("referee", "ref", "linesman"):
                 mapping[i] = 2
             elif "ball" in nl:
                 mapping[i] = 3
+            elif nl in ("penalty_box", "penalty_area", "penalty_arc", "penalty"):
+                mapping[i] = 4
+            elif nl in ("center_circle", "centre_circle", "center_arc"):
+                mapping[i] = 5
+            # goal_post / center_circle 등 나머지는 skip (None 반환)
         return mapping
 
     def _copy_split(src_img_dir, src_lbl_dir, split, class_map, prefix):
@@ -410,7 +437,56 @@ def train_from_universe(
 
     total_images = 0
 
-    # 1. HuggingFace 대용량 데이터셋 (Soccana, ~25,000장)
+    # ── 0. Roboflow Universe 공식 데이터셋 (API 키 있을 때만) ──────────────────
+    rf_api_key = os.environ.get("ROBOFLOW_API_KEY", "")
+    if use_roboflow and rf_api_key:
+        print(f"[rf] Roboflow Universe 데이터셋 {len(ROBOFLOW_UNIVERSE_DATASETS)}개 다운로드 시작...")
+        try:
+            from roboflow import Roboflow
+            rf = Roboflow(api_key=rf_api_key)
+            for ws, proj, ver in ROBOFLOW_UNIVERSE_DATASETS:
+                try:
+                    print(f"[rf] 다운로드 중: {ws}/{proj} v{ver}")
+                    rf_proj = rf.workspace(ws).project(proj)
+                    ds = rf_proj.version(ver).download("yolov8", location=f"/tmp/rf_{proj}")
+                    rf_dir = ds.location
+                    rf_yaml = os.path.join(rf_dir, "data.yaml")
+                    if not os.path.exists(rf_yaml):
+                        yamls = glob.glob(os.path.join(rf_dir, "**", "data.yaml"), recursive=True)
+                        rf_yaml = yamls[0] if yamls else None
+                    if not rf_yaml:
+                        print(f"[rf] {proj}: data.yaml 없음, 건너뜀")
+                        continue
+                    with open(rf_yaml) as f:
+                        cfg = yaml.safe_load(f) or {}
+                    names = cfg.get("names", [])
+                    if isinstance(names, dict):
+                        names = [names[k] for k in sorted(names)]
+                    cmap = _class_map(names)
+                    base_dir = os.path.dirname(rf_yaml)
+                    for split in ("train", "valid"):
+                        for img_sub in (split, "val", "valid"):
+                            img_dir = os.path.join(base_dir, "images", img_sub)
+                            if not os.path.isdir(img_dir):
+                                img_dir = os.path.join(base_dir, img_sub)
+                            lbl_dir = img_dir.replace("images", "labels")
+                            n = _copy_split(img_dir, lbl_dir, split, cmap, f"rf_{proj[:8]}_{split[:2]}")
+                            if n:
+                                total_images += n
+                                print(f"[rf] {proj} {split}: {n}장 추가")
+                                break
+                    print(f"[rf] {proj} 완료 (클래스: {names})")
+                except Exception as e:
+                    print(f"[rf] {proj} 다운로드 실패 (건너뜀): {e}")
+        except Exception as e:
+            print(f"[rf] Roboflow SDK 초기화 실패: {e}")
+    elif use_roboflow and not rf_api_key:
+        print("[rf] ROBOFLOW_API_KEY 없음 → Roboflow Universe 건너뜀")
+        print("[rf] API 키 설정법: modal secret create roboflow-api ROBOFLOW_API_KEY=your_key_here")
+    else:
+        print("[rf] use_roboflow=0 → Roboflow Universe 건너뜀 (HuggingFace만 사용)")
+
+    # ── 1. HuggingFace 대용량 데이터셋 (Soccana, ~25,000장) ────────────────────
     print("[hf] HuggingFace 데이터셋 다운로드 중 (약 25,000장)...")
     try:
         hf_root = snapshot_download(
@@ -566,8 +642,13 @@ def train_universe(
     epochs: int = 50,
     imgsz: int = 1280,
     extra_zip: str = "/Users/taeyun-io/Downloads/football-players-detection.yolov8.zip",
+    use_roboflow: int = 0,
 ):
-    """Roboflow Universe 대용량 데이터셋으로 학습 (로컬 zip 병합 포함)."""
+    """HuggingFace + Roboflow Universe 통합 학습.
+
+    기본(use_roboflow=0): HuggingFace 25,000장 + 로컬 zip 422장 ≈ 25,422장
+    Roboflow API 설정 후(use_roboflow=1): 위 + Universe 3개 ≈ 31,000장
+    """
     extra_bytes = None
     if extra_zip:
         import os
@@ -576,11 +657,13 @@ def train_universe(
                 extra_bytes = f.read()
             print(f"[local] 로컬 zip 포함: {extra_zip} ({len(extra_bytes)/1e6:.1f} MB)")
         else:
-            print(f"[local] zip 파일 없음, Universe 데이터만 사용: {extra_zip}")
+            print(f"[local] zip 파일 없음 ({extra_zip}), HuggingFace만 사용")
 
+    if use_roboflow:
+        print("[local] Roboflow Universe 통합 모드 (API 키 필요)")
     print("[local] Modal 학습 시작 (백그라운드)...")
     result = train_from_universe.remote(
-        epochs=epochs, imgsz=imgsz, extra_zip_bytes=extra_bytes
+        epochs=epochs, imgsz=imgsz, extra_zip_bytes=extra_bytes, use_roboflow=use_roboflow
     )
     print(f"[완료] {result}")
 
