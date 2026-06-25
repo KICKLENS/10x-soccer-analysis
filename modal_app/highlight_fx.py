@@ -23,27 +23,13 @@ TARGET_W, TARGET_H, TARGET_FPS = 1280, 720, 30
 FONT_BOLD = "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"
 FONT_REG = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 
-OSNET_WEIGHTS_URL = (
-    "https://github.com/KaiyangZhou/deep-person-reid/releases/download/"
-    "v1.0.6/osnet_x1_0_imagenet.pth"
-)
-OSNET_LOCAL = "/root/models/osnet_x1_0.pth"
-
-
 def _preload_reid():
-    """이미지 빌드 시 OSNet 가중치 미리 다운로드."""
-    import os
-    import urllib.request
-
-    os.makedirs("/root/models", exist_ok=True)
-    if not os.path.exists(OSNET_LOCAL):
-        print(f"[reid] OSNet 가중치 다운로드: {OSNET_WEIGHTS_URL}")
-        req = urllib.request.Request(
-            OSNET_WEIGHTS_URL, headers={"User-Agent": "Mozilla/5.0"}
-        )
-        with urllib.request.urlopen(req, timeout=300) as r, open(OSNET_LOCAL, "wb") as f:
-            f.write(r.read())
-        print(f"[reid] 다운로드 완료: {os.path.getsize(OSNET_LOCAL)//1024}KB")
+    """이미지 빌드 시 ResNet50 Re-ID 가중치 미리 캐시."""
+    import torchvision.models as tv_models
+    # ImageNet 가중치 자동 다운로드 (PyTorch 공식 서버, 안정적)
+    model = tv_models.resnet50(weights=tv_models.ResNet50_Weights.IMAGENET1K_V1)
+    print(f"[reid] ResNet50 Re-ID 사전 로드 완료")
+    del model
 
 
 image = (
@@ -57,7 +43,7 @@ image = (
         "gdown==5.2.0",
         "pillow==10.4.0",
         "fastapi[standard]==0.115.4",
-        "torchreid==0.2.5",
+        "torchvision>=0.17.0",
     )
     .run_function(_preload_reid)
 )
@@ -393,30 +379,22 @@ _reid_model_cache = {}
 
 
 def _get_reid_model():
-    """OSNet 모델 로드 (프로세스당 1회 캐시)."""
+    """ResNet50 Re-ID 모델 로드 (프로세스당 1회 캐시)."""
     if "model" in _reid_model_cache:
         return _reid_model_cache["model"], _reid_model_cache["transform"]
     try:
-        import os
         import torch
-        import torchreid
+        import torch.nn as nn
+        import torchvision.models as tv_models
+        import torchvision.transforms as T
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        model = torchreid.models.build_model(
-            name="osnet_x1_0", num_classes=1000, pretrained=False
-        )
-        state = torch.load(OSNET_LOCAL, map_location=device)
-        # state_dict 키 정규화
-        if "state_dict" in state:
-            state = state["state_dict"]
-        state = {k.replace("module.", ""): v for k, v in state.items()}
-        model.load_state_dict(state, strict=False)
+        base = tv_models.resnet50(weights=tv_models.ResNet50_Weights.IMAGENET1K_V1)
+        # FC 레이어 제거 → 2048-dim 특징 벡터 출력
+        model = nn.Sequential(*list(base.children())[:-1], nn.Flatten())
         model.eval()
         model = model.to(device)
-        # classifier 제거 → 512-dim 특징 벡터 출력
-        model.classifier = torch.nn.Identity()
 
-        import torchvision.transforms as T
         transform = T.Compose([
             T.ToPILImage(),
             T.Resize((256, 128)),
@@ -426,10 +404,10 @@ def _get_reid_model():
         _reid_model_cache["model"] = model
         _reid_model_cache["transform"] = transform
         _reid_model_cache["device"] = device
-        print(f"[reid] OSNet 로드 완료 (device={device})")
+        print(f"[reid] ResNet50 Re-ID 로드 완료 (device={device}, feat=2048-dim)")
         return model, transform
     except Exception as e:
-        print(f"[reid] OSNet 로드 실패 → 히스토그램 폴백: {e}")
+        print(f"[reid] Re-ID 모델 로드 실패 → 히스토그램 폴백: {e}")
         return None, None
 
 
