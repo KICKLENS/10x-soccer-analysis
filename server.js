@@ -1796,9 +1796,9 @@ app.post('/api/videos/seed-frames', async (req, res) => {
     cleanupOldSeedFrames();
 
     const dur = await ffprobeDuration(localPath);
-    const n = Math.min(12, Math.max(3, Number(count) || 8));
-    const startFrac = 0.06;
-    const endFrac = 0.94;
+    const n = Math.min(16, Math.max(5, Number(count) || 10));
+    const startFrac = 0.04;
+    const endFrac = 0.90;
     const token = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const dir = path.join(uploadsDir, 'seed-frames', token);
     fs.mkdirSync(dir, { recursive: true });

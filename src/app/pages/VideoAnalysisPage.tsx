@@ -625,7 +625,7 @@ export default function VideoAnalysisPage() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ savedFilename: uploadedVideoFileName }),
+          body: JSON.stringify({ savedFilename: uploadedVideoFileName, count: 10 }),
         },
       );
       const frames = (data.frames || []).map((f) => ({ url: toAbsoluteUrl(f.url), timeSec: f.timeSec }));
