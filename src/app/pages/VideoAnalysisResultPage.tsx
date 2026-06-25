@@ -23,6 +23,9 @@ interface Summary {
   weakness?: string;
   trainingPoint?: string;
   nextTrainingPoint?: string;
+  dataInsufficient?: boolean;
+  insufficientReason?: string;
+  filmingGuide?: string;
 }
 
 interface RenderResult {
@@ -267,7 +270,24 @@ function AiCoachSummaryCard({ geminiResult }: { geminiResult: any }) {
         <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">완료</span>
       </div>
 
-      {summary ? (
+      {summary?.dataInsufficient ? (
+        /* 데이터 부족 안내 */
+        <div className="space-y-3">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-2">
+              <span className="text-lg">⚠️</span>
+              <div>
+                <div className="text-sm font-semibold text-amber-800">정확한 분석이 어렵습니다</div>
+                <div className="mt-1 text-sm text-amber-700">{summary.insufficientReason}</div>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div className="text-xs font-semibold text-blue-700 mb-2">더 정확한 분석을 위한 촬영 가이드</div>
+            <div className="text-sm text-blue-800 leading-relaxed whitespace-pre-line">{summary.filmingGuide}</div>
+          </div>
+        </div>
+      ) : summary ? (
         <div className="space-y-4">
           <div className="rounded-xl bg-blue-50 p-4">
             <div className="text-xs font-medium text-blue-600">눈에 띄는 장면</div>

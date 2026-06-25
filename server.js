@@ -543,6 +543,58 @@ function prefilterYoloClipsForCoach(clips, player = {}) {
     .slice(0, 12);
 }
 
+/**
+ * 분석 데이터 품질 평가 — 불확실할 때 엉터리 분석 방지
+ * @returns { insufficient: bool, reason: string, guide: string }
+ */
+function assessDataQuality(candidates, gpuAnalysis) {
+  const totalClips = candidates.length;
+  const avgBallConf = totalClips > 0
+    ? candidates.reduce((s, c) => s + (Number(c.avgBallConfidence) || 0), 0) / totalClips
+    : 0;
+  const avgInteraction = totalClips > 0
+    ? candidates.reduce((s, c) => s + (Number(c.interactionFrames) || 0), 0) / totalClips
+    : 0;
+  const avgTargetMatch = totalClips > 0
+    ? candidates.reduce((s, c) => s + (Number(c.targetPlayerMatchAvg) || 0), 0) / totalClips
+    : 0;
+  const trackingAvail = gpuAnalysis?.tracking?.available === true;
+  const trackingShort = gpuAnalysis?.tracking?.available === false &&
+    gpuAnalysis?.tracking?.reason === 'target_track_too_short';
+
+  // 공 탐지 데이터가 너무 적음
+  if (avgBallConf < 0.20 && totalClips < 3) {
+    return {
+      insufficient: true,
+      reason: `공이 거의 탐지되지 않았어요 (공 인식률 ${Math.round(avgBallConf * 100)}%, 후보 장면 ${totalClips}개).`,
+      guide: '📹 촬영 가이드: 선수와 공이 함께 화면에 나오도록 조금 더 멀리서 촬영해주세요. 공이 작게라도 보여야 분석이 가능해요.',
+      partialStrength: null,
+    };
+  }
+
+  // 선수 추적 데이터가 너무 불안정
+  if (trackingShort || (totalClips > 0 && avgTargetMatch < 0.15 && !trackingAvail)) {
+    return {
+      insufficient: true,
+      reason: `선수를 안정적으로 추적하지 못했어요 (선수 매칭률 ${Math.round(avgTargetMatch * 100)}%).`,
+      guide: '📹 촬영 가이드: 분석할 선수를 처음 3초간 화면 가운데에 크게 잡아주세요. 또는 영상 분석 페이지에서 "장면 불러오기"로 선수를 직접 탭해서 지정해주세요.',
+      partialStrength: null,
+    };
+  }
+
+  // 공 관여 장면이 너무 적음
+  if (avgInteraction < 1.0 && avgBallConf < 0.30) {
+    return {
+      insufficient: true,
+      reason: `선수와 공의 상호작용 장면이 충분하지 않아요 (평균 관여 프레임 ${avgInteraction.toFixed(1)}개).`,
+      guide: '📹 촬영 가이드: 선수가 공을 직접 다루는 장면(패스, 슈팅, 드리블)이 많이 담긴 영상을 사용해주세요. 영상이 너무 짧거나 선수가 후방에만 있으면 분석이 어려워요.',
+      partialStrength: null,
+    };
+  }
+
+  return { insufficient: false, reason: null, guide: null };
+}
+
 function buildCoachPrompt(yoloResult, player = {}, gpu = null) {
   const position = player.position || '미지정';
   const playerName = player.name || '분석 대상 선수';
@@ -1118,6 +1170,26 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   report('정밀 추적·이동 분석 중', 40);
   if (!rescued && MODAL_ENABLED) {
     gpuAnalysis = await runGpuAnalysis(videoUrl, player, coachCandidates, seed);
+  }
+
+  // ── 데이터 품질 검사: 불확실하면 엉터리 분석 대신 솔직한 안내 ──
+  const dataQuality = assessDataQuality(coachCandidates, gpuAnalysis);
+  if (dataQuality.insufficient) {
+    console.log(`[QC] 데이터 품질 부족 → 엉터리 분석 방지: ${dataQuality.reason}`);
+    return {
+      clips: coachCandidates.slice(0, 3),
+      summary: {
+        dataInsufficient: true,
+        insufficientReason: dataQuality.reason,
+        filmingGuide: dataQuality.guide,
+        noticeableScene: '데이터 부족으로 정확한 분석이 어렵습니다.',
+        strength: dataQuality.partialStrength || '영상 데이터가 부족해 장점을 정확히 파악하기 어렵습니다.',
+        weakness: '분석 불가',
+        trainingPoint: dataQuality.guide,
+        nextTrainingPoint: '더 좋은 영상으로 다시 분석해보세요.',
+      },
+      gpuAnalysis,
+    };
   }
 
   report('AI 코치가 장면 선정 중', 60);

@@ -827,7 +827,23 @@ export default function VideoAnalysisPage() {
           </div>
         ) : null}
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        {/* 촬영 가이드 */}
+        <div className="mt-6 rounded-2xl border border-[#FF9F02]/30 bg-[#FF9F02]/8 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">📹</span>
+            <div>
+              <p className="text-sm font-semibold text-[#FF9F02] mb-2">정확한 분석을 위한 촬영 가이드</p>
+              <div className="grid gap-1.5 text-xs text-white/70">
+                <div className="flex items-start gap-2"><span className="text-[#FF9F02] shrink-0">①</span><span><strong className="text-white/90">거리</strong> — 선수와 공이 함께 보일 정도로 조금 멀리서 찍어요 (너무 가까우면 공이 안 보여요)</span></div>
+                <div className="flex items-start gap-2"><span className="text-[#FF9F02] shrink-0">②</span><span><strong className="text-white/90">처음 3초</strong> — 분석할 선수를 화면 가운데에 크게 잡아주세요 (선수 지정에 사용돼요)</span></div>
+                <div className="flex items-start gap-2"><span className="text-[#FF9F02] shrink-0">③</span><span><strong className="text-white/90">길이</strong> — 최소 5분 이상, 선수가 공을 직접 다루는 장면이 많을수록 좋아요</span></div>
+                <div className="flex items-start gap-2"><span className="text-[#FF9F02] shrink-0">④</span><span><strong className="text-white/90">선수 지정</strong> — 업로드 후 아래 "장면 불러오기"에서 선수를 직접 탭하면 정확도가 크게 올라가요</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <SectionCard
             title="1. 영상 업로드"
             description="경기 영상을 업로드하면 AI 분석을 위한 준비가 자동으로 진행되며, 이후 하이라이트 추출과 분석 단계로 자연스럽게 이어집니다."
