@@ -11,7 +11,6 @@ import {
   NotebookPen,
   PlayCircle,
   Radar,
-  Scissors,
   Sparkles,
   Target,
   Upload,
@@ -528,34 +527,27 @@ export default function HomePage() {
     },
     {
       step: 3,
-      icon: <Scissors size={24} className="text-[#FFB648]" />,
-      title: '주요 장면 추출',
-      desc: 'AI가 핵심 장면 클립을 자동 추출',
-      onClick: () => appNavigate('/video-analysis'),
-    },
-    {
-      step: 4,
       icon: <Sparkles size={24} className="text-[#FFB648]" />,
       title: '하이라이트 추출',
       desc: 'SNS·공유용 하이라이트 영상 만들기',
       onClick: () => appNavigate('/highlight-extraction'),
     },
     {
-      step: 5,
+      step: 4,
       icon: <Archive size={24} className="text-[#FFB648]" />,
       title: '하이라이트 보관함',
       desc: '추출한 하이라이트와 기록 저장',
       onClick: () => appNavigate('/analysis-history'),
     },
     {
-      step: 6,
+      step: 5,
       icon: <Brain size={24} className="text-[#FFB648]" />,
       title: 'AI 분석',
       desc: 'AI 코치의 상세 피드백 받기',
       onClick: () => appNavigate('/ai-video-analysis'),
     },
     {
-      step: 7,
+      step: 6,
       icon: <NotebookPen size={24} className="text-[#FFB648]" />,
       title: '훈련일지',
       desc: '오늘 배운 것 기록하고 복습',
@@ -756,7 +748,7 @@ export default function HomePage() {
                   지금보다 <span style={{ color: POINT_COLOR }}>10배</span> 빠르게 성장하는 길
                 </>
               }
-              description="촬영 → 업로드 → 주요 장면 추출 → 하이라이트 → 보관 → AI 분석 → 훈련일지. 원하는 단계를 눌러 지금 시작하세요."
+              description="촬영 → 업로드 → 하이라이트 → 보관 → AI 분석 → 훈련일지. 원하는 단계를 눌러 지금 시작하세요."
             />
           </div>
         </div>
