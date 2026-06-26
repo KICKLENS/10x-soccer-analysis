@@ -326,6 +326,37 @@ function getSupportedMimeType() {
   return '';
 }
 
+/** PC(마우스)에서는 창 너비와 관계없이 모바일 안내+가이드 화면을 보여준다. */
+function useShowDesktopCaptureGuide(): boolean {
+  const [showGuide, setShowGuide] = React.useState(true);
+
+  React.useEffect(() => {
+    const evaluate = () => {
+      const ua = navigator.userAgent || '';
+      const isPhone = /iPhone|iPod|Android.*Mobile/i.test(ua);
+      const isTablet =
+        /iPad|Android(?!.*Mobile)/i.test(ua) ||
+        (navigator.maxTouchPoints > 1 && /Mac/i.test(ua));
+      const isTouchDevice = isPhone || isTablet;
+      const finePointer = window.matchMedia('(pointer: fine)').matches;
+
+      // Mac/PC + 마우스: 좁은 창이어도 안내+가이드 페이지
+      if (finePointer && !isTouchDevice) {
+        setShowGuide(true);
+        return;
+      }
+      // 휴대폰·태블릿: 카메라 촬영 UI
+      setShowGuide(false);
+    };
+
+    evaluate();
+    window.addEventListener('resize', evaluate);
+    return () => window.removeEventListener('resize', evaluate);
+  }, []);
+
+  return showGuide;
+}
+
 export default function MobileCapturePage() {
   const navigate = useNavigate();
 
@@ -948,11 +979,9 @@ export default function MobileCapturePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordedFile, selectedPlayer?.name, isRecording]);
 
-  // PC에서는 모바일 안내 페이지 표시
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-  const [_isDesktop] = React.useState(isDesktop);
+  const showDesktopCaptureGuide = useShowDesktopCaptureGuide();
 
-  if (_isDesktop) {
+  if (showDesktopCaptureGuide) {
     return (
       <div style={pageStyle}>
         <div style={{ ...containerStyle, maxWidth: 1400, padding: '0 40px' }}>
