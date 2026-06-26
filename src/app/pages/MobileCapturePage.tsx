@@ -745,23 +745,23 @@ export default function MobileCapturePage() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: 32,
+              gap: 48,
               width: '100%',
-              maxWidth: 960,
-              padding: '48px 32px',
+              maxWidth: 1200,
+              padding: '64px 56px',
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.10)',
-              borderRadius: 32,
+              borderRadius: 40,
               backdropFilter: 'blur(10px)',
             }}>
               {/* 왼쪽: 설명 */}
               <div style={{ display: 'flex', flexDirection: 'column' as const, justifyContent: 'center', gap: 24 }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#FF9F02', letterSpacing: 2, marginBottom: 12 }}>MOBILE CAPTURE</div>
-                  <h1 style={{ margin: 0, fontSize: 36, fontWeight: 900, lineHeight: 1.2, color: '#fff' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#FF9F02', letterSpacing: 3, marginBottom: 16 }}>MOBILE CAPTURE</div>
+                  <h1 style={{ margin: 0, fontSize: 52, fontWeight: 900, lineHeight: 1.15, color: '#fff' }}>
                     경기 촬영은<br />모바일에서
                   </h1>
-                  <p style={{ marginTop: 16, fontSize: 15, lineHeight: 1.8, color: 'rgba(255,255,255,0.65)' }}>
+                  <p style={{ marginTop: 20, fontSize: 17, lineHeight: 1.9, color: 'rgba(255,255,255,0.65)' }}>
                     실시간 경기 촬영 기능은 스마트폰에 최적화되어 있어요.<br />
                     모바일 브라우저에서 같은 주소로 접속하면 바로 촬영할 수 있어요.
                   </p>
@@ -774,8 +774,8 @@ export default function MobileCapturePage() {
                   borderRadius: 16,
                   padding: '16px 20px',
                 }}>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>모바일에서 접속할 주소</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#FFB648', letterSpacing: 0.5, wordBreak: 'break-all' as const }}>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>모바일에서 접속할 주소</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#FFB648', letterSpacing: 0.5, wordBreak: 'break-all' as const }}>
                     {window.location.origin}/mobile-capture
                   </div>
                   <button
@@ -784,13 +784,13 @@ export default function MobileCapturePage() {
                       alert('주소가 복사되었습니다!');
                     }}
                     style={{
-                      marginTop: 12,
-                      padding: '8px 18px',
+                      marginTop: 14,
+                      padding: '10px 22px',
                       borderRadius: 999,
                       border: '1px solid rgba(255,159,2,0.5)',
                       background: 'rgba(255,159,2,0.15)',
                       color: '#FF9F02',
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: 700,
                       cursor: 'pointer',
                     }}
@@ -801,16 +801,16 @@ export default function MobileCapturePage() {
 
                 {/* 영상 분석 페이지로 이동 */}
                 <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>PC에서는 이미 촬영된 영상을 업로드해서 분석할 수 있어요.</div>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>PC에서는 이미 촬영된 영상을 업로드해서 분석할 수 있어요.</div>
                   <button
                     onClick={() => navigate('/video-analysis')}
                     style={{
-                      padding: '14px 24px',
-                      borderRadius: 16,
+                      padding: '18px 28px',
+                      borderRadius: 18,
                       border: 'none',
                       background: 'linear-gradient(135deg, #FF9F02, #FF6B00)',
                       color: '#fff',
-                      fontSize: 15,
+                      fontSize: 17,
                       fontWeight: 800,
                       cursor: 'pointer',
                       textAlign: 'left' as const,
@@ -828,7 +828,7 @@ export default function MobileCapturePage() {
                 borderRadius: 24,
                 padding: '28px 24px',
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 20, letterSpacing: 1 }}>📹 촬영 가이드</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 24, letterSpacing: 1 }}>📹 정확한 분석을 위한 촬영 가이드</div>
                 {[
                   { icon: '①', title: '처음 3초', desc: '분석할 선수를 화면 가운데에 크게 잡아주세요' },
                   { icon: '②', title: '촬영 거리', desc: '선수와 공이 함께 보일 정도로 적당히 멀리서 찍어요' },
@@ -838,14 +838,14 @@ export default function MobileCapturePage() {
                 ].map(item => (
                   <div key={item.icon} style={{
                     display: 'flex',
-                    gap: 14,
-                    padding: '14px 0',
+                    gap: 18,
+                    padding: '18px 0',
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
                   }}>
-                    <div style={{ fontSize: 18, color: '#FF9F02', fontWeight: 900, flexShrink: 0, width: 24 }}>{item.icon}</div>
+                    <div style={{ fontSize: 22, color: '#FF9F02', fontWeight: 900, flexShrink: 0, width: 28 }}>{item.icon}</div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>{item.title}</div>
-                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{item.desc}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 5 }}>{item.title}</div>
+                      <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{item.desc}</div>
                     </div>
                   </div>
                 ))}
