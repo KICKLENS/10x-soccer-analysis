@@ -144,6 +144,10 @@ def build_candidates(
         )
         target_ratio = target_frames / frames_matched if frames_matched > 0 else 0.0
 
+        goal_zone_frames = sum(1 for item in group if item.get("inGoalZone"))
+        goal_moment_score = min(1.0, goal_zone_frames * 0.12 + (0.25 if goal_zone_frames >= 2 else 0))
+        is_goal_area = goal_moment_score >= 0.35
+
         # 점수: 대상 선수 추적 비율을 최우선 반영
         score = 0.12
         score += 0.28 * target_ratio
@@ -154,6 +158,7 @@ def build_candidates(
         score += 0.10 * min(avg_ball_confidence / 0.70, 1.0)
         score += 0.06 * min(max_ball_confidence / 0.85, 1.0)
         score += 0.04 * min(avg_ball_count / 1.8, 1.0)
+        score += goal_moment_score * 0.22
 
         if target_frames >= 3:
             score += 0.08
@@ -181,8 +186,12 @@ def build_candidates(
         score = clamp(score, 0.35, 0.98)
 
         if target_interaction_frames > 0:
-            label = "대상 선수 공 관여 장면"
-            reason = "등록한 선수와 공의 직접 상호작용이 확인된 구간"
+            if is_goal_area:
+                label = "골대 앞 결정적 순간"
+                reason = "골대·딥존 근처에서 등록 선수와 공의 직접 상호작용"
+            else:
+                label = "대상 선수 공 관여 장면"
+                reason = "등록한 선수와 공의 직접 상호작용이 확인된 구간"
         elif target_frames > 0:
             label = "대상 선수 활동 장면"
             reason = "등록한 선수의 움직임이 반복 확인된 구간(공 관여는 약함)"
@@ -214,6 +223,9 @@ def build_candidates(
                 "targetPlayerFrames": target_frames,
                 "targetPlayerInteractionFrames": target_interaction_frames,
                 "targetPlayerMatchAvg": round(target_match_avg, 3),
+                "goalMomentScore": round(goal_moment_score, 3),
+                "isGoalAreaMoment": is_goal_area,
+                "goalMomentType": "goal_zone_heuristic" if is_goal_area else None,
             }
         )
 
@@ -509,6 +521,13 @@ def analyze_video(args: argparse.Namespace) -> Dict[str, Any]:
             if target_interaction or soft_target_interaction:
                 target_interaction_frames_total += 1
 
+            top_ball = ball_boxes[0]
+            ball_cx = (top_ball[0] + top_ball[2]) / 2.0 / w
+            ball_cy = (top_ball[1] + top_ball[3]) / 2.0 / h
+            in_goal_zone = (
+                ball_cx < 0.22 or ball_cx > 0.78 or ball_cy < 0.26 or ball_cy > 0.74
+            ) and interaction
+
             detections.append(
                 {
                     "timeSec": round(next_time, 2),
@@ -526,6 +545,9 @@ def analyze_video(args: argparse.Namespace) -> Dict[str, Any]:
                     "topBallConfidence": round(max(ball_confidences), 3)
                     if ball_confidences
                     else 0.0,
+                    "ballNx": round(ball_cx, 3),
+                    "ballNy": round(ball_cy, 3),
+                    "inGoalZone": in_goal_zone,
                 }
             )
 

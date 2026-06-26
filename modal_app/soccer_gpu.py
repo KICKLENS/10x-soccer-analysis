@@ -921,6 +921,8 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
         if balls:
             ball_seen += 1
             bx, by, bconf = max(balls, key=lambda b: b[2])
+            ball_nx = bx / w
+            ball_ny = by / h
             interaction = False
             target_match = 0.0
             for (x1, y1, x2, y2) in persons:
@@ -932,9 +934,23 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
                     if score > 0.0:
                         interaction = True
                         target_match = max(target_match, score)
-            events.append({"t": round(t, 2), "ballConf": round(bconf, 3),
-                           "interaction": interaction, "targetMatch": round(target_match, 3),
-                           "location": location_tag})
+            # 골대·페널티박스 결정적 구역: 박스 안 + 공이 골문/딥존 근처
+            in_goal_mouth = (
+                location_tag == "penalty_box"
+                and (ball_nx < 0.20 or ball_nx > 0.80 or ball_ny < 0.24 or ball_ny > 0.76)
+            )
+            in_penalty_area = location_tag == "penalty_box"
+            events.append({
+                "t": round(t, 2),
+                "ballConf": round(bconf, 3),
+                "ballNx": round(ball_nx, 3),
+                "ballNy": round(ball_ny, 3),
+                "interaction": interaction,
+                "targetMatch": round(target_match, 3),
+                "location": location_tag,
+                "inGoalMouth": in_goal_mouth,
+                "inPenaltyArea": in_penalty_area,
+            })
         t += step_sec
 
     cap.release()
@@ -965,27 +981,84 @@ def _detect_candidates(video_path: str, player: dict, sample_fps: float,
         inter_frames = sum(1 for x in g if x["interaction"])
         avg_conf = sum(x["ballConf"] for x in g) / ball_frames
         target_avg = sum(x["targetMatch"] for x in g) / ball_frames
-        # 위치: 그룹 내에서 가장 많이 탐지된 위치 태그 사용
         loc_counts = {}
         for x in g:
             loc = x.get("location", "unknown")
             loc_counts[loc] = loc_counts.get(loc, 0) + 1
         dominant_location = max(loc_counts, key=loc_counts.get) if loc_counts else "unknown"
+
+        goal_mouth_frames = sum(1 for x in g if x.get("inGoalMouth"))
+        penalty_frames = sum(1 for x in g if x.get("inPenaltyArea"))
+        # 공이 프레임 가장자리(골대 방향)로 빠르게 이동하는지 — 슛/크로스 직전 신호
+        edge_approach = 0
+        for j in range(1, len(g)):
+            prev, cur = g[j - 1], g[j]
+            if "ballNx" not in prev or "ballNx" not in cur:
+                continue
+            dt = max(0.01, cur["t"] - prev["t"])
+            vx = abs(cur["ballNx"] - prev["ballNx"]) / dt
+            near_edge = cur["ballNx"] < 0.22 or cur["ballNx"] > 0.78
+            if vx > 0.35 and near_edge:
+                edge_approach += 1
+
+        goal_moment_score = 0.0
+        if goal_mouth_frames >= 1:
+            goal_moment_score += 0.45 + min(goal_mouth_frames, 4) * 0.05
+        elif penalty_frames >= 2:
+            goal_moment_score += 0.28 + min(penalty_frames, 6) * 0.03
+        if edge_approach >= 1:
+            goal_moment_score += 0.12
+        if inter_frames >= 2 and (penalty_frames >= 1 or goal_mouth_frames >= 1):
+            goal_moment_score += 0.10
+        goal_moment_score = min(1.0, goal_moment_score)
+
+        is_goal_area = goal_moment_score >= 0.35
+        if is_goal_area:
+            start = max(0.0, g[0]["t"] - pre_roll - 2.5)  # 빌드업·패스 연결 포함
+
+        if goal_mouth_frames >= 1:
+            goal_type = "goal_mouth"
+            label = "골대 앞 결정적 순간"
+            reason = "페널티박스 골문 근처에서 공-선수 상호작용(슛/선방/수비·득점 시도)"
+        elif penalty_frames >= 2:
+            goal_type = "penalty_area"
+            label = "페널티박스 공격·수비 순간"
+            reason = "페널티박스 안 공 관여(침투·패스·수비·골키퍼 대응)"
+        else:
+            goal_type = None
+            label = "공 관여 추정 장면"
+            reason = "공과 선수의 근접 상호작용 구간"
+
         candidates.append({
             "id": f"gpu-{i:04d}",
             "startSec": round(start, 2),
             "endSec": round(end, 2),
             "startTime": _sec_to_mmss(start),
             "endTime": _sec_to_mmss(end),
+            "label": label,
+            "reason": reason,
             "ballFrames": ball_frames,
             "interactionFrames": inter_frames,
             "avgBallConfidence": round(avg_conf, 3),
             "targetMatchAvg": round(target_avg, 3),
             "durationSec": round(end - start, 2),
-            "location": dominant_location,  # penalty_box | center_circle | unknown
+            "location": dominant_location,
+            "goalMomentScore": round(goal_moment_score, 3),
+            "isGoalAreaMoment": is_goal_area,
+            "goalMomentType": goal_type,
+            "goalMouthFrames": goal_mouth_frames,
+            "penaltyAreaFrames": penalty_frames,
         })
 
-    candidates.sort(key=lambda c: (c["interactionFrames"], c["targetMatchAvg"], c["avgBallConfidence"]), reverse=True)
+    candidates.sort(
+        key=lambda c: (
+            c.get("goalMomentScore", 0),
+            c["interactionFrames"],
+            c["targetMatchAvg"],
+            c["avgBallConfidence"],
+        ),
+        reverse=True,
+    )
     return {"available": True, "candidates": candidates[:15],
             "ballSeenFrames": ball_seen, "sampledEvents": len(events)}
 

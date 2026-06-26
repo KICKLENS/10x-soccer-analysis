@@ -56,6 +56,7 @@ type JournalEntry = {
   coachNote: string;
   videoUrl?: string;
   board?: BoardToken[];
+  boardNote?: string;
   xp: number;
   createdAt: string;
 };
@@ -150,6 +151,7 @@ export default function TrainingJournalPage() {
   const [savedXp, setSavedXp] = useState<number | null>(null);
 
   const [board, setBoard] = useState<BoardToken[]>([]);
+  const [boardNote, setBoardNote] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [uploadEnabled, setUploadEnabled] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -207,8 +209,9 @@ export default function TrainingJournalPage() {
     if (coachNote.trim()) total += 10;
     if (videoUrl) total += 20;
     if (board.length > 0) total += 10;
+    if (boardNote.trim()) total += 10;
     return total;
-  }, [mood, goal, learned, skills, wentWell, toImprove, rating, coachNote, videoUrl, board]);
+  }, [mood, goal, learned, skills, wentWell, toImprove, rating, coachNote, videoUrl, board, boardNote]);
 
   const totalXp = useMemo(() => entries.reduce((sum, e) => sum + (e.xp || 0), 0), [entries]);
   const level = Math.floor(totalXp / 100) + 1;
@@ -237,6 +240,7 @@ export default function TrainingJournalPage() {
     setVideoError('');
     setVideoProgress(0);
     setBoard([]);
+    setBoardNote('');
   };
 
   const loadEntryToForm = (entry: JournalEntry) => {
@@ -253,6 +257,7 @@ export default function TrainingJournalPage() {
     setVideoError('');
     setVideoProgress(0);
     setBoard(Array.isArray(entry.board) ? entry.board : []);
+    setBoardNote(entry.boardNote || '');
     setSavedXp(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -286,6 +291,7 @@ export default function TrainingJournalPage() {
       coachNote: coachNote.trim(),
       videoUrl: videoUrl || undefined,
       board: board.length ? board : undefined,
+      boardNote: boardNote.trim() || undefined,
       xp,
       createdAt: new Date().toISOString(),
     };
@@ -302,16 +308,28 @@ export default function TrainingJournalPage() {
     setTimeout(() => setSavedXp(null), 6000);
   };
 
-  const cardsWrapStyle: CSSProperties = isDesktop
-    ? { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16, rowGap: 0, alignItems: 'start' }
-    : { display: 'grid', gridTemplateColumns: '1fr', columnGap: 0, rowGap: 0 };
+  const formGridStyle: CSSProperties = isDesktop
+    ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'stretch' }
+    : { display: 'grid', gridTemplateColumns: '1fr', gap: 10 };
+
+  const showTacticalXpToast = (gained: number) => {
+    const el = document.createElement('div');
+    el.textContent = `🧠 전술 퀴즈 정답! +${gained}XP`;
+    Object.assign(el.style, {
+      position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+      background: '#60D394', color: '#0a1f14', padding: '10px 20px',
+      borderRadius: '20px', fontWeight: '700', fontSize: '14px',
+      zIndex: '9999', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    });
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  };
 
   return (
     <div style={pageStyle}>
       <div style={pitchBgStyle} />
 
-      <div style={{ ...containerStyle, maxWidth: isDesktop ? 1080 : 560 }}>
-        {/* 상단 바 */}
+      <div style={{ ...containerStyle, maxWidth: isDesktop ? 920 : 560 }}>
         <PageNav />
         <div style={{ ...topBarStyle, justifyContent: 'flex-end' }}>
           <div style={dateChipStyle}>
@@ -324,35 +342,23 @@ export default function TrainingJournalPage() {
           </div>
         </div>
 
-        {/* 헤더 */}
-        <header style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 34 }}>⚽📒</div>
-          <h1 style={titleStyle}>오늘의 훈련일지</h1>
-          <p style={subtitleStyle}>오늘 한 훈련을 이모지로 즐겁게 기록해 봐요!</p>
+        <header style={headerCompactStyle}>
+          <div>
+            <h1 style={titleStyle}>오늘의 훈련일지</h1>
+              <p style={subtitleStyle}>오늘 한 훈련을 이모티콘으로 즐겁게 기록해봐요!</p>
+          </div>
+          <div style={statsInlineStyle}>
+            <div style={statPillStyle}>
+              <Trophy size={14} color={YELLOW} />
+              <span>Lv.{level}</span>
+              <span style={statPillMutedStyle}>{levelProgress}/100</span>
+            </div>
+            <div style={statPillStyle}>
+              <span>🔥</span>
+              <span>{streak}일 연속</span>
+            </div>
+          </div>
         </header>
-
-        {/* 레벨/연속 기록 배너 */}
-        <section style={statsBannerStyle}>
-          <div style={statBoxStyle}>
-            <div style={statTopStyle}>
-              <Trophy size={16} color={YELLOW} />
-              <span style={statLabelStyle}>나의 레벨</span>
-            </div>
-            <div style={statValueStyle}>Lv.{level}</div>
-            <div style={progressTrackStyle}>
-              <div style={{ ...progressFillStyle, width: `${levelProgress}%` }} />
-            </div>
-            <div style={statHintStyle}>다음 레벨까지 {100 - levelProgress} XP</div>
-          </div>
-          <div style={statBoxStyle}>
-            <div style={statTopStyle}>
-              <span style={{ fontSize: 16 }}>🔥</span>
-              <span style={statLabelStyle}>연속 기록</span>
-            </div>
-            <div style={statValueStyle}>{streak}일</div>
-            <div style={statHintStyle}>{streak > 0 ? '멋져요! 계속 가요' : '오늘부터 시작해요'}</div>
-          </div>
-        </section>
 
         {savedXp != null && (
           <div style={rewardBannerStyle}>
@@ -360,211 +366,184 @@ export default function TrainingJournalPage() {
           </div>
         )}
 
-        <div style={cardsWrapStyle}>
+        <SectionLabel title="오늘의 학습" first />
+        <div style={stackStyle}>
+          <RuleCard />
+          <TacticalCard onXpGained={showTacticalXpToast} />
+        </div>
 
-        {/* 오늘의 FIFA 규정 카드 */}
-        <RuleCard />
+        <SectionLabel title="오늘 기록" />
+        <div style={formGridStyle}>
+          <Card title="오늘 기분" emoji="💛" compact fill>
+            <div style={moodRowStyle}>
+              {MOODS.map((m) => {
+                const active = mood === m.emoji;
+                return (
+                  <button
+                    key={m.emoji}
+                    type="button"
+                    onClick={() => setMood(active ? '' : m.emoji)}
+                    style={{ ...moodBtnStyle, ...(active ? moodBtnActiveStyle : null) }}
+                  >
+                    <span style={{ fontSize: 26 }}>{m.emoji}</span>
+                    <span style={moodLabelStyle}>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
 
-        {/* 오늘의 전술 카드 */}
-        <TacticalCard onXpGained={(xp) => {
-          // 전술 카드 XP는 별도 토스트로만 표시 (일지 XP와 분리)
-          const el = document.createElement('div');
-          el.textContent = `🧠 전술 퀴즈 정답! +${xp}XP`;
-          Object.assign(el.style, {
-            position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-            background: '#60D394', color: '#0a1f14', padding: '10px 20px',
-            borderRadius: '20px', fontWeight: '700', fontSize: '14px',
-            zIndex: '9999', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            animation: 'fadeIn 0.3s ease',
-          });
-          document.body.appendChild(el);
-          setTimeout(() => el.remove(), 3000);
-        }} />
+          <Card title="오늘의 목표" emoji="🎯" compact fill>
+            <input
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="예) 왼발 슈팅 10번 성공하기!"
+              style={inputStyle}
+            />
+          </Card>
+        </div>
 
-        {/* 오늘의 기분 */}
-        <Card title="오늘 기분은 어때요?" emoji="💛">
-          <div style={moodRowStyle}>
-            {MOODS.map((m) => {
-              const active = mood === m.emoji;
-              return (
-                <button
-                  key={m.emoji}
-                  type="button"
-                  onClick={() => setMood(active ? '' : m.emoji)}
-                  style={{ ...moodBtnStyle, ...(active ? moodBtnActiveStyle : null) }}
-                >
-                  <span style={{ fontSize: 30 }}>{m.emoji}</span>
-                  <span style={moodLabelStyle}>{m.label}</span>
+        <div style={{ ...formGridStyle, marginTop: 10 }}>
+          <Card title="오늘 한 기본기" emoji="✅" hint="개당 +10 XP" compact style={isDesktop ? { gridColumn: '1 / -1' } : undefined}>
+            <div style={{ ...skillGridStyle, gridTemplateColumns: isDesktop ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)' }}>
+              {SKILLS.map((s) => {
+                const done = skills.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleSkill(s.id)}
+                    style={{ ...skillChipStyle, ...(done ? skillChipDoneStyle : null) }}
+                  >
+                    <span style={{ fontSize: 20 }}>{s.emoji}</span>
+                    <span style={skillLabelStyle}>{s.label}</span>
+                    {done && <span style={skillCheckStyle}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card title="오늘 배운 훈련" emoji="📚" compact fill>
+            <textarea
+              ref={learnedRef}
+              value={learned}
+              onChange={(e) => setLearned(e.target.value)}
+              placeholder="오늘 무엇을 배우고 연습했는지 적어봐요 ⚽"
+              style={{ ...textareaStyle, minHeight: 88 }}
+            />
+            <div style={stickerRowStyle}>
+              {STICKERS.map((s) => (
+                <button key={s} type="button" onClick={() => addSticker(s)} style={stickerBtnStyle}>
+                  {s}
                 </button>
-              );
-            })}
-          </div>
-        </Card>
+              ))}
+            </div>
+          </Card>
 
-        {/* 오늘의 목표 */}
-        <Card title="오늘의 목표" emoji="🎯">
-          <input
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            placeholder="예) 왼발 슈팅 10번 성공하기!"
-            style={inputStyle}
-          />
-        </Card>
-
-        {/* 전술판 복습 */}
-        <Card
-          title="전술판으로 복습하기"
-          emoji="📋"
-          hint="배치하면 +10 XP"
-          style={isDesktop ? { gridColumn: '1 / -1' } : undefined}
-        >
-          <p style={boardDescStyle}>
-            오늘 배운 훈련이나 경기 중 중요한 순간을 필드 위에 직접 배치해 복습해 봐요.
-          </p>
-          <div style={isDesktop ? { maxWidth: 860, margin: '0 auto' } : undefined}>
-            <TacticalBoard value={board} onChange={setBoard} />
-          </div>
-        </Card>
-
-        {/* 기본기 훈련 체크 */}
-        <Card title="오늘 한 기본기 훈련" emoji="✅" hint="한 만큼 콕콕 눌러요 (개당 +10 XP)">
-          <div style={skillGridStyle}>
-            {SKILLS.map((s) => {
-              const done = skills.includes(s.id);
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => toggleSkill(s.id)}
-                  style={{ ...skillChipStyle, ...(done ? skillChipDoneStyle : null) }}
-                >
-                  <span style={{ fontSize: 22 }}>{s.emoji}</span>
-                  <span style={skillLabelStyle}>{s.label}</span>
-                  {done && <span style={skillCheckStyle}>✓</span>}
+          <Card title="오늘 훈련 영상" emoji="🎬" hint={uploadEnabled ? '+20 XP' : undefined} compact fill>
+            {!uploadEnabled ? (
+              <div style={videoDisabledStyle}>영상 업로드는 곧 열려요 🙂</div>
+            ) : videoUrl ? (
+              <div>
+                <video src={videoUrl} controls playsInline style={videoPlayerStyle} />
+                <button type="button" onClick={removeVideo} style={videoRemoveBtnStyle}>
+                  <X size={15} /> 영상 빼기
                 </button>
-              );
-            })}
-          </div>
-        </Card>
-
-        {/* 오늘 배운 훈련 */}
-        <Card title="오늘 배운 훈련" emoji="📚" hint="스티커를 눌러 꾸며봐요!">
-          <textarea
-            ref={learnedRef}
-            value={learned}
-            onChange={(e) => setLearned(e.target.value)}
-            placeholder="오늘 무엇을 배우고 연습했는지 적어봐요 ⚽"
-            style={textareaStyle}
-          />
-          <div style={stickerRowStyle}>
-            {STICKERS.map((s) => (
-              <button key={s} type="button" onClick={() => addSticker(s)} style={stickerBtnStyle}>
-                {s}
-              </button>
-            ))}
-          </div>
-        </Card>
-
-        {/* 오늘 훈련 영상 */}
-        <Card title="오늘 훈련 영상" emoji="🎬" hint={uploadEnabled ? '+20 XP' : undefined}>
-          {!uploadEnabled ? (
-            <div style={videoDisabledStyle}>
-              영상 업로드는 곧 열려요! 조금만 기다려 주세요 🙂
-            </div>
-          ) : videoUrl ? (
-            <div>
-              <video src={videoUrl} controls playsInline style={videoPlayerStyle} />
-              <button type="button" onClick={removeVideo} style={videoRemoveBtnStyle}>
-                <X size={15} /> 영상 빼기
-              </button>
-            </div>
-          ) : uploadingVideo ? (
-            <div style={uploadingBoxStyle}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-                영상 올리는 중… {videoProgress}%
               </div>
-              <div style={progressTrackStyle}>
-                <div style={{ ...progressFillStyle, width: `${Math.max(4, videoProgress)}%` }} />
+            ) : uploadingVideo ? (
+              <div style={uploadingBoxStyle}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                  영상 올리는 중… {videoProgress}%
+                </div>
+                <div style={progressTrackStyle}>
+                  <div style={{ ...progressFillStyle, width: `${Math.max(4, videoProgress)}%` }} />
+                </div>
               </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => videoInputRef.current?.click()}
-              style={videoUploadBtnStyle}
-            >
-              <Video size={20} />
-              오늘 한 훈련 영상 올리기
-              <span style={videoUploadHintStyle}>고배속 영상도 OK · 최대 300MB</span>
-            </button>
-          )}
-          {videoError ? <div style={videoErrorStyle}>{videoError}</div> : null}
-          <input
-            ref={videoInputRef}
-            type="file"
-            accept="video/*"
-            onChange={handleVideoSelect}
-            style={{ display: 'none' }}
-          />
-        </Card>
-
-        {/* 잘한 점 / 아쉬운 점 */}
-        <Card title="오늘 잘한 점" emoji="👍">
-          <textarea
-            value={wentWell}
-            onChange={(e) => setWentWell(e.target.value)}
-            placeholder="오늘 내가 제일 잘한 건? 🌟"
-            style={{ ...textareaStyle, minHeight: 70 }}
-          />
-        </Card>
-
-        <Card title="아쉬운 점 / 다음에 더 잘하고 싶은 것" emoji="💭">
-          <textarea
-            value={toImprove}
-            onChange={(e) => setToImprove(e.target.value)}
-            placeholder="조금 아쉬웠던 점이 있다면 적어봐요 💪"
-            style={{ ...textareaStyle, minHeight: 70 }}
-          />
-        </Card>
-
-        {/* 별점 */}
-        <Card title="오늘 훈련 스스로 점수" emoji="⭐">
-          <div style={starRowStyle}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setRating(rating === n ? 0 : n)}
-                style={starBtnStyle}
-                aria-label={`${n}점`}
-              >
-                <Star
-                  size={34}
-                  color={n <= rating ? YELLOW : 'rgba(255,255,255,0.25)'}
-                  fill={n <= rating ? YELLOW : 'none'}
-                />
+            ) : (
+              <button type="button" onClick={() => videoInputRef.current?.click()} style={videoUploadBtnStyle}>
+                <Video size={18} />
+                훈련 영상 올리기
+                <span style={videoUploadHintStyle}>최대 300MB</span>
               </button>
-            ))}
+            )}
+            {videoError ? <div style={videoErrorStyle}>{videoError}</div> : null}
+            <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} style={{ display: 'none' }} />
+          </Card>
+        </div>
+
+        <SectionLabel title="복습 & 돌아보기" />
+        <Card title="전술판으로 복습" emoji="📋" hint="배치·메모 각 +10 XP" compact>
+          <p style={boardDescStyle}>오늘 배운 훈련·경기 장면을 필드에 배치해 복습해 봐요.</p>
+          <TacticalBoard value={board} onChange={setBoard} />
+          <div style={boardNoteWrapStyle}>
+            <div style={boardNoteLabelStyle}>✍️ 전술 복습 메모</div>
+            <p style={boardNoteHintStyle}>
+              전술 카드처럼, 그림 아래에 오늘 훈련·경기에서 무슨 상황이었는지 적어보세요.
+            </p>
+            <textarea
+              value={boardNote}
+              onChange={(e) => setBoardNote(e.target.value)}
+              placeholder="예) 코너킥 상황 — 파란 9번이 가까운 골post 쪽으로 침투했고, 공은 6번에게 크로스됐어요. 다음엔 far post 쪽 공간도 봐야겠어요."
+              style={{ ...textareaStyle, minHeight: 96, marginTop: 8 }}
+            />
           </div>
         </Card>
 
-        {/* 코치/부모 한마디 */}
-        <Card title="코치님 · 부모님 한마디" emoji="💬" hint="(선택)">
-          <input
-            value={coachNote}
-            onChange={(e) => setCoachNote(e.target.value)}
-            placeholder="응원의 한마디를 적어주세요 😊"
-            style={inputStyle}
-          />
-        </Card>
+        <div style={{ ...formGridStyle, marginTop: 10 }}>
+          <Card title="오늘 잘한 점" emoji="👍" compact fill>
+            <textarea
+              value={wentWell}
+              onChange={(e) => setWentWell(e.target.value)}
+              placeholder="오늘 내가 제일 잘한 건? 🌟"
+              style={{ ...textareaStyle, minHeight: 88 }}
+            />
+          </Card>
 
+          <Card title="아쉬운 점" emoji="💭" compact fill>
+            <textarea
+              value={toImprove}
+              onChange={(e) => setToImprove(e.target.value)}
+              placeholder="다음에 더 잘하고 싶은 것 💪"
+              style={{ ...textareaStyle, minHeight: 88 }}
+            />
+          </Card>
+
+          <Card title="스스로 점수" emoji="⭐" compact fill>
+            <div style={starRowStyle}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRating(rating === n ? 0 : n)}
+                  style={starBtnStyle}
+                  aria-label={`${n}점`}
+                >
+                  <Star
+                    size={30}
+                    color={n <= rating ? YELLOW : 'rgba(255,255,255,0.25)'}
+                    fill={n <= rating ? YELLOW : 'none'}
+                  />
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="코치 · 부모 한마디" emoji="💬" hint="선택" compact fill>
+            <input
+              value={coachNote}
+              onChange={(e) => setCoachNote(e.target.value)}
+              placeholder="응원의 한마디 😊"
+              style={inputStyle}
+            />
+          </Card>
         </div>
 
         {/* 저장 */}
         <div style={saveBarStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 14, color: TEXT_SUB }}>오늘 받을 XP</span>
-            <span style={{ fontSize: 22, fontWeight: 800, color: YELLOW }}>+{xp} XP</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 13, color: TEXT_SUB }}>오늘 받을 XP</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: YELLOW }}>+{xp} XP</span>
           </div>
           <button type="button" onClick={handleSave} style={saveBtnStyle}>
             오늘 일지 저장하고 보상 받기 🎁
@@ -574,14 +553,12 @@ export default function TrainingJournalPage() {
           </button>
         </div>
 
-        {/* 지난 훈련일지 */}
-        <section style={{ marginTop: 26 }}>
-          <h2 style={historyTitleStyle}>📅 지난 훈련일지</h2>
-          {entries.length === 0 ? (
-            <div style={emptyHistoryStyle}>아직 저장된 일지가 없어요. 첫 일지를 써볼까요? ✍️</div>
-          ) : (
-            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr' }}>
-              {entries.map((e) => (
+        <SectionLabel title="지난 훈련일지" />
+        {entries.length === 0 ? (
+          <div style={emptyHistoryStyle}>아직 저장된 일지가 없어요. 첫 일지를 써볼까요? ✍️</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 8, gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr' }}>
+            {entries.map((e) => (
                 <div key={e.id} style={historyCardStyle}>
                   <button type="button" onClick={() => loadEntryToForm(e)} style={historyMainBtnStyle}>
                     <span style={{ fontSize: 28 }}>{e.mood || '⚽'}</span>
@@ -611,12 +588,15 @@ export default function TrainingJournalPage() {
                   </button>
                 </div>
               ))}
-            </div>
-          )}
-        </section>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function SectionLabel({ title, first }: { title: string; first?: boolean }) {
+  return <h2 style={{ ...sectionLabelStyle, ...(first ? { marginTop: 0 } : null) }}>{title}</h2>;
 }
 
 function Card({
@@ -625,18 +605,29 @@ function Card({
   hint,
   children,
   style,
+  compact,
+  fill,
 }: {
   title: string;
   emoji: string;
   hint?: string;
   children: React.ReactNode;
   style?: CSSProperties;
+  compact?: boolean;
+  fill?: boolean;
 }) {
   return (
-    <section style={{ ...cardStyle, ...style }}>
-      <div style={cardHeaderStyle}>
-        <span style={{ fontSize: 20 }}>{emoji}</span>
-        <h3 style={cardTitleStyle}>{title}</h3>
+    <section
+      style={{
+        ...cardStyle,
+        ...(compact ? cardCompactStyle : null),
+        ...(fill ? cardFillStyle : null),
+        ...style,
+      }}
+    >
+      <div style={{ ...cardHeaderStyle, ...(compact ? cardHeaderCompactStyle : null) }}>
+        <span style={{ fontSize: compact ? 18 : 20 }}>{emoji}</span>
+        <h3 style={{ ...cardTitleStyle, ...(compact ? cardTitleCompactStyle : null) }}>{title}</h3>
         {hint ? <span style={cardHintStyle}>{hint}</span> : null}
       </div>
       {children}
@@ -697,41 +688,117 @@ const dateInputStyle: CSSProperties = {
   outline: 'none',
 };
 
+const headerCompactStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: 12,
+  marginBottom: 14,
+  flexWrap: 'wrap',
+};
+
+const statsInlineStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 8,
+  flexShrink: 0,
+};
+
+const statPillStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  borderRadius: 999,
+  border: `1px solid ${STROKE}`,
+  background: PANEL,
+  padding: '8px 12px',
+  fontSize: 13,
+  fontWeight: 800,
+  color: '#fff',
+};
+
+const statPillMutedStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'rgba(214,228,247,0.45)',
+};
+
+const sectionLabelStyle: CSSProperties = {
+  marginTop: 20,
+  marginBottom: 10,
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: '0.06em',
+  color: 'rgba(214,228,247,0.42)',
+};
+
+const stackStyle: CSSProperties = {
+  display: 'grid',
+  gap: 10,
+};
+
 const titleStyle: CSSProperties = {
-  marginTop: 6,
-  fontSize: 26,
+  marginTop: 0,
+  fontSize: 22,
   fontWeight: 900,
   letterSpacing: '-0.01em',
 };
 
 const subtitleStyle: CSSProperties = {
-  marginTop: 6,
-  fontSize: 13.5,
+  marginTop: 4,
+  fontSize: 12.5,
   color: TEXT_SUB,
 };
 
-const statsBannerStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 10,
-  marginBottom: 14,
+const rewardBannerStyle: CSSProperties = {
+  marginBottom: 12,
+  borderRadius: 14,
+  background: `linear-gradient(90deg, ${YELLOW}, ${ORANGE})`,
+  color: NAVY,
+  fontWeight: 700,
+  fontSize: 14,
+  padding: '11px 14px',
+  textAlign: 'center',
 };
 
-const statBoxStyle: CSSProperties = {
-  borderRadius: 18,
+const cardStyle: CSSProperties = {
+  borderRadius: 16,
   border: `1px solid ${STROKE}`,
-  background: `linear-gradient(180deg, ${PANEL_SOFT} 0%, ${PANEL} 100%)`,
-  padding: '13px 14px',
+  background: 'rgba(20,37,61,0.82)',
+  backdropFilter: 'blur(6px)',
+  padding: '14px 14px 15px',
+  marginBottom: 0,
 };
 
-const statTopStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6 };
-const statLabelStyle: CSSProperties = { fontSize: 12, color: TEXT_SUB, fontWeight: 600 };
-const statValueStyle: CSSProperties = { marginTop: 4, fontSize: 24, fontWeight: 900, color: YELLOW };
-const statHintStyle: CSSProperties = { marginTop: 4, fontSize: 11, color: 'rgba(214,228,247,0.55)' };
+const cardCompactStyle: CSSProperties = {
+  padding: '12px 12px 13px',
+  borderRadius: 14,
+};
+
+const cardFillStyle: CSSProperties = {
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const cardHeaderStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 7,
+  marginBottom: 10,
+  flexWrap: 'wrap',
+};
+
+const cardHeaderCompactStyle: CSSProperties = {
+  marginBottom: 8,
+};
+
+const cardTitleStyle: CSSProperties = { fontSize: 15, fontWeight: 800 };
+const cardTitleCompactStyle: CSSProperties = { fontSize: 14 };
+const cardHintStyle: CSSProperties = { fontSize: 11, color: 'rgba(214,228,247,0.5)' };
 
 const progressTrackStyle: CSSProperties = {
-  marginTop: 8,
-  height: 7,
+  height: 6,
   borderRadius: 999,
   background: 'rgba(255,255,255,0.10)',
   overflow: 'hidden',
@@ -743,50 +810,19 @@ const progressFillStyle: CSSProperties = {
   transition: 'width 0.4s ease',
 };
 
-const rewardBannerStyle: CSSProperties = {
-  marginBottom: 14,
-  borderRadius: 16,
-  background: `linear-gradient(90deg, ${YELLOW}, ${ORANGE})`,
-  color: NAVY,
-  fontWeight: 700,
-  fontSize: 14.5,
-  padding: '13px 16px',
-  textAlign: 'center',
-};
-
-const cardStyle: CSSProperties = {
-  borderRadius: 18,
-  border: `1px solid ${STROKE}`,
-  background: 'rgba(20,37,61,0.82)',
-  backdropFilter: 'blur(6px)',
-  padding: '15px 15px 16px',
-  marginBottom: 12,
-};
-
-const cardHeaderStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  marginBottom: 12,
-  flexWrap: 'wrap',
-};
-
-const cardTitleStyle: CSSProperties = { fontSize: 16, fontWeight: 800 };
-const cardHintStyle: CSSProperties = { fontSize: 11.5, color: 'rgba(214,228,247,0.55)' };
-
 const moodRowStyle: CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: 9,
+  gap: 7,
 };
 
 const moodBtnStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: 4,
-  padding: '12px 6px',
-  borderRadius: 16,
+  gap: 3,
+  padding: '10px 4px',
+  borderRadius: 14,
   border: `1.5px solid ${STROKE}`,
   background: 'rgba(255,255,255,0.03)',
   color: '#fff',
@@ -804,34 +840,34 @@ const moodLabelStyle: CSSProperties = { fontSize: 11.5, color: TEXT_SUB, fontWei
 
 const inputStyle: CSSProperties = {
   width: '100%',
-  height: 48,
-  borderRadius: 13,
+  height: 44,
+  borderRadius: 12,
   border: `1px solid ${STROKE}`,
   background: 'rgba(8,15,28,0.6)',
   color: '#fff',
-  fontSize: 15,
-  padding: '0 14px',
+  fontSize: 14,
+  padding: '0 12px',
   outline: 'none',
 };
 
 const textareaStyle: CSSProperties = {
   width: '100%',
-  minHeight: 96,
-  borderRadius: 13,
+  minHeight: 88,
+  borderRadius: 12,
   border: `1px solid ${STROKE}`,
   background: 'rgba(8,15,28,0.6)',
   color: '#fff',
-  fontSize: 15,
-  lineHeight: 1.6,
-  padding: '12px 14px',
+  fontSize: 14,
+  lineHeight: 1.55,
+  padding: '10px 12px',
   outline: 'none',
   resize: 'vertical',
 };
 
 const skillGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, 1fr)',
-  gap: 9,
+  gridTemplateColumns: 'repeat(5, 1fr)',
+  gap: 7,
 };
 
 const skillChipStyle: CSSProperties = {
@@ -839,9 +875,9 @@ const skillChipStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: 5,
-  padding: '12px 4px',
-  borderRadius: 15,
+  gap: 4,
+  padding: '10px 2px',
+  borderRadius: 13,
   border: `1.5px solid ${STROKE}`,
   background: 'rgba(255,255,255,0.03)',
   color: '#fff',
@@ -874,19 +910,21 @@ const stickerRowStyle: CSSProperties = {
 };
 
 const stickerBtnStyle: CSSProperties = {
-  width: 40,
-  height: 40,
-  borderRadius: 11,
+  width: 36,
+  height: 36,
+  borderRadius: 10,
   border: `1px solid ${STROKE}`,
   background: 'rgba(255,255,255,0.05)',
-  fontSize: 20,
+  fontSize: 18,
   cursor: 'pointer',
 };
 
 const starRowStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'center',
-  gap: 6,
+  gap: 4,
+  flex: 1,
+  alignItems: 'center',
 };
 
 const starBtnStyle: CSSProperties = {
@@ -897,11 +935,11 @@ const starBtnStyle: CSSProperties = {
 };
 
 const saveBarStyle: CSSProperties = {
-  marginTop: 18,
-  borderRadius: 20,
+  marginTop: 16,
+  borderRadius: 16,
   border: `1px solid ${STROKE}`,
   background: `linear-gradient(180deg, ${PANEL_SOFT} 0%, ${PANEL} 100%)`,
-  padding: 16,
+  padding: 14,
 };
 
 const saveBtnStyle: CSSProperties = {
@@ -928,8 +966,6 @@ const resetBtnStyle: CSSProperties = {
   padding: '11px 16px',
   cursor: 'pointer',
 };
-
-const historyTitleStyle: CSSProperties = { fontSize: 17, fontWeight: 800, marginBottom: 11 };
 
 const emptyHistoryStyle: CSSProperties = {
   borderRadius: 16,
@@ -1029,18 +1065,39 @@ const boardDescStyle: CSSProperties = {
   marginBottom: 11,
 };
 
+const boardNoteWrapStyle: CSSProperties = {
+  marginTop: 14,
+  borderRadius: 14,
+  border: '1px solid rgba(96,211,148,0.22)',
+  background: 'rgba(96,211,148,0.08)',
+  padding: '12px 14px',
+};
+
+const boardNoteLabelStyle: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: '#60D394',
+};
+
+const boardNoteHintStyle: CSSProperties = {
+  marginTop: 4,
+  fontSize: 11.5,
+  color: 'rgba(214,228,247,0.55)',
+  lineHeight: 1.5,
+};
+
 const videoUploadBtnStyle: CSSProperties = {
   width: '100%',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: 5,
-  padding: '20px 14px',
-  borderRadius: 15,
+  gap: 4,
+  padding: '16px 12px',
+  borderRadius: 12,
   border: `1.5px dashed ${STROKE}`,
   background: 'rgba(255,255,255,0.03)',
   color: '#fff',
-  fontSize: 15,
+  fontSize: 14,
   fontWeight: 700,
   cursor: 'pointer',
 };

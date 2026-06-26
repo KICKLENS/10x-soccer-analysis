@@ -404,15 +404,21 @@ function mapGpuCandidatesToClips(candidates = []) {
     const endSec = Number(c.endSec) || startSec + 3;
     const interactionFrames = Number(c.interactionFrames) || 0;
     const ballConf = Number(c.avgBallConfidence) || 0;
+    const goalMomentScore = Number(c.goalMomentScore) || 0;
+    const isGoalArea = Boolean(c.isGoalAreaMoment) || goalMomentScore >= 0.35;
+    const baseScore = 0.55 + interactionFrames * 0.05;
+    const score = Math.min(0.98, baseScore + goalMomentScore * 0.25);
     return {
       id: c.id || `gpu-${index}`,
       startSec,
       endSec,
       startTime: c.startTime || secToMmss(startSec),
       endTime: c.endTime || secToMmss(endSec),
-      label: '공 관여 추정 장면',
-      reason: 'GPU 정밀 분석(SAHI)으로 공과 선수의 근접이 감지된 구간',
-      score: Math.min(0.95, 0.55 + interactionFrames * 0.05),
+      label: c.label || (isGoalArea ? '골대 앞 결정적 순간' : '공 관여 추정 장면'),
+      reason: c.reason || (isGoalArea
+        ? '골대·페널티박스 구역에서 공과 선수의 결정적 상호작용'
+        : 'GPU 정밀 분석(SAHI)으로 공과 선수의 근접이 감지된 구간'),
+      score,
       framesMatched: Number(c.ballFrames) || 0,
       interactionFrames,
       ballDetectionsCount: Number(c.ballFrames) || 0,
@@ -422,6 +428,10 @@ function mapGpuCandidatesToClips(candidates = []) {
       targetPlayerFrames: interactionFrames,
       targetPlayerInteractionFrames: interactionFrames,
       targetPlayerMatchAvg: Number(c.targetMatchAvg) || 0,
+      location: c.location || 'unknown',
+      goalMomentScore,
+      isGoalAreaMoment: isGoalArea,
+      goalMomentType: c.goalMomentType || null,
       source: 'gpu-sahi',
     };
   });
@@ -448,6 +458,12 @@ function buildGpuPromptSection(gpu) {
   if (ball && ball.length) {
     const avgRate = ball.reduce((s, w) => s + (w.ballDetectionRate || 0), 0) / ball.length;
     lines.push(`- 공 정밀탐지(SAHI): 후보 구간 평균 공 검출률 ${(avgRate * 100).toFixed(0)}%`);
+  }
+  const goalCands = (gpu.candidates?.candidates || []).filter((c) => c.isGoalAreaMoment || (c.goalMomentScore || 0) >= 0.35);
+  if (goalCands.length) {
+    lines.push(`- ★ 골대·페널티박스 결정적 후보 ${goalCands.length}개 감지 — 슛/선방/수비·득점 빌드업 구간 우선 분석`);
+  } else {
+    lines.push('- 골대·페널티박스: 후보 JSON의 isGoalAreaMoment·location 필드를 확인해 골 관련 순간을 우선 선정');
   }
   return lines.join('\n');
 }
@@ -628,10 +644,23 @@ function buildCoachPrompt(yoloResult, player = {}, gpu = null) {
     avgBallConfidence: clip.avgBallConfidence,
     ballDetectionsCount: clip.ballDetectionsCount,
     location: LOCATION_KR[clip.location] || null,
+    goalMomentScore: clip.goalMomentScore ?? null,
+    isGoalAreaMoment: clip.isGoalAreaMoment ?? false,
+    goalMomentType: clip.goalMomentType || null,
   }));
+
+  const hasGoalAreaCandidates = candidates.some((c) => c.isGoalAreaMoment || (c.goalMomentScore != null && c.goalMomentScore >= 0.35) || c.location === '페널티 박스 안');
+  const isGk = isGoalkeeperPosition(position);
+  const isDef = ['df', 'cb', 'lb', 'rb', 'defender', '수비', '수비수', '풀백', '센터백'].some((k) => String(position).toLowerCase().includes(k));
 
   return `당신은 유소년부터 프로까지 선수를 육성해 온 축구 코치이자 감독입니다.
 20년 이상 현장에서 선수의 움직임, 판단, 태도, 팀 플레이를 직접 지도해 왔습니다.
+
+★ 축구의 본질: 공을 골대에 넣는 스포츠 ★
+분석과 하이라이트에서 **공(ball)과 골대(goal) 상황**을 최우선으로 다루세요.
+- 득점·득점 시도·실점·선방·골대 밖으로 벗어난 슛 — 경기에서 가장 중요한 순간입니다.
+- 골이 들어가기 **직전** 어떤 패스·침투·크로스·수비가 있었는지, ${playerName}의 역할을 반드시 짚으세요.
+- 골이 들어갔든 막혔든·빗나갔든, **골대 앞에서 무슨 일이 있었는지**가 코칭의 핵심입니다.
 
 분석 대상 선수 (반드시 이 선수 중심으로만 분석):
 - 이름: ${playerName}
@@ -666,9 +695,20 @@ ${buildGpuPromptSection(gpu)}
 
 [포함 기준 — approved=true]
 - targetPlayerInteractionFrames >= 2 이거나, GK/등록 선수의 세이브·펀칭·킥·캐치·분배 등 **공을 직접 다루는** 동작
-- coachComment에 **구체적 동작**(예: "크로스를 펀칭", "1대1에서 스프링")을 반드시 명시
-- importanceScore >= 75
-- location 필드가 있으면 반드시 활용 (예: "페널티 박스 안에서 슈팅 시도", "센터서클 근처에서 볼 배급")
+- **골대·페널티박스 순간 (isGoalAreaMoment=true 또는 location=페널티 박스 안)**: 슛·득점 시도·어시스트·키패스·수비 블록·클리어·선방·실점 상황 — 선수가 관여했다면 **importanceScore 85 이상**으로 우선 포함
+- coachComment에 **구체적 동작** + **공의 흐름(누가 패스했는지/어디로 공이 갔는지)** + **골대와의 관계**를 반드시 명시
+- importanceScore >= 75 (골대 앞 순간은 >= 85 권장)
+- location 필드가 있으면 반드시 활용 (예: "페널티 박스 안에서 슈팅 시도", "골대 앞 선방 후 빌드업")
+${hasGoalAreaCandidates ? `
+[★ 필수 — 골대 앞 순간]
+후보 JSON에 isGoalAreaMoment=true 또는 location=페널티 박스 안 인 장면이 있습니다.
+${playerName} 선수가 해당 순간에 **조금이라도 관여**했다면 clips에 **최소 1개** 반드시 포함하세요.
+${isGk ? '골키퍼: 선방·캐치·펀칭·1대1·실점 상황에서 위치·반응·분배를 분석.' : isDef ? '수비수: 블록·클리어·커버·1대1·실점/실점방지 과정, 공을 골대 밖으로 보낸 수비 선택을 분석.' : '공격수/미드: 득점·어시·키패스·슈팅·골대를 향한 침투·빌드업 연결을 분석.'}
+` : ''}
+
+[summary 작성 시]
+- noticeableScene: 골대 앞에서의 주요 순간(득점·실점·선방·수비·슈팅)을 반드시 언급
+- strength/weakness/trainingPoint: 골대 상황에서의 판단·기술·위치선정 중심
 
 [규칙]
 - 반드시 한국어
@@ -760,9 +800,13 @@ function buildVisualVerificationPrompt(clips, player = {}) {
     coachReason: clip.reason,
     targetPlayerInteractionFrames: clip.targetPlayerInteractionFrames,
     avgBallConfidence: clip.avgBallConfidence,
+    isGoalAreaMoment: clip.isGoalAreaMoment || false,
+    location: clip.location || null,
   }));
 
   return `당신은 축구 하이라이트 품질 검수관(QA)입니다. 각 장면에 첨부된 **실제 영상 프레임 ${QC_FRAMES_PER_CLIP}장**을 보고 하이라이트 적합 여부를 판정하세요.
+
+축구는 **공을 골대에 넣는** 스포츠입니다. 골대 앞·페널티박스에서의 슛·선방·수비·패스 연결·득점 시도 장면은 **특히 중요**합니다. isGoalAreaMoment=true 이거나 골대/박스 상황이 보이면, 선수가 관여했다면 우선 approved 하세요.
 
 [분석 대상 선수]
 - 이름: ${playerName}
