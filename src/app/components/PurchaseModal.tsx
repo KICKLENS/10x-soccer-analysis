@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 // ── 크레딧 유틸 ──────────────────────────────────────────────
 const CREDIT_KEY = 'kicklens_credits';
-const DEFAULT_CREDITS = 3000; // 신규 가입 시 무료 제공 크레딧
+const DEFAULT_CREDITS = 15000; // 신규 가입 시 무료 제공 크레딧 (베타)
 
 export function getCredits(): number {
   const raw = localStorage.getItem(CREDIT_KEY);
