@@ -4,6 +4,7 @@ import { Trash2, Star, Trophy, Video, X, Play } from 'lucide-react';
 import { isTrainingUploadEnabled, uploadTrainingVideo } from '../lib/trainingVideo';
 import TacticalBoard, { type BoardToken } from '../components/TacticalBoard';
 import TacticalCard from '../components/TacticalCard';
+import RuleCard from '../components/RuleCard';
 import PageNav from '../components/PageNav';
 
 const STORAGE_KEY = 'training-journal-entries';
@@ -360,6 +361,9 @@ export default function TrainingJournalPage() {
         )}
 
         <div style={cardsWrapStyle}>
+
+        {/* 오늘의 FIFA 규정 카드 */}
+        <RuleCard />
 
         {/* 오늘의 전술 카드 */}
         <TacticalCard onXpGained={(xp) => {
