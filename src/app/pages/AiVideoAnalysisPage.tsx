@@ -203,10 +203,9 @@ export default function AiVideoAnalysisPage() {
   const clips = payload?.highlightClips || [];
   const summary = payload?.summary;
   const gpu = payload?.gpuAnalysis;
-  const highlightUrl = toAbsoluteUrl(payload?.highlightVideoUrl || '');
 
   const handleShare = async () => {
-    const shareUrl = highlightUrl || window.location.href;
+    const shareUrl = window.location.href;
     const title = `${payload?.player?.name || '선수'} AI 코치 분석 리포트`;
     try {
       if (navigator.share) {
@@ -219,20 +218,6 @@ export default function AiVideoAnalysisPage() {
     } catch {
       // user cancelled share or clipboard blocked
     }
-  };
-
-  const handleDownload = () => {
-    if (!highlightUrl) return;
-    const a = document.createElement('a');
-    a.href = highlightUrl;
-    a.download = payload?.uploadedVideoFileName
-      ? `highlight_${payload.uploadedVideoFileName}`
-      : 'highlight.mp4';
-    a.target = '_blank';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   return (
@@ -265,13 +250,12 @@ export default function AiVideoAnalysisPage() {
               </button>
               <button
                 type="button"
-                onClick={handleDownload}
-                disabled={!highlightUrl}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 disabled:opacity-40 md:px-5"
+                onClick={() => navigate('/highlight-extraction')}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 md:px-5"
                 style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
               >
                 <Download size={16} />
-                영상 저장
+                하이라이트 만들기
               </button>
               <button
                 type="button"
@@ -289,7 +273,7 @@ export default function AiVideoAnalysisPage() {
                 style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
               >
                 <ArrowLeft size={16} />
-                하이라이트
+                영상 분석
               </button>
             </div>
           ) : (
@@ -322,7 +306,7 @@ export default function AiVideoAnalysisPage() {
             <Sparkles size={28} className="mx-auto text-[#FFB648]" />
             <h2 className="mt-4 text-xl font-bold">표시할 AI 분석 결과가 없습니다</h2>
             <p className="mt-3 text-sm leading-7" style={{ color: TEXT_SUB }}>
-              먼저 <strong>/video-analysis</strong>에서 영상을 업로드하고 하이라이트를 생성한 뒤
+              먼저 <strong>/video-analysis</strong>에서 영상을 업로드하고 「분석 장면 추출」을 완료한 뒤
               &quot;AI 영상분석&quot; 버튼을 눌러주세요.
             </p>
           </div>
@@ -348,13 +332,6 @@ export default function AiVideoAnalysisPage() {
                 <div className="mt-1 truncate text-sm font-semibold md:mt-2">{payload.uploadedVideoFileName || '-'}</div>
               </div>
             </div>
-
-            {highlightUrl ? (
-              <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
-                <h2 className="mb-3 text-base font-bold md:mb-4 md:text-lg">최종 하이라이트 영상</h2>
-                <video src={highlightUrl} controls playsInline className="w-full rounded-2xl border border-white/10 bg-black" />
-              </div>
-            ) : null}
 
             <div className="rounded-3xl border p-4 md:rounded-[28px] md:p-5" style={{ borderColor: STROKE, background: CARD_BG }}>
               <h2 className="mb-3 text-base font-bold md:mb-4 md:text-lg">AI 코치 종합 분석</h2>

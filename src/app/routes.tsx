@@ -10,6 +10,7 @@ import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
 import TrainingJournalPage from './pages/TrainingJournalPage';
 import VideoAnalysisPageLab from './pages/VideoAnalysisPageLab';
 import AiVideoAnalysisPageLab from './pages/AiVideoAnalysisPageLab';
+import HighlightExtractionPage from './pages/HighlightExtractionPage';
 import ClubPage from './pages/ClubPage';
 import ClubGradePage from './pages/ClubGradePage';
 import ClubPlayerPage from './pages/ClubPlayerPage';
@@ -52,6 +53,10 @@ export const router = createBrowserRouter([
     element: <TrainingJournalPage />,
   },
   {
+    path: '/highlight-extraction',
+    element: <HighlightExtractionPage />,
+  },
+  {
     path: '/club',
     element: <ClubPage />,
   },
@@ -69,7 +74,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/highlight',
-    element: <Navigate to="/video-analysis" replace />,
+    element: <Navigate to="/highlight-extraction" replace />,
   },
   {
     path: '*',
