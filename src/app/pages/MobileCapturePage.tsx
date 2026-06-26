@@ -10,6 +10,211 @@ import { saveAnalysisToHistory } from '../lib/analysisHistory';
 import { type SelectedPlayer } from '../lib/api';
 import PageNav from '../components/PageNav';
 
+// ── SVG 일러스트 툴팁 컴포넌트 ──────────────────────────────────────────────
+const GUIDE_ITEMS = [
+  {
+    icon: '①',
+    title: '처음 3초',
+    desc: '분석할 선수를 화면 가운데에 크게 잡아주세요',
+    svg: (
+      <svg viewBox="0 0 200 140" width="200" height="140">
+        {/* 폰 프레임 */}
+        <rect x="70" y="10" width="60" height="100" rx="8" fill="none" stroke="#FF9F02" strokeWidth="2.5"/>
+        <rect x="73" y="18" width="54" height="80" rx="3" fill="#111"/>
+        {/* 선수 실루엣 (가운데, 크게) */}
+        <circle cx="100" cy="42" r="8" fill="#FF9F02" opacity="0.9"/>
+        <rect x="93" y="51" width="14" height="20" rx="4" fill="#FF9F02" opacity="0.9"/>
+        <line x1="93" y1="58" x2="85" y2="68" stroke="#FF9F02" strokeWidth="2.5" opacity="0.9"/>
+        <line x1="107" y1="58" x2="115" y2="68" stroke="#FF9F02" strokeWidth="2.5" opacity="0.9"/>
+        <line x1="96" y1="71" x2="93" y2="84" stroke="#FF9F02" strokeWidth="2.5" opacity="0.9"/>
+        <line x1="104" y1="71" x2="107" y2="84" stroke="#FF9F02" strokeWidth="2.5" opacity="0.9"/>
+        {/* 조준 링 */}
+        <circle cx="100" cy="58" r="22" fill="none" stroke="#FF9F02" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.7"/>
+        <circle cx="100" cy="58" r="28" fill="none" stroke="#FF9F02" strokeWidth="1" strokeDasharray="3 4" opacity="0.35"/>
+        {/* 타이머 */}
+        <rect x="85" y="19" width="30" height="12" rx="3" fill="#FF9F02" opacity="0.2"/>
+        <text x="100" y="28.5" textAnchor="middle" fill="#FF9F02" fontSize="8" fontWeight="bold">처음 3초</text>
+        {/* 안내 텍스트 */}
+        <text x="100" y="128" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10">선수를 화면 중앙에 크게!</text>
+      </svg>
+    ),
+  },
+  {
+    icon: '②',
+    title: '촬영 거리',
+    desc: '선수와 공이 함께 보일 정도로 적당히 멀리서 찍어요',
+    svg: (
+      <svg viewBox="0 0 200 140" width="200" height="140">
+        {/* 필드 */}
+        <rect x="10" y="60" width="180" height="60" rx="6" fill="#1a3a1a" opacity="0.8"/>
+        <ellipse cx="100" cy="90" rx="30" ry="12" fill="none" stroke="#4a8a4a" strokeWidth="1.5" opacity="0.6"/>
+        {/* 선수 (작게, 필드 위) */}
+        <circle cx="100" cy="72" r="5" fill="#FF9F02"/>
+        <rect x="97" y="77" width="6" height="9" rx="2" fill="#FF9F02"/>
+        {/* 공 */}
+        <circle cx="112" cy="88" r="4" fill="white" opacity="0.9"/>
+        {/* 폰 (멀리서) */}
+        <rect x="80" y="10" width="40" height="28" rx="5" fill="none" stroke="#FF9F02" strokeWidth="2"/>
+        <rect x="83" y="13" width="34" height="20" rx="2" fill="#111"/>
+        {/* 시야각 선 */}
+        <line x1="83" y1="33" x2="60" y2="60" stroke="#FF9F02" strokeWidth="1" strokeDasharray="3 3" opacity="0.5"/>
+        <line x1="117" y1="33" x2="140" y2="60" stroke="#FF9F02" strokeWidth="1" strokeDasharray="3 3" opacity="0.5"/>
+        {/* Good 표시 */}
+        <text x="100" y="128" textAnchor="middle" fill="#4ade80" fontSize="10" fontWeight="bold">✓ 선수 + 공 모두 보임</text>
+      </svg>
+    ),
+  },
+  {
+    icon: '③',
+    title: '가로 촬영',
+    desc: '스마트폰을 가로로 돌려서 찍으면 더 정확해요',
+    svg: (
+      <svg viewBox="0 0 200 140" width="200" height="140">
+        {/* 세로 폰 (흐리게) */}
+        <rect x="30" y="20" width="38" height="65" rx="7" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2"/>
+        <rect x="34" y="26" width="30" height="50" rx="3" fill="#1a1a2e" opacity="0.5"/>
+        <text x="49" y="55" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="8">세로</text>
+        <text x="49" y="100" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="9">❌</text>
+        {/* 화살표 */}
+        <path d="M 80 52 Q 100 30 120 52" fill="none" stroke="#FF9F02" strokeWidth="2.5" markerEnd="url(#arr)"/>
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#FF9F02"/>
+          </marker>
+        </defs>
+        <text x="100" y="38" textAnchor="middle" fill="#FF9F02" fontSize="9" fontWeight="bold">90° 회전</text>
+        {/* 가로 폰 (선명하게) */}
+        <rect x="120" y="35" width="65" height="38" rx="7" fill="none" stroke="#FF9F02" strokeWidth="2.5"/>
+        <rect x="125" y="39" width="50" height="28" rx="3" fill="#1a1a2e"/>
+        {/* 가로 화면 내 선수 */}
+        <circle cx="150" cy="51" r="4" fill="#FF9F02"/>
+        <rect x="147" y="55" width="6" height="8" rx="2" fill="#FF9F02"/>
+        <circle cx="162" cy="58" r="3" fill="white" opacity="0.8"/>
+        <text x="152" y="95" textAnchor="middle" fill="#4ade80" fontSize="9" fontWeight="bold">✓ 가로 촬영 권장</text>
+        <text x="100" y="128" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10">더 넓은 시야로 공 흐름 포착</text>
+      </svg>
+    ),
+  },
+  {
+    icon: '④',
+    title: '최소 5분',
+    desc: '공을 다루는 장면이 많을수록 분석 정확도가 올라가요',
+    svg: (
+      <svg viewBox="0 0 200 140" width="200" height="140">
+        {/* 타이머 원 */}
+        <circle cx="100" cy="55" r="38" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3"/>
+        <circle cx="100" cy="55" r="38" fill="none" stroke="#FF9F02" strokeWidth="3"
+          strokeDasharray="200" strokeDashoffset="80" strokeLinecap="round"
+          transform="rotate(-90 100 55)"/>
+        <text x="100" y="50" textAnchor="middle" fill="#FF9F02" fontSize="20" fontWeight="900">5+</text>
+        <text x="100" y="65" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10">분 이상</text>
+        {/* 장면 아이콘들 */}
+        <rect x="18" y="105" width="28" height="20" rx="5" fill="rgba(255,159,2,0.15)" stroke="rgba(255,159,2,0.4)" strokeWidth="1"/>
+        <text x="32" y="119" textAnchor="middle" fontSize="10">⚽</text>
+        <rect x="54" y="105" width="28" height="20" rx="5" fill="rgba(255,159,2,0.15)" stroke="rgba(255,159,2,0.4)" strokeWidth="1"/>
+        <text x="68" y="119" textAnchor="middle" fontSize="10">🏃</text>
+        <rect x="90" y="105" width="28" height="20" rx="5" fill="rgba(255,159,2,0.15)" stroke="rgba(255,159,2,0.4)" strokeWidth="1"/>
+        <text x="104" y="119" textAnchor="middle" fontSize="10">⚡</text>
+        <rect x="126" y="105" width="28" height="20" rx="5" fill="rgba(255,159,2,0.25)" stroke="#FF9F02" strokeWidth="1.5"/>
+        <text x="140" y="119" textAnchor="middle" fontSize="10">🎯</text>
+        <rect x="162" y="105" width="28" height="20" rx="5" fill="rgba(255,159,2,0.25)" stroke="#FF9F02" strokeWidth="1.5"/>
+        <text x="176" y="119" textAnchor="middle" fontSize="10">✨</text>
+      </svg>
+    ),
+  },
+  {
+    icon: '⑤',
+    title: '안정적으로',
+    desc: '너무 빠른 패닝이나 흔들림은 추적 정확도를 낮춰요',
+    svg: (
+      <svg viewBox="0 0 200 140" width="200" height="140">
+        {/* 왼쪽: 흔들림 (나쁜 예) */}
+        <text x="50" y="18" textAnchor="middle" fill="rgba(255,100,100,0.8)" fontSize="9">❌ 흔들림</text>
+        <rect x="20" y="25" width="60" height="42" rx="5" fill="#1a1a1a" stroke="rgba(255,100,100,0.5)" strokeWidth="1.5"/>
+        {/* 흔들린 선수 (여러 잔상) */}
+        <circle cx="45" cy="38" r="4" fill="rgba(255,159,2,0.2)"/>
+        <circle cx="52" cy="40" r="4" fill="rgba(255,159,2,0.4)"/>
+        <circle cx="58" cy="37" r="4" fill="rgba(255,159,2,0.7)"/>
+        <rect x="55" y="44" width="5" height="9" rx="2" fill="rgba(255,159,2,0.7)"/>
+        {/* 흔들림 선 */}
+        <path d="M25 60 Q35 52 45 58 Q55 64 65 57 Q75 50 80 55" fill="none" stroke="rgba(255,100,100,0.6)" strokeWidth="1.5"/>
+
+        {/* 오른쪽: 안정 (좋은 예) */}
+        <text x="150" y="18" textAnchor="middle" fill="rgba(74,222,128,0.8)" fontSize="9">✓ 안정적</text>
+        <rect x="120" y="25" width="60" height="42" rx="5" fill="#1a1a1a" stroke="rgba(74,222,128,0.5)" strokeWidth="1.5"/>
+        {/* 선명한 선수 */}
+        <circle cx="150" cy="38" r="5" fill="#FF9F02"/>
+        <rect x="147" y="43" width="6" height="10" rx="2" fill="#FF9F02"/>
+        <line x1="147" y1="47" x2="142" y2="53" stroke="#FF9F02" strokeWidth="1.5"/>
+        <line x1="153" y1="47" x2="158" y2="53" stroke="#FF9F02" strokeWidth="1.5"/>
+        {/* 조준선 */}
+        <circle cx="150" cy="44" r="12" fill="none" stroke="rgba(74,222,128,0.5)" strokeWidth="1" strokeDasharray="3 2"/>
+        {/* 안정 선 */}
+        <line x1="125" y1="60" x2="175" y2="60" stroke="rgba(74,222,128,0.6)" strokeWidth="1.5"/>
+
+        <text x="100" y="90" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10">vs</text>
+        <text x="100" y="128" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10">안정적인 촬영 = 정확한 추적</text>
+      </svg>
+    ),
+  },
+];
+
+function GuidePanel() {
+  const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 24,
+      padding: '28px 24px',
+    }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 24, letterSpacing: 1 }}>
+        📹 정확한 분석을 위한 촬영 가이드
+      </div>
+      {GUIDE_ITEMS.map((item, idx) => (
+        <div
+          key={item.icon}
+          onMouseEnter={() => setHoveredIdx(idx)}
+          onMouseLeave={() => setHoveredIdx(null)}
+          style={{
+            position: 'relative' as const,
+            display: 'flex',
+            gap: 18,
+            padding: '18px 0',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            cursor: 'default',
+          }}
+        >
+          <div style={{ fontSize: 22, color: '#FF9F02', fontWeight: 900, flexShrink: 0, width: 28 }}>{item.icon}</div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 5 }}>{item.title}</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{item.desc}</div>
+          </div>
+          {/* 호버 툴팁 */}
+          {hoveredIdx === idx && (
+            <div style={{
+              position: 'absolute' as const,
+              left: '105%',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 100,
+              background: 'rgba(18,20,30,0.97)',
+              border: '1px solid rgba(255,159,2,0.4)',
+              borderRadius: 16,
+              padding: '16px',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              pointerEvents: 'none' as const,
+              whiteSpace: 'nowrap' as const,
+            }}>
+              {item.svg}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const SELECTED_PLAYER_STORAGE_KEYS = [
   'highlight-selected-player',
   'selected-highlight-player',
@@ -821,35 +1026,8 @@ export default function MobileCapturePage() {
                 </div>
               </div>
 
-              {/* 오른쪽: 촬영 가이드 */}
-              <div style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 24,
-                padding: '28px 24px',
-              }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 24, letterSpacing: 1 }}>📹 정확한 분석을 위한 촬영 가이드</div>
-                {[
-                  { icon: '①', title: '처음 3초', desc: '분석할 선수를 화면 가운데에 크게 잡아주세요' },
-                  { icon: '②', title: '촬영 거리', desc: '선수와 공이 함께 보일 정도로 적당히 멀리서 찍어요' },
-                  { icon: '③', title: '가로 촬영', desc: '스마트폰을 가로로 돌려서 찍으면 더 정확해요' },
-                  { icon: '④', title: '최소 5분', desc: '공을 다루는 장면이 많을수록 분석 정확도가 올라가요' },
-                  { icon: '⑤', title: '안정적으로', desc: '너무 빠른 패닝이나 흔들림은 추적 정확도를 낮춰요' },
-                ].map(item => (
-                  <div key={item.icon} style={{
-                    display: 'flex',
-                    gap: 18,
-                    padding: '18px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  }}>
-                    <div style={{ fontSize: 22, color: '#FF9F02', fontWeight: 900, flexShrink: 0, width: 28 }}>{item.icon}</div>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 5 }}>{item.title}</div>
-                      <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* 오른쪽: 촬영 가이드 (호버 툴팁 이미지) */}
+              <GuidePanel />
             </div>
           </div>
         </div>
