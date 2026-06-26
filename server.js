@@ -763,6 +763,180 @@ ${isGk ? '골키퍼: 선방·캐치·펀칭·1대1·실점 상황에서 위치·
 }`;
 }
 
+function buildMatchAnalysisPrompt(yoloResult, meta = {}, clips = []) {
+  const LOCATION_KR = {
+    penalty_box: '페널티 박스 안',
+    center_circle: '센터서클 근처',
+    unknown: null,
+  };
+
+  const candidates = (clips || []).slice(0, 18).map((clip, index) => ({
+    rank: index + 1,
+    id: clip.id,
+    startSec: clip.startSec,
+    endSec: clip.endSec,
+    startTime: clip.startTime || secToMmss(clip.startSec),
+    endTime: clip.endTime || secToMmss(clip.endSec),
+    label: clip.label,
+    yoloScore: clip.score,
+    interactionFrames: clip.interactionFrames,
+    avgBallConfidence: clip.avgBallConfidence,
+    location: LOCATION_KR[clip.location] || null,
+    goalMomentScore: clip.goalMomentScore ?? null,
+    isGoalAreaMoment: clip.isGoalAreaMoment ?? false,
+  }));
+
+  const clubName = meta.clubName || '우리 팀';
+  const opponent = meta.opponent || '상대 팀';
+  const grade = meta.grade || '미지정';
+  const matchDate = meta.matchDate || '';
+  const matchResult = meta.matchResult || '';
+  const ourTeamColor = meta.ourTeamColor || '';
+
+  return `당신은 유소년 축구 클럽의 수석 코치이자 경기 분석 전문가입니다.
+감독·코치진이 **경기 전체**를 빠르게 파악할 수 있도록, 특정 선수 추적 없이 **팀 단위 경기 분석**을 작성합니다.
+
+[경기 정보]
+- 클럽/팀: ${clubName}
+- 상대: ${opponent}
+- 학년/연령: ${grade}
+- 경기일: ${matchDate || '미입력'}
+- 스코어(입력값): ${matchResult || '미입력'}
+- 우리팀 유니폼 색(참고): ${ourTeamColor || '미입력'}
+
+[영상 메타]
+- 파일: ${yoloResult.fileName || '경기 영상'}
+- 길이: ${yoloResult.summary?.durationSec || '?'}초
+- 공 탐지 프레임: ${yoloResult.summary?.ballDetectedFrames || '?'}
+- 후보 장면 수: ${candidates.length}
+
+[후보 장면 JSON — 공·골대 주변 활동이 많은 구간]
+${JSON.stringify(candidates, null, 2)}
+
+[분석 방향 — 선수 개인 추적 X, 경기 전체 O]
+1. 경기 흐름(전반/후반), 득점·실점 맥락, 공격/수비 전환을 설명하세요.
+2. 우리 팀(${clubName})의 **팀 전술·조직·강점·약점**을 중심으로 분석하세요.
+3. 후보 JSON의 시간대를 활용해 **주요 장면(keyMoments)** 을 4~8개 선정하세요.
+4. 등번호·유니폼 색으로 특정 가능한 선수가 보이면 playerStandouts에 언급하되, **확실하지 않으면 "N번 추정" 등으로 표기**하고 과장하지 마세요.
+5. 멀리 찍힌 영상이므로 개인 기술 세부보다 **팀 패턴·위치·압박·빌드업·수비 라인** 위주로 작성하세요.
+6. 지도진이 다음 훈련·다음 경기에 쓸 **coachingRecommendations** 3~5개를 제시하세요.
+
+[규칙]
+- 반드시 한국어
+- 순수 JSON만 출력 (마크다운·코드블록 금지)
+- keyMoments의 startSec/endSec는 후보 JSON 값을 우선 사용
+- 확실하지 않은 스코어·선수 이름은 추정임을 명시
+
+[출력 형식]
+{
+  "matchSummary": "경기 한 줄 요약",
+  "scoreFlow": "득점·실점 흐름 설명",
+  "firstHalf": "전반 경기 내용",
+  "secondHalf": "후반 경기 내용",
+  "teamStrengths": ["팀 강점1", "팀 강점2"],
+  "teamWeaknesses": ["팀 약점1", "팀 약점2"],
+  "keyMoments": [
+    {
+      "id": "clip-000120",
+      "startSec": 120,
+      "endSec": 132,
+      "label": "장면 제목",
+      "description": "무슨 일이 있었는지",
+      "impact": "high|medium|low"
+    }
+  ],
+  "tacticalNotes": "전술·포메이션·압박·빌드업 관찰",
+  "playerStandouts": [
+    {
+      "hint": "7번·주황 유니폼 등",
+      "description": "어떤 활약",
+      "positives": "잘한 점",
+      "improvements": "보완점"
+    }
+  ],
+  "coachingRecommendations": ["훈련·지도 제안1", "제안2"],
+  "nextMatchFocus": "다음 경기 전 집중 포인트"
+}`;
+}
+
+async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress } = {}) {
+  const report = (stage, progress) => {
+    if (typeof onProgress === 'function') {
+      try { onProgress(stage, progress); } catch { /* noop */ }
+    }
+  };
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
+
+  const fullPath = path.join(uploadsDir, savedFilename);
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`영상 파일을 찾을 수 없습니다: ${savedFilename}`);
+  }
+
+  report('경기 장면 탐지 중', 12);
+  const emptyPlayer = {};
+  let yoloResult = await runYoloDetection(fullPath, emptyPlayer, 20, { minScore: 0.42, conf: 0.14, imgsz: 768 });
+  if (!yoloResult.clips?.length) {
+    console.warn('[match] 1차 장면 탐지 실패, 완화 조건 재시도');
+    yoloResult = await runYoloDetection(fullPath, emptyPlayer, 24, { minScore: 0.32, conf: 0.12, imgsz: 768 });
+  }
+
+  const rawClips = (yoloResult.clips || [])
+    .filter((clip) => Number(clip.interactionFrames) >= 1 || Number(clip.avgBallConfidence) >= 0.28)
+    .sort((a, b) => {
+      const scoreA = (Number(a.isGoalAreaMoment) ? 50 : 0) + (Number(a.score) || 0) * 10 + (Number(a.interactionFrames) || 0);
+      const scoreB = (Number(b.isGoalAreaMoment) ? 50 : 0) + (Number(b.score) || 0) * 10 + (Number(b.interactionFrames) || 0);
+      return scoreB - scoreA;
+    })
+    .slice(0, 15);
+
+  if (!rawClips.length) {
+    throw new Error(
+      '경기에서 분석 가능한 장면을 찾지 못했습니다. 경기장 전체가 보이도록 촬영했는지, 공이 충분히 보이는지 확인해 주세요.',
+    );
+  }
+
+  report('주요 장면 클립 생성 중', 35);
+  const clipsWithVideos = await renderClipVideos(fullPath, rawClips);
+
+  report('AI 경기 분석 중', 65);
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildMatchAnalysisPrompt(yoloResult, meta, rawClips);
+  const text = await generateContentWithFallback(genAI, prompt);
+  const parsed = robustParse(text);
+
+  report('분석 리포트 정리 중', 92);
+  const keyMoments = Array.isArray(parsed.keyMoments) ? parsed.keyMoments : [];
+  const clipMap = new Map(clipsWithVideos.map((c) => [c.id, c]));
+
+  return {
+    meta,
+    matchSummary: parsed.matchSummary || '',
+    scoreFlow: parsed.scoreFlow || '',
+    firstHalf: parsed.firstHalf || '',
+    secondHalf: parsed.secondHalf || '',
+    teamStrengths: Array.isArray(parsed.teamStrengths) ? parsed.teamStrengths : [],
+    teamWeaknesses: Array.isArray(parsed.teamWeaknesses) ? parsed.teamWeaknesses : [],
+    keyMoments: keyMoments.map((km, i) => {
+      const clip = clipMap.get(km.id) || clipsWithVideos[i];
+      return {
+        ...km,
+        url: clip?.url || clip?.videoUrl || clip?.outputUrl || '',
+        startSec: km.startSec ?? clip?.startSec,
+        endSec: km.endSec ?? clip?.endSec,
+      };
+    }),
+    tacticalNotes: parsed.tacticalNotes || '',
+    playerStandouts: Array.isArray(parsed.playerStandouts) ? parsed.playerStandouts : [],
+    coachingRecommendations: Array.isArray(parsed.coachingRecommendations) ? parsed.coachingRecommendations : [],
+    nextMatchFocus: parsed.nextMatchFocus || '',
+    clips: adaptClipsForMainSite(clipsWithVideos),
+    yoloSummary: yoloResult.summary || null,
+    savedFilename,
+  };
+}
+
 function mergeYoloAndCoachClips(yoloClips, coachClips) {
   const yoloMap = new Map((yoloClips || []).map((clip) => [clip.id, clip]));
 
@@ -1915,6 +2089,50 @@ async function runExtractJob(job) {
   }
 }
 
+async function runMatchAnalysisJob(job) {
+  const filename = job.filename;
+  const meta = job.matchMeta || {};
+  const localPath = path.join(uploadsDir, filename);
+
+  try {
+    if (!fs.existsSync(localPath)) {
+      if (job.srcKey && R2_ENABLED) {
+        job.stage = '영상 복구 중';
+        setJob(job);
+        await r2GetToFile(job.srcKey, localPath);
+      } else {
+        throw new Error('원본 영상을 찾을 수 없습니다. 다시 업로드해 주세요.');
+      }
+    }
+
+    const result = await runMatchAnalysisPipeline(filename, meta, {
+      onProgress: (stage, progress) => {
+        job.stage = stage;
+        if (typeof progress === 'number') job.progress = progress;
+        setJob(job);
+      },
+    });
+
+    try {
+      if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+    } catch { /* noop */ }
+
+    await mirrorJobResultOutputs(result);
+    job.result = result;
+    job.status = 'done';
+    job.stage = '완료';
+    job.progress = 100;
+    setJob(job);
+  } catch (err) {
+    console.error('[job/match-analysis]', err);
+    job.status = 'error';
+    job.error = err.message;
+    setJob(job);
+  } finally {
+    if (job.srcKey && R2_ENABLED) r2Delete(job.srcKey);
+  }
+}
+
 // 하이라이트 자동추출 시작 → jobId 즉시 반환(백그라운드 진행)
 function ffprobeDuration(videoPath) {
   return runProcess('ffprobe', [
@@ -2039,6 +2257,58 @@ app.post('/api/jobs/extract', (req, res) => {
       }
     }
     await runExtractJob(job);
+  })();
+});
+
+app.post('/api/jobs/match-analysis', (req, res) => {
+  const {
+    savedFilename,
+    fileName,
+    clubName,
+    opponent,
+    matchDate,
+    grade,
+    ourTeamColor,
+    matchResult,
+  } = req.body || {};
+  const filename = savedFilename || fileName;
+  if (!filename) {
+    res.status(400).json({ success: false, error: 'fileName 또는 savedFilename이 필요합니다.' });
+    return;
+  }
+  const localPath = path.join(uploadsDir, filename);
+  if (!fs.existsSync(localPath)) {
+    res.status(400).json({ success: false, error: '업로드된 영상을 찾을 수 없습니다. 다시 업로드해 주세요.' });
+    return;
+  }
+
+  const matchMeta = {
+    clubName: clubName || '우리 팀',
+    opponent: opponent || '',
+    matchDate: matchDate || '',
+    grade: grade || '',
+    ourTeamColor: ourTeamColor || '',
+    matchResult: matchResult || '',
+  };
+
+  const job = createJob('match-analysis', { filename, matchMeta, srcKey: null });
+  res.json({ success: true, jobId: job.id });
+
+  (async () => {
+    if (R2_ENABLED) {
+      try {
+        job.stage = '영상 안전 보관 중';
+        job.progress = 3;
+        setJob(job);
+        const srcKey = `${R2_SRC_PREFIX}${crypto.randomUUID()}-${filename}`;
+        await r2PutFile(srcKey, localPath, 'video/mp4');
+        job.srcKey = srcKey;
+        setJob(job);
+      } catch (err) {
+        console.warn('[R2] match-analysis 원본 백업 실패:', err.message);
+      }
+    }
+    await runMatchAnalysisJob(job);
   })();
 });
 

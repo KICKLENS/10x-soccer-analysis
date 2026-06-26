@@ -58,6 +58,16 @@ export default function ClubPage() {
           </span>
         </div>
 
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/club/match-analysis')}
+            className="rounded-2xl border border-indigo-400/40 bg-indigo-500/15 px-5 py-2.5 text-sm font-bold text-indigo-100 hover:bg-indigo-500/25 transition"
+          >
+            📋 경기 전체 분석
+          </button>
+        </div>
+
         {/* 통합 커맨드 센터 */}
         <div className="mt-5 rounded-3xl border border-white/10 bg-white/3 p-6">
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
@@ -241,9 +251,19 @@ export default function ClubPage() {
               <h2 className="text-lg font-bold text-white mb-4">📅 최근 경기</h2>
               <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
                 {CLUB_DEMO.recentGames.map((game, i) => (
-                  <div
+                  <button
                     key={i}
-                    className="flex items-center gap-3 px-5 py-4 border-b border-white/6 last:border-0"
+                    type="button"
+                    onClick={() =>
+                      navigate('/club/match-analysis', {
+                        state: {
+                          opponent: game.opponent,
+                          matchDate: game.date,
+                          matchResult: game.result,
+                        },
+                      })
+                    }
+                    className="flex w-full items-center gap-3 px-5 py-4 border-b border-white/6 last:border-0 hover:bg-white/5 transition text-left"
                   >
                     <div
                       className={`w-2 h-2 rounded-full shrink-0 ${
@@ -261,22 +281,37 @@ export default function ClubPage() {
                     >
                       {game.result}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* 영상 업로드 CTA */}
-            <div className="rounded-2xl border border-[#FF9F02]/30 bg-[#FF9F02]/8 p-5">
-              <div className="text-sm font-bold text-[#FF9F02] mb-2">📹 경기 영상 분석</div>
+            {/* 경기 전체 분석 — 클럽 코치진용 */}
+            <div className="rounded-2xl border border-indigo-400/30 bg-gradient-to-br from-indigo-500/15 to-[#FF9F02]/10 p-5">
+              <div className="text-sm font-bold text-indigo-200 mb-1">📋 경기 전체 분석</div>
               <p className="text-xs text-white/55 leading-relaxed mb-3">
-                드림캠/VEO 등 AI 카메라로 촬영한 경기 영상을 업로드하면 전 선수 자동 분석이 가능해요.
+                VEO·드림캠 영상을 올리면 특정 선수 추적 없이 AI가 경기 흐름·팀 전술·주요 장면을
+                정리합니다. 감독·코치진 복기용입니다.
+              </p>
+              <button
+                onClick={() => navigate('/club/match-analysis')}
+                className="w-full rounded-xl bg-indigo-500 py-2.5 text-sm font-bold text-white hover:bg-indigo-400 transition"
+              >
+                경기 전체 분석 시작 →
+              </button>
+            </div>
+
+            {/* 선수 개별 분석 */}
+            <div className="rounded-2xl border border-[#FF9F02]/30 bg-[#FF9F02]/8 p-5">
+              <div className="text-sm font-bold text-[#FF9F02] mb-2">👤 선수 개별 AI 분석</div>
+              <p className="text-xs text-white/55 leading-relaxed mb-3">
+                가까이 찍은 영상 또는 선수 지정 후, 한 명씩 심층 코칭 리포트를 받을 수 있어요.
               </p>
               <button
                 onClick={() => navigate('/video-analysis')}
                 className="w-full rounded-xl bg-[#FF9F02] py-2.5 text-sm font-bold text-black hover:bg-[#e8900a] transition"
               >
-                영상 업로드 → 분석 시작
+                선수별 영상 분석 →
               </button>
             </div>
           </div>

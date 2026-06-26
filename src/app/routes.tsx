@@ -11,6 +11,7 @@ import TrainingJournalPage from './pages/TrainingJournalPage';
 import VideoAnalysisPageLab from './pages/VideoAnalysisPageLab';
 import AiVideoAnalysisPageLab from './pages/AiVideoAnalysisPageLab';
 import HighlightExtractionPage from './pages/HighlightExtractionPage';
+import ClubMatchAnalysisPage from './pages/ClubMatchAnalysisPage';
 import ClubPage from './pages/ClubPage';
 import ClubGradePage from './pages/ClubGradePage';
 import ClubPlayerPage from './pages/ClubPlayerPage';
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
   {
     path: '/highlight-extraction',
     element: <HighlightExtractionPage />,
+  },
+  {
+    path: '/club/match-analysis',
+    element: <ClubMatchAnalysisPage />,
   },
   {
     path: '/club',

@@ -680,3 +680,12 @@ def list_models():
                 p = os.path.join(root, fn)
                 out.append({"path": p, "mb": round(os.path.getsize(p) / 1e6, 1)})
     return out
+
+
+@app.local_entrypoint()
+def check_models():
+    """볼륨에 저장된 .pt 모델 목록 확인."""
+    import json
+
+    out = list_models.remote()
+    print(json.dumps(out, indent=2, ensure_ascii=False))
