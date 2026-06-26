@@ -1,6 +1,7 @@
-import { CSSProperties } from 'react';
+import { CSSProperties, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import PurchaseModal, { useCredits } from './PurchaseModal';
 
 type NavLink = { label: string; to: string; icon?: string };
 
@@ -20,6 +21,8 @@ type PageNavProps = {
 export default function PageNav({ links = DEFAULT_LINKS, showBack = true }: PageNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const credits = useCredits();
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
 
   const goBack = () => {
     if (window.history.length > 1) {
@@ -30,31 +33,47 @@ export default function PageNav({ links = DEFAULT_LINKS, showBack = true }: Page
   };
 
   return (
-    <nav style={navStyle}>
-      {showBack && (
-        <button type="button" onClick={goBack} style={backButtonStyle} aria-label="뒤로 가기">
-          <ArrowLeft size={16} />
-          <span>뒤로</span>
-        </button>
-      )}
+    <>
+      <nav style={navStyle}>
+        {showBack && (
+          <button type="button" onClick={goBack} style={backButtonStyle} aria-label="뒤로 가기">
+            <ArrowLeft size={16} />
+            <span>뒤로</span>
+          </button>
+        )}
 
-      <div style={linksScrollStyle}>
-        {links.map((link) => {
-          const isActive = location.pathname === link.to;
-          return (
-            <button
-              key={link.to}
-              type="button"
-              onClick={() => navigate(link.to)}
-              style={{ ...linkPillStyle, ...(isActive ? activeLinkStyle : null) }}
-            >
-              {link.icon ? <span style={{ fontSize: 13 }}>{link.icon}</span> : null}
-              <span>{link.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+        <div style={linksScrollStyle}>
+          {links.map((link) => {
+            const isActive = location.pathname === link.to;
+            return (
+              <button
+                key={link.to}
+                type="button"
+                onClick={() => navigate(link.to)}
+                style={{ ...linkPillStyle, ...(isActive ? activeLinkStyle : null) }}
+              >
+                {link.icon ? <span style={{ fontSize: 13 }}>{link.icon}</span> : null}
+                <span>{link.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 크레딧 잔액 + 충전 버튼 */}
+        <button
+          type="button"
+          onClick={() => setPurchaseOpen(true)}
+          style={creditButtonStyle}
+          title="크레딧 충전"
+        >
+          <span style={{ fontSize: 12 }}>💳</span>
+          <span style={{ fontWeight: 700, color: '#FFB648' }}>{credits.toLocaleString()}</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>c</span>
+        </button>
+      </nav>
+
+      <PurchaseModal open={purchaseOpen} onClose={() => setPurchaseOpen(false)} />
+    </>
   );
 }
 
@@ -119,4 +138,19 @@ const activeLinkStyle: CSSProperties = {
   background: 'rgba(255,159,2,0.16)',
   border: '1px solid rgba(255,159,2,0.45)',
   color: '#FFB648',
+};
+
+const creditButtonStyle: CSSProperties = {
+  flexShrink: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  padding: '7px 12px',
+  borderRadius: 999,
+  border: '1px solid rgba(255,159,2,0.35)',
+  background: 'rgba(255,159,2,0.10)',
+  color: 'rgba(255,255,255,0.9)',
+  fontSize: 12,
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
 };
