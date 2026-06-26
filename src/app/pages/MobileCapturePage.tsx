@@ -160,55 +160,74 @@ const GUIDE_ITEMS = [
 ];
 
 function GuidePanel() {
-  const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+  const [hoveredIdx, setHoveredIdx] = React.useState<number>(0);
+  const active = GUIDE_ITEMS[hoveredIdx];
   return (
     <div style={{
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 24,
       padding: '28px 24px',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: 0,
     }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 24, letterSpacing: 1 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 16, letterSpacing: 1 }}>
         📹 정확한 분석을 위한 촬영 가이드
       </div>
+
+      {/* 상단: SVG 미리보기 영역 */}
+      <div style={{
+        background: 'rgba(255,159,2,0.06)',
+        border: '1px solid rgba(255,159,2,0.2)',
+        borderRadius: 16,
+        marginBottom: 20,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 160,
+        transition: 'all 0.2s ease',
+        overflow: 'hidden',
+      }}>
+        <div style={{ opacity: 1, transition: 'opacity 0.15s ease' }}>
+          {React.cloneElement(active.svg as React.ReactElement, { width: 240, height: 160 })}
+        </div>
+      </div>
+
+      {/* 하단: 가이드 항목 리스트 */}
       {GUIDE_ITEMS.map((item, idx) => (
         <div
           key={item.icon}
           onMouseEnter={() => setHoveredIdx(idx)}
-          onMouseLeave={() => setHoveredIdx(null)}
           style={{
-            position: 'relative' as const,
             display: 'flex',
-            gap: 18,
-            padding: '18px 0',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            gap: 16,
+            padding: '14px 12px',
+            borderRadius: 12,
             cursor: 'default',
+            transition: 'background 0.15s ease',
+            background: hoveredIdx === idx ? 'rgba(255,159,2,0.10)' : 'transparent',
+            borderBottom: idx < GUIDE_ITEMS.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
           }}
         >
-          <div style={{ fontSize: 22, color: '#FF9F02', fontWeight: 900, flexShrink: 0, width: 28 }}>{item.icon}</div>
+          <div style={{
+            fontSize: 18,
+            color: hoveredIdx === idx ? '#FF9F02' : 'rgba(255,159,2,0.5)',
+            fontWeight: 900,
+            flexShrink: 0,
+            width: 26,
+            transition: 'color 0.15s ease',
+          }}>{item.icon}</div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 5 }}>{item.title}</div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{item.desc}</div>
-          </div>
-          {/* 호버 툴팁 */}
-          {hoveredIdx === idx && (
             <div style={{
-              position: 'absolute' as const,
-              left: '105%',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 100,
-              background: 'rgba(18,20,30,0.97)',
-              border: '1px solid rgba(255,159,2,0.4)',
-              borderRadius: 16,
-              padding: '16px',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-              pointerEvents: 'none' as const,
-              whiteSpace: 'nowrap' as const,
-            }}>
-              {item.svg}
-            </div>
-          )}
+              fontSize: 15,
+              fontWeight: 700,
+              color: hoveredIdx === idx ? '#fff' : 'rgba(255,255,255,0.7)',
+              marginBottom: 3,
+              transition: 'color 0.15s ease',
+            }}>{item.title}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{item.desc}</div>
+          </div>
         </div>
       ))}
     </div>
