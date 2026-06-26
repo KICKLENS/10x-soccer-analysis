@@ -274,6 +274,13 @@ async function runYoloDetection(videoPath, player = {}, topK = 15, { minScore = 
   return result;
 }
 
+function hasManualSeed(seed) {
+  if (!seed || typeof seed !== 'object') return false;
+  if (Array.isArray(seed.seeds) && seed.seeds.length > 0) return true;
+  return Number.isFinite(Number(seed.nx)) && Number(seed.nx) >= 0
+    && Number.isFinite(Number(seed.ny)) && Number(seed.ny) >= 0;
+}
+
 async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
   if (!MODAL_ENABLED) return null;
 
@@ -295,7 +302,7 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
     clips: windows,
     sampleFps: MODAL_SAMPLE_FPS,
     sahi: true,
-    centerSeed: true,
+    centerSeed: !hasManualSeed(seed),
     seedSeconds: 3.0,
   };
 
@@ -355,6 +362,7 @@ async function runGpuCandidates(videoUrl, player = {}, seed = null) {
     sahi: false,
     detectCandidates: true,
     candidateFps: Number(process.env.MODAL_CANDIDATE_FPS) || 2,
+    centerSeed: !hasManualSeed(seed),
   };
 
   // 수동 시드: 다중 우선, 단일 폴백
@@ -576,7 +584,17 @@ function assessDataQuality(candidates, gpuAnalysis) {
     : 0;
   const trackingAvail = gpuAnalysis?.tracking?.available === true;
   const trackingShort = gpuAnalysis?.tracking?.available === false &&
-    gpuAnalysis?.tracking?.reason === 'target_track_too_short';
+    (gpuAnalysis?.tracking?.reason === 'target_track_too_short'
+      || gpuAnalysis?.tracking?.reason === 'manual_seed_miss');
+
+  if (gpuAnalysis?.tracking?.reason === 'manual_seed_miss') {
+    return {
+      insufficient: true,
+      reason: '탭한 위치와 영상 속 선수가 연결되지 않았어요. 10개 장면에서 선수 몸통을 더 정확히 탭해 주세요.',
+      guide: '📹 각 장면 썸네일에서 분석할 선수의 가슴·등번호 쪽을 탭하세요. 옆 선수나 심판을 탭하면 다른 사람을 추적합니다.',
+      partialStrength: null,
+    };
+  }
 
   // 공 탐지 데이터가 너무 적음
   if (avgBallConf < 0.20 && totalClips < 3) {
@@ -1053,7 +1071,14 @@ async function renderHighlightReel(clipsWithVideos, player = {}, seed = null) {
   };
 
   const body = { clips, profile, style: process.env.HIGHLIGHT_FX_STYLE || 'bracket' };
-  if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
+  if (seed && Array.isArray(seed.seeds) && seed.seeds.length > 0) {
+    body.seeds = seed.seeds.map((s) => ({
+      nx: Number(s.nx),
+      ny: Number(s.ny),
+      timeSec: Number(s.timeSec) || 0,
+    }));
+    body.seed = { nx: body.seeds[0].nx, ny: body.seeds[0].ny };
+  } else if (seed && Number.isFinite(seed.nx) && Number.isFinite(seed.ny) && seed.nx >= 0 && seed.ny >= 0) {
     body.seed = { nx: seed.nx, ny: seed.ny };
   }
 
@@ -1129,6 +1154,21 @@ function normalizeSeedInput(seed) {
   };
 }
 
+function normalizeSeedsArray(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s) => normalizeSeedInput(s)).filter(Boolean);
+}
+
+function buildSeedPayload(bodySeed, bodySeeds) {
+  const seeds = normalizeSeedsArray(bodySeeds);
+  const single = normalizeSeedInput(bodySeed);
+  if (seeds.length > 0) {
+    const primary = single || seeds[0];
+    return { ...primary, seeds };
+  }
+  return single;
+}
+
 function normalizePlayerInput(body = {}) {
   const nested = body.player && typeof body.player === 'object' ? body.player : {};
   const uniformColor = String(body.uniformColor || nested.uniformColor || '').trim();
@@ -1184,10 +1224,11 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   let gpuAnalysis = null;
   let rescued = false;
 
-  // 수동 시드(사용자가 탭한 선수)가 있으면 CPU 결과를 무시하고 GPU가 직접 탭한 선수 기준으로 클립 선택
-  // CPU는 등번호/색상/포지션으로 추정하므로 타깃이 틀릴 수 있음; 시드가 있으면 GPU가 훨씬 정확
-  if (seed && coachCandidates.length && MODAL_ENABLED) {
-    console.log('[QC] 수동 시드 있음 → CPU 후보를 GPU 시드 추적으로 교체');
+  // 수동 시드(사용자가 탭한 선수)가 있으면 CPU 타깃 추정 결과를 버리고 GPU만 사용
+  if (hasManualSeed(seed) && MODAL_ENABLED) {
+    if (coachCandidates.length) {
+      console.log('[QC] 수동 시드 있음 → CPU 후보 무시, GPU 탭 추적으로 교체');
+    }
     coachCandidates = [];
   }
 
@@ -1974,11 +2015,11 @@ app.post('/api/jobs/extract', (req, res) => {
     return;
   }
   const player = normalizePlayerInput({ ...rest, player: bodyPlayer });
-  const seed = normalizeSeedInput(bodySeed);
-  // 다중 시드: seeds 배열이 있으면 seed 객체에 포함시켜 전달
-  const seedWithMulti = seed
-    ? { ...seed, seeds: Array.isArray(bodySeeds) && bodySeeds.length > 0 ? bodySeeds : undefined }
-    : (Array.isArray(bodySeeds) && bodySeeds.length > 0 ? { seeds: bodySeeds, nx: bodySeeds[0]?.nx, ny: bodySeeds[0]?.ny, timeSec: bodySeeds[0]?.timeSec } : null);
+  const normalizedSeeds = normalizeSeedsArray(bodySeeds);
+  const seedWithMulti = buildSeedPayload(bodySeed, bodySeeds);
+  if (normalizedSeeds.length > 0) {
+    console.log(`[extract] 수동 시드 ${normalizedSeeds.length}개 수신`);
+  }
   const job = createJob('extract', { filename, player, seed: seedWithMulti, srcKey: null });
   res.json({ success: true, jobId: job.id });
 

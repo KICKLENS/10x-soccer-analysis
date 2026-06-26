@@ -313,7 +313,7 @@ def _write_reid_tracker() -> str:
 def _track_player(video_path: str, player: dict, sample_fps: float,
                   assumed_height_m: float, max_seconds: float,
                   center_seed: bool = True, seed_seconds: float = 3.0,
-                  seed_point: tuple = None) -> dict:
+                  seed_point: tuple = None, seed_points: list = None) -> dict:
     import cv2
     import numpy as np
     from ultralytics import YOLO
@@ -334,6 +334,14 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
 
     step = max(1, int(round(fps / max(0.5, sample_fps))))
     dt = step / fps  # 샘플 간 시간 간격(초)
+
+    manual_seeds: list = []
+    if seed_points:
+        manual_seeds = list(seed_points)
+    elif seed_point is not None:
+        manual_seeds = [seed_point]
+    # 수동 시드가 있으면 화면 중앙 자동 지목 끔 — 탭한 선수 외 다른 사람으로 바뀌는 것 방지
+    use_center_seed = center_seed and not manual_seeds
 
     color_ranges = _color_ranges(f"{player.get('uniformColor','')} {player.get('traits','')}")
     position = player.get("position", "")
@@ -443,7 +451,7 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
                 rec["histw"] += area
 
             # 중앙 지목 점수: 시작 구간에 화면 중앙 + 크게(앞쪽) 잡힌 선수일수록 높음
-            if center_seed and t <= seed_seconds:
+            if use_center_seed and t <= seed_seconds:
                 dcx = abs(nx - 0.5)
                 dcy = abs(ny - 0.5)
                 radial = (dcx * dcx + dcy * dcy) ** 0.5
@@ -451,19 +459,21 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
                 size_norm = min(1.0, (box_h / frame_h) / 0.6)  # 화면 높이 60%면 만점
                 rec["seed"].append(closeness * (0.6 + 0.4 * size_norm))
 
-            # 수동 시드 점수: 사용자가 탭한 시각 근처에서, 탭 위치가 박스 안/근처면 높음
-            if seed_point is not None:
-                s_time, s_nx, s_ny = seed_point
-                if abs(t - s_time) <= max(0.5, dt * 1.5):
-                    bx1, by1 = x1 / frame_w, y1 / frame_h
-                    bx2, by2 = x2 / frame_w, y2 / frame_h
-                    inside = (bx1 <= s_nx <= bx2) and (by1 <= s_ny <= by2)
-                    bcx, bcy = (bx1 + bx2) / 2.0, (by1 + by2) / 2.0
-                    d = ((s_nx - bcx) ** 2 + (s_ny - bcy) ** 2) ** 0.5
-                    prox = max(0.0, 1.0 - d / 0.25)  # 박스중심 가까울수록 1
-                    # 박스 안이면 강한 보너스, 시각 일치도 가중
-                    time_w = max(0.0, 1.0 - abs(t - s_time) / max(0.5, dt * 1.5))
-                    rec["mseed"].append((1.0 if inside else prox * 0.6) * (0.5 + 0.5 * time_w))
+            # 수동 시드: 10장면 탭 전부 반영 (가장 가까운 track에 누적 점수)
+            for s_time, s_nx, s_ny in manual_seeds:
+                window = max(1.2, dt * 3)
+                if abs(t - s_time) > window:
+                    continue
+                bx1n, by1n = x1 / frame_w, y1 / frame_h
+                bx2n, by2n = x2 / frame_w, y2 / frame_h
+                inside = (bx1n <= s_nx <= bx2n) and (by1n <= s_ny <= by2n)
+                bcx, bcy = (bx1n + bx2n) / 2.0, (by1n + by2n) / 2.0
+                d = ((s_nx - bcx) ** 2 + (s_ny - bcy) ** 2) ** 0.5
+                prox = max(0.0, 1.0 - d / 0.18)
+                time_w = max(0.0, 1.0 - abs(t - s_time) / window)
+                score = (1.0 if inside else prox * 0.55) * (0.45 + 0.55 * time_w)
+                if score > 0.05:
+                    rec["mseed"].append(score)
 
         frame_idx += 1
 
@@ -491,14 +501,21 @@ def _track_player(video_path: str, player: dict, sample_fps: float,
         tid: r for tid, r in tracks.items()
         if r.get("seed") and len(r["seed"]) >= 2
     }
-    if seed_point is not None and mseeded:
+    if manual_seeds and mseeded:
         def mseed_rank(item):
             _tid, r = item
-            return (sum(r["mseed"]), len(r["pts"]))
+            return (sum(r["mseed"]), len(r["mseed"]), len(r["pts"]))
 
         target_id, target = max(mseeded.items(), key=mseed_rank)
         seed_select = "manual_seed"
-    elif center_seed and seeded:
+        print(f"[track] manual_seed 선택 track={target_id} mseed_sum={sum(target['mseed']):.2f} taps={len(manual_seeds)}")
+    elif manual_seeds:
+        return {
+            "available": False,
+            "reason": "manual_seed_miss",
+            "message": "탭한 위치에서 선수를 찾지 못했습니다. 각 장면에서 선수 몸통을 정확히 탭해 주세요.",
+        }
+    elif use_center_seed and seeded:
         def seed_rank(item):
             _tid, r = item
             s = r["seed"]
@@ -1127,13 +1144,15 @@ def analyze(req: "AnalyzeRequest"):
             out["candidates"] = _detect_candidates(
                 tmp_path, player, req.candidateFps, req.preRoll, req.postRoll, req.mergeGap,
                 seed_point=primary_seed,
-                seed_points=seed_points if len(seed_points) > 1 else None,
+                seed_points=seed_points if seed_points else None,
             )
 
+        use_center = bool(req.centerSeed) and not seed_points
         tracking = _track_player(
             tmp_path, player, req.sampleFps, req.assumedPlayerHeightM, req.maxTrackSeconds,
-            center_seed=req.centerSeed, seed_seconds=req.seedSeconds,
+            center_seed=use_center, seed_seconds=req.seedSeconds,
             seed_point=primary_seed,
+            seed_points=seed_points if seed_points else None,
         )
         out["tracking"] = tracking
 

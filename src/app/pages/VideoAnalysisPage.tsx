@@ -886,7 +886,7 @@ export default function VideoAnalysisPage() {
                 <div className="space-y-3">
                   <p className="text-sm text-white/60">
                     <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#FF9F02] text-[11px] font-bold text-black">2</span>
-                    각 장면에서 <strong className="text-white">분석할 선수를 탭</strong>하세요 — 총 {seedFrames.length}장 · ←→ 로 다른 장면 이동
+                    각 장면에서 <strong className="text-white">선수 몸통(가슴·등번호)</strong>을 탭하세요 — 옆 선수를 탭하면 다른 사람이 추적됩니다
                   </p>
                   <div
                     className={`relative w-full overflow-hidden rounded-[18px] border-2 transition-colors ${
