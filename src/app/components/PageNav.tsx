@@ -59,6 +59,17 @@ export default function PageNav({ links = DEFAULT_LINKS, showBack = true }: Page
           })}
         </div>
 
+        {/* 클럽 버튼 */}
+        <button
+          type="button"
+          onClick={() => navigate('/club')}
+          style={clubButtonStyle}
+          title="클럽 포털"
+        >
+          <span style={{ fontSize: 12 }}>🏟️</span>
+          <span style={{ fontWeight: 700 }}>클럽</span>
+        </button>
+
         {/* 크레딧 잔액 + 충전 버튼 */}
         <button
           type="button"
@@ -138,6 +149,21 @@ const activeLinkStyle: CSSProperties = {
   background: 'rgba(255,159,2,0.16)',
   border: '1px solid rgba(255,159,2,0.45)',
   color: '#FFB648',
+};
+
+const clubButtonStyle: CSSProperties = {
+  flexShrink: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  padding: '7px 12px',
+  borderRadius: 999,
+  border: '1px solid rgba(99,102,241,0.45)',
+  background: 'rgba(99,102,241,0.12)',
+  color: 'rgba(199,210,254,0.9)',
+  fontSize: 12,
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
 };
 
 const creditButtonStyle: CSSProperties = {

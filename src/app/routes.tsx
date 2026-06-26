@@ -10,6 +10,9 @@ import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
 import TrainingJournalPage from './pages/TrainingJournalPage';
 import VideoAnalysisPageLab from './pages/VideoAnalysisPageLab';
 import AiVideoAnalysisPageLab from './pages/AiVideoAnalysisPageLab';
+import ClubPage from './pages/ClubPage';
+import ClubGradePage from './pages/ClubGradePage';
+import ClubPlayerPage from './pages/ClubPlayerPage';
 
 export const router = createBrowserRouter([
   {
@@ -47,6 +50,18 @@ export const router = createBrowserRouter([
   {
     path: '/training-journal',
     element: <TrainingJournalPage />,
+  },
+  {
+    path: '/club',
+    element: <ClubPage />,
+  },
+  {
+    path: '/club/grade/:grade',
+    element: <ClubGradePage />,
+  },
+  {
+    path: '/club/player/:id',
+    element: <ClubPlayerPage />,
   },
   {
     path: '/capture',
