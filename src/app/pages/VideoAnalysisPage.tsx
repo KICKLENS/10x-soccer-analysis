@@ -409,7 +409,7 @@ export default function VideoAnalysisPage() {
         end,
         duration,
         fileName,
-        label: clip.label || `하이라이트 ${index + 1}`,
+        label: clip.label || `주요 장면 ${index + 1}`,
         reason: clip.reason || '',
         coachComment: clip.coachComment || '',
       };
@@ -546,15 +546,15 @@ export default function VideoAnalysisPage() {
     try {
       const data = await pollJob<ExtractResponse>(jobId, (stage, progress) =>
         setStatusMessage(
-          `분석 장면 추출 중: ${stage}${typeof progress === 'number' ? ` (${progress}%)` : ''}`,
+          `주요 장면 추출 중: ${stage}${typeof progress === 'number' ? ` (${progress}%)` : ''}`,
         ),
       );
 
       const nextClips = Array.isArray(data.clips) ? data.clips : [];
       const mergedUrl = toAbsoluteUrl(data.mergedHighlightUrl || data.highlightVideoUrl || '');
 
-      if (!mergedUrl && nextClips.length === 0) {
-        throw new Error('분석 장면을 추출하지 못했습니다. 다른 영상으로 다시 시도해주세요.');
+      if (nextClips.length === 0) {
+        throw new Error('주요 장면을 추출하지 못했습니다. 다른 영상으로 다시 시도해주세요.');
       }
 
       setHighlightClips(nextClips);
@@ -564,10 +564,10 @@ export default function VideoAnalysisPage() {
       persistWorkflowPayload(nextClips, mergedUrl, jobId, data.summary || null);
       setStatusMessage(
         data.message ||
-          '분석 장면 추출이 완료되었습니다. AI 영상분석으로 이어가거나, 하이라이트 페이지에서 공유용 영상을 만드세요.',
+          '주요 장면 추출이 완료되었습니다. 아래에서 클립별로 확인하거나 AI 영상분석으로 이어가세요.',
       );
       clearActiveJob();
-      void showNotif('장면 추출 완료! ⚽', 'AI 분석 또는 하이라이트 만들기를 진행해 보세요.');
+      void showNotif('장면 추출 완료! ⚽', '클립을 확인하거나 AI 코치 분석을 진행해 보세요.');
     } catch (error) {
       clearActiveJob();
       const gone = (error as { jobGone?: boolean })?.jobGone;
@@ -575,7 +575,7 @@ export default function VideoAnalysisPage() {
       if (opts?.resume && gone) {
         setStatusMessage('');
       } else {
-        setErrorMessage(error instanceof Error ? error.message : '분석 장면 추출 중 오류가 발생했습니다.');
+        setErrorMessage(error instanceof Error ? error.message : '주요 장면 추출 중 오류가 발생했습니다.');
         setStatusMessage('');
         void showNotif('장면 추출 실패', '다시 시도해 주세요.');
       }
@@ -646,7 +646,7 @@ export default function VideoAnalysisPage() {
     }
 
     setErrorMessage('');
-    setStatusMessage('분석 장면 추출을 시작합니다...');
+    setStatusMessage('주요 장면 추출을 시작합니다...');
     await ensureNotifyPermission();
 
     let jobId = '';
@@ -664,11 +664,11 @@ export default function VideoAnalysisPage() {
           seeds: seeds.length > 0 ? seeds : undefined,
         }),
       });
-      if (!start.jobId) throw new Error('분석 장면 추출 작업을 시작하지 못했습니다.');
+      if (!start.jobId) throw new Error('주요 장면 추출 작업을 시작하지 못했습니다.');
       jobId = start.jobId;
       saveActiveJob(jobId, uploadedVideoFileName);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : '분석 장면 추출을 시작하지 못했습니다.');
+      setErrorMessage(error instanceof Error ? error.message : '주요 장면 추출을 시작하지 못했습니다.');
       setStatusMessage('');
       return;
     }
@@ -683,7 +683,7 @@ export default function VideoAnalysisPage() {
     resumedRef.current = true;
     const active = readActiveJob();
     if (active?.jobId) {
-      setStatusMessage('이전에 시작한 분석 장면 추출을 이어서 확인하는 중입니다...');
+      setStatusMessage('이전에 시작한 주요 장면 추출을 이어서 확인하는 중입니다...');
       void consumeExtractJob(active.jobId, { resume: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -691,7 +691,7 @@ export default function VideoAnalysisPage() {
 
   const handleGoToAiAnalysis = () => {
     if (normalizedClips.length === 0) {
-      setErrorMessage('먼저 분석 장면을 추출해주세요.');
+      setErrorMessage('먼저 주요 장면을 추출해주세요.');
       return;
     }
 
@@ -740,8 +740,8 @@ export default function VideoAnalysisPage() {
               경기 영상 분석
             </h1>
             <p className="mt-3 max-w-[860px] text-[13px] leading-6 md:mt-4 md:text-[16px] md:leading-7" style={{ color: TEXT_SUB }}>
-              영상을 업로드하고 선수를 지정한 뒤 AI가 핵심 장면을 추출합니다. 장면별 코치 분석은
-              이어서 확인하고, 선수 추적 표시가 들어간 공유용 하이라이트는 별도 페이지에서 만듭니다.
+              영상을 업로드하고 선수를 지정한 뒤 AI가 핵심 장면(클립)을 추출합니다. 클립별로 확인하고
+              AI 코치 분석으로 이어갈 수 있습니다.
             </p>
           </div>
 
@@ -795,7 +795,7 @@ export default function VideoAnalysisPage() {
         <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <SectionCard
             title="1. 영상 업로드"
-            description="경기 영상을 업로드하면 AI 분석을 위한 준비가 자동으로 진행되며, 이후 하이라이트 추출과 분석 단계로 자연스럽게 이어집니다."
+            description="경기 영상을 업로드하면 AI 분석을 위한 준비가 자동으로 진행되며, 이후 주요 장면 추출과 AI 코치 분석 단계로 이어집니다."
           >
             <div className="space-y-5">
               <div className="rounded-[22px] border border-white/8 bg-white/[0.02] p-4">
@@ -939,15 +939,14 @@ export default function VideoAnalysisPage() {
           </SectionCard>
 
           <SectionCard
-            title="2. 분석 장면 추출"
-            description="AI가 영상에서 코치 분석에 사용할 핵심 장면(클립)을 자동으로 골라냅니다. 공유용 하이라이트 영상은 별도 페이지에서 만듭니다."
+            title="2. 주요 장면 추출"
+            description="AI가 영상에서 코치 분석에 사용할 핵심 장면(클립)을 자동으로 골라냅니다. 클립별로 바로 재생할 수 있습니다."
           >
             <div className="space-y-5">
               <div className="rounded-[22px] border border-white/8 bg-white/[0.02] p-4">
                 <p className="text-sm leading-7 text-white/72">
-                  업로드된 영상에서 AI가 분석에 필요한 장면만 추출합니다. 추출이 끝나면 장면별 AI 코치
-                  분석으로 이어가거나, 선수 추적 표시가 들어간 하이라이트 영상은 「하이라이트 추출」
-                  페이지에서 따로 만들 수 있어요.
+                  업로드된 영상에서 AI가 분석에 필요한 장면만 추출합니다. 추출이 끝나면 아래에서
+                  클립별로 재생하거나 AI 코치 분석으로 이어갈 수 있어요.
                 </p>
               </div>
 
@@ -958,7 +957,7 @@ export default function VideoAnalysisPage() {
                   disabled={!uploadedVideoFileName || isExtracting}
                 >
                   {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                  {isExtracting ? '추출 중' : '분석 장면 추출'}
+                  {isExtracting ? '추출 중' : '주요 장면 추출'}
                 </ActionButton>
 
                 <ActionButton
@@ -969,15 +968,6 @@ export default function VideoAnalysisPage() {
                   <Sparkles size={16} />
                   AI 영상분석
                   <ArrowRight size={16} />
-                </ActionButton>
-
-                <ActionButton
-                  onClick={() => navigate('/highlight-extraction')}
-                  variant="outline"
-                  disabled={normalizedClips.length === 0}
-                >
-                  <Film size={16} />
-                  하이라이트 추출 →
                 </ActionButton>
               </div>
 
@@ -1031,8 +1021,8 @@ export default function VideoAnalysisPage() {
 
         <div className="mt-6">
           <SectionCard
-            title="추출된 분석 장면 (클립)"
-            description="AI 코치 분석에 사용될 장면별 클립입니다. 전체 하이라이트 재생은 「하이라이트 추출」 페이지에서 확인하세요."
+            title="추출된 주요 장면 (클립)"
+            description="AI 코치 분석에 사용될 장면별 클립입니다. 각 클립을 눌러 바로 재생할 수 있습니다."
           >
             {normalizedClips.length > 0 ? (
               <div className="grid gap-4">
@@ -1092,7 +1082,7 @@ export default function VideoAnalysisPage() {
               </div>
             ) : (
               <div className="rounded-[22px] border border-white/10 bg-white/[0.02] p-6 text-white/60">
-                하이라이트가 생성되면 이 영역에서 장면별로 확인할 수 있습니다.
+                주요 장면이 추출되면 이 영역에서 클립별로 확인할 수 있습니다.
               </div>
             )}
           </SectionCard>
@@ -1104,8 +1094,8 @@ export default function VideoAnalysisPage() {
             <div>
               <p className="text-sm font-semibold text-emerald-200">영상 분석 워크플로우</p>
               <p className="mt-2 text-sm leading-7 text-emerald-100/88">
-                ① 영상 업로드 → ② 선수 지정 → ③ 분석 장면 추출 → ④ AI 코치 분석.
-                SNS·공유용 하이라이트(선수 추적 표시)는 「하이라이트 추출」 페이지에서 별도로 만듭니다.
+                ① 영상 업로드 → ② 선수 지정 → ③ 주요 장면 추출 → ④ AI 코치 분석.
+                SNS·공유용 하이라이트 영상은 상단 메뉴 「하이라이트 추출」에서 별도로 만듭니다.
               </p>
             </div>
           </div>

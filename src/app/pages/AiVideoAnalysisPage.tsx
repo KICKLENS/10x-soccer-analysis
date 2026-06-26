@@ -255,7 +255,7 @@ export default function AiVideoAnalysisPage() {
                 style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
               >
                 <Download size={16} />
-                하이라이트 만들기
+                하이라이트 추출
               </button>
               <button
                 type="button"
@@ -284,7 +284,7 @@ export default function AiVideoAnalysisPage() {
               style={{ borderColor: STROKE, background: 'rgba(255,255,255,0.03)' }}
             >
               <ArrowLeft size={16} />
-              하이라이트 페이지로
+              영상 분석으로
             </button>
           )}
         </div>
@@ -306,7 +306,7 @@ export default function AiVideoAnalysisPage() {
             <Sparkles size={28} className="mx-auto text-[#FFB648]" />
             <h2 className="mt-4 text-xl font-bold">표시할 AI 분석 결과가 없습니다</h2>
             <p className="mt-3 text-sm leading-7" style={{ color: TEXT_SUB }}>
-              먼저 <strong>/video-analysis</strong>에서 영상을 업로드하고 「분석 장면 추출」을 완료한 뒤
+              먼저 <strong>/video-analysis</strong>에서 영상을 업로드하고 「주요 장면 추출」을 완료한 뒤
               &quot;AI 영상분석&quot; 버튼을 눌러주세요.
             </p>
           </div>
@@ -324,7 +324,7 @@ export default function AiVideoAnalysisPage() {
                 <div className="mt-1 text-base font-bold md:mt-2 md:text-lg">{payload.player?.uniformColor || '-'}</div>
               </div>
               <div className="rounded-2xl border p-3 md:p-4" style={{ borderColor: STROKE, background: CARD_BG }}>
-                <div className="text-xs text-white/48">하이라이트 클립</div>
+                <div className="text-xs text-white/48">주요 장면</div>
                 <div className="mt-1 text-base font-bold md:mt-2 md:text-lg">{clips.length}개</div>
               </div>
               <div className="rounded-2xl border p-3 md:p-4" style={{ borderColor: STROKE, background: CARD_BG }}>

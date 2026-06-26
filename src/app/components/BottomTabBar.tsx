@@ -1,6 +1,6 @@
 import { CSSProperties } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Video, Clapperboard, NotebookPen, FolderClosed } from 'lucide-react';
+import { Home, Video, Clapperboard, Sparkles, NotebookPen, FolderClosed } from 'lucide-react';
 
 type Tab = {
   label: string;
@@ -13,6 +13,7 @@ const TABS: Tab[] = [
   { label: '홈', to: '/', icon: Home },
   { label: '촬영', to: '/mobile-capture', icon: Video, matchPaths: ['/mobile-capture', '/capture'] },
   { label: '분석', to: '/video-analysis', icon: Clapperboard, matchPaths: ['/video-analysis', '/ai-video-analysis'] },
+  { label: '하이라이트', to: '/highlight-extraction', icon: Sparkles, matchPaths: ['/highlight-extraction', '/highlight'] },
   { label: '일지', to: '/training-journal', icon: NotebookPen },
   { label: '기록', to: '/analysis-history', icon: FolderClosed },
 ];
@@ -36,7 +37,7 @@ export default function BottomTabBar() {
             style={{ ...itemStyle, color: isActive ? '#FFB648' : 'rgba(255,255,255,0.62)' }}
             aria-current={isActive ? 'page' : undefined}
           >
-            <Icon size={21} strokeWidth={isActive ? 2.4 : 2} />
+            <Icon size={19} strokeWidth={isActive ? 2.4 : 2} />
             <span style={{ ...labelStyle, fontWeight: isActive ? 700 : 500 }}>{tab.label}</span>
           </button>
         );
@@ -78,6 +79,6 @@ const itemStyle: CSSProperties = {
 };
 
 const labelStyle: CSSProperties = {
-  fontSize: 11,
+  fontSize: 10,
   lineHeight: 1,
 };

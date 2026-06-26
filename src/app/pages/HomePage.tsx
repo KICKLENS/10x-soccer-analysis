@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import {
   ArrowRight,
@@ -121,6 +122,17 @@ function goToPage(path?: string, fallbackId?: string) {
   if (fallbackId) {
     scrollToId(fallbackId);
   }
+}
+
+function useAppNavigate() {
+  const navigate = useNavigate();
+  return (path: string) => {
+    if (path.startsWith('/')) {
+      navigate(path);
+      return;
+    }
+    goToPage(path);
+  };
 }
 
 function SectionBadge({ children }: { children: ReactNode }) {
@@ -488,13 +500,15 @@ function FeatureTile({
 }
 
 export default function HomePage() {
+  const appNavigate = useAppNavigate();
+
   const handleStartClick = () => {
     const player = readSelectedPlayer();
     if (player.name) {
-      goToPage(PAGE_LINKS.mobileCapture);
+      appNavigate(PAGE_LINKS.mobileCapture);
       return;
     }
-    goToPage(PAGE_LINKS.playerRegistration);
+    appNavigate(PAGE_LINKS.playerRegistration);
   };
 
   const FEATURES = [
@@ -510,35 +524,42 @@ export default function HomePage() {
       icon: <Upload size={24} className="text-[#FFB648]" />,
       title: '영상 업로드',
       desc: '찍어둔 영상 파일을 올려 분석',
-      onClick: () => goToPage('/video-analysis'),
+      onClick: () => appNavigate('/video-analysis'),
     },
     {
       step: 3,
       icon: <Scissors size={24} className="text-[#FFB648]" />,
-      title: '하이라이트 추출',
-      desc: 'AI가 핵심 장면만 자동으로 추출',
-      onClick: () => goToPage('/video-analysis'),
+      title: '주요 장면 추출',
+      desc: 'AI가 핵심 장면 클립을 자동 추출',
+      onClick: () => appNavigate('/video-analysis'),
     },
     {
       step: 4,
-      icon: <Archive size={24} className="text-[#FFB648]" />,
-      title: '하이라이트 보관함',
-      desc: '추출한 하이라이트와 기록 저장',
-      onClick: () => goToPage('/analysis-history'),
+      icon: <Sparkles size={24} className="text-[#FFB648]" />,
+      title: '하이라이트 추출',
+      desc: 'SNS·공유용 하이라이트 영상 만들기',
+      onClick: () => appNavigate('/highlight-extraction'),
     },
     {
       step: 5,
-      icon: <Brain size={24} className="text-[#FFB648]" />,
-      title: 'AI 분석',
-      desc: 'AI 코치의 상세 피드백 받기',
-      onClick: () => goToPage('/ai-video-analysis'),
+      icon: <Archive size={24} className="text-[#FFB648]" />,
+      title: '하이라이트 보관함',
+      desc: '추출한 하이라이트와 기록 저장',
+      onClick: () => appNavigate('/analysis-history'),
     },
     {
       step: 6,
+      icon: <Brain size={24} className="text-[#FFB648]" />,
+      title: 'AI 분석',
+      desc: 'AI 코치의 상세 피드백 받기',
+      onClick: () => appNavigate('/ai-video-analysis'),
+    },
+    {
+      step: 7,
       icon: <NotebookPen size={24} className="text-[#FFB648]" />,
       title: '훈련일지',
       desc: '오늘 배운 것 기록하고 복습',
-      onClick: () => goToPage('/training-journal'),
+      onClick: () => appNavigate('/training-journal'),
     },
   ];
 
@@ -559,7 +580,7 @@ export default function HomePage() {
           <button
             type="button"
             className="flex shrink-0 items-center"
-            onClick={() => goToPage(PAGE_LINKS.home)}
+            onClick={() => appNavigate(PAGE_LINKS.home)}
           >
             <img
               src={LOGO_SRC}
@@ -579,21 +600,36 @@ export default function HomePage() {
             </button>
             <button
               type="button"
-              onClick={() => goToPage('/mobile-capture')}
+              onClick={() => appNavigate('/mobile-capture')}
               className="transition hover:text-white"
             >
               경기 촬영
             </button>
             <button
               type="button"
-              onClick={() => goToPage('/training-journal')}
+              onClick={() => appNavigate('/video-analysis')}
+              className="transition hover:text-white"
+            >
+              영상 분석
+            </button>
+            <button
+              type="button"
+              onClick={() => appNavigate('/highlight-extraction')}
+              className="font-semibold transition hover:text-[#FFB648]"
+              style={{ color: '#FFB648' }}
+            >
+              하이라이트 추출
+            </button>
+            <button
+              type="button"
+              onClick={() => appNavigate('/training-journal')}
               className="transition hover:text-white"
             >
               훈련일지
             </button>
             <button
               type="button"
-              onClick={() => goToPage('/analysis-history')}
+              onClick={() => appNavigate('/analysis-history')}
               className="transition hover:text-white"
             >
               내 기록
@@ -611,7 +647,7 @@ export default function HomePage() {
             {/* 클럽 전용 포털 — 메인 페이지 우측 상단 고정 */}
             <button
               type="button"
-              onClick={() => goToPage('/club')}
+              onClick={() => appNavigate('/club')}
               className="group flex shrink-0 items-center gap-2 rounded-2xl border-2 border-indigo-400/70 bg-gradient-to-br from-indigo-600/90 to-violet-700/90 px-3 py-2 shadow-[0_4px_24px_rgba(99,102,241,0.45)] transition hover:border-indigo-300 hover:from-indigo-500 hover:to-violet-600 md:px-4 md:py-2.5"
               aria-label="클럽·감독·코치 전용 포털"
             >
@@ -676,7 +712,7 @@ export default function HomePage() {
                   기능 둘러보기
                 </MetallicButton>
 
-                <MetallicButton variant="outline" onClick={() => goToPage('/analysis-history')}>
+                <MetallicButton variant="outline" onClick={() => appNavigate('/analysis-history')}>
                   내 분석 기록
                 </MetallicButton>
               </div>
@@ -720,7 +756,7 @@ export default function HomePage() {
                   지금보다 <span style={{ color: POINT_COLOR }}>10배</span> 빠르게 성장하는 길
                 </>
               }
-              description="촬영 → 업로드 → 하이라이트 → 보관 → AI 분석 → 훈련일지. 이 6단계 흐름이 실력을 10배로 끌어올립니다. 원하는 단계를 눌러 지금 시작하세요."
+              description="촬영 → 업로드 → 주요 장면 추출 → 하이라이트 → 보관 → AI 분석 → 훈련일지. 원하는 단계를 눌러 지금 시작하세요."
             />
           </div>
         </div>
@@ -860,7 +896,7 @@ export default function HomePage() {
                   지금 분석 시작
                   <ArrowRight size={16} />
                 </MetallicButton>
-                <MetallicButton variant="outline" onClick={() => goToPage('/training-journal')}>
+                <MetallicButton variant="outline" onClick={() => appNavigate('/training-journal')}>
                   훈련일지 보기
                 </MetallicButton>
               </div>
@@ -972,21 +1008,35 @@ export default function HomePage() {
             </button>
             <button
               type="button"
-              onClick={() => goToPage('/mobile-capture')}
+              onClick={() => appNavigate('/mobile-capture')}
               className="transition hover:text-white/80"
             >
               경기 촬영
             </button>
             <button
               type="button"
-              onClick={() => goToPage('/training-journal')}
+              onClick={() => appNavigate('/video-analysis')}
+              className="transition hover:text-white/80"
+            >
+              영상 분석
+            </button>
+            <button
+              type="button"
+              onClick={() => appNavigate('/highlight-extraction')}
+              className="transition hover:text-[#FFB648]"
+            >
+              하이라이트 추출
+            </button>
+            <button
+              type="button"
+              onClick={() => appNavigate('/training-journal')}
               className="transition hover:text-white/80"
             >
               훈련일지
             </button>
             <button
               type="button"
-              onClick={() => goToPage('/analysis-history')}
+              onClick={() => appNavigate('/analysis-history')}
               className="transition hover:text-white/80"
             >
               내 기록

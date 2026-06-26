@@ -262,7 +262,7 @@ interface UploadResponseData {
 const PIPELINE_LABELS: Record<AnalysisPipelineStep, string> = {
   idle: '분석 준비',
   uploading: '영상 업로드 중...',
-  analyzing: 'AI 하이라이트·코치 분석 중... (2~12분)',
+  analyzing: 'AI 주요 장면·코치 분석 중... (2~12분)',
   done: '분석 완료',
 };
 
@@ -1086,7 +1086,7 @@ export default function MobileCapturePage() {
           <div style={eyebrowStyle}>선수 촬영</div>
           <h1 style={heroTitleStyle}>경기 촬영하기</h1>
           <p style={heroDescriptionStyle}>
-            선수를 화면 중앙에 두고 촬영하세요. 녹화를 마치면 AI가 자동으로 하이라이트와 코치 피드백을 만들어 줍니다.
+            선수를 화면 중앙에 두고 촬영하세요. 녹화를 마치면 AI가 자동으로 주요 장면을 추출하고 코치 피드백을 만들어 줍니다.
           </p>
         </section>
 
@@ -1397,7 +1397,7 @@ export default function MobileCapturePage() {
             <p style={pipelineOverlayDescStyle}>
               {pipelineStep === 'uploading'
                 ? '촬영한 영상을 서버로 전송하고 있습니다. 업로드가 끝나면 자동으로 분석이 시작됩니다.'
-                : '등록한 선수 중심으로 하이라이트를 추출하고 코치 피드백을 생성합니다. 화면을 켜 두어 주세요.'}
+                : '등록한 선수 중심으로 주요 장면을 추출하고 코치 피드백을 생성합니다. 화면을 켜 두어 주세요.'}
             </p>
           </section>
         )}

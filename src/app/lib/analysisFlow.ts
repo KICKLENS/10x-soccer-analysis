@@ -263,7 +263,7 @@ export async function extractHighlightsForPlayer(
     }),
   });
 
-  if (!start.jobId) throw new Error('하이라이트 추출 작업을 시작하지 못했습니다.');
+  if (!start.jobId) throw new Error('주요 장면 추출 작업을 시작하지 못했습니다.');
 
   // 잡 완료까지 폴링
   return pollExtractJob<ExtractResponse>(start.jobId, onStage);
@@ -316,11 +316,10 @@ export async function runMobileAnalysisPipeline(
   onStep?.('analyzing');
   const extract = await extractHighlightsForPlayer(upload.fileName, player, onAnalysisStage);
 
-  const mergedUrl = toAbsoluteUrl(extract.mergedHighlightUrl || extract.highlightVideoUrl || '');
   const clips = Array.isArray(extract.clips) ? extract.clips : [];
 
-  if (!mergedUrl && clips.length === 0) {
-    throw new Error('하이라이트를 생성하지 못했습니다. 다른 각도로 다시 촬영해 주세요.');
+  if (clips.length === 0) {
+    throw new Error('주요 장면을 추출하지 못했습니다. 다른 각도로 다시 촬영해 주세요.');
   }
 
   const payload = buildAiAnalysisPayload({

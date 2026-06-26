@@ -5,10 +5,13 @@ import PurchaseModal, { useCredits } from './PurchaseModal';
 
 type NavLink = { label: string; to: string; icon?: string };
 
+const HIGHLIGHT_LINK = '/highlight-extraction';
+
 const DEFAULT_LINKS: NavLink[] = [
   { label: '홈', to: '/', icon: '🏠' },
   { label: '경기 촬영', to: '/mobile-capture', icon: '🎥' },
   { label: '영상 분석', to: '/video-analysis', icon: '🎬' },
+  { label: '하이라이트', to: HIGHLIGHT_LINK, icon: '✨' },
   { label: '훈련일지', to: '/training-journal', icon: '📒' },
   { label: '내 기록', to: '/analysis-history', icon: '📁' },
 ];
@@ -45,12 +48,23 @@ export default function PageNav({ links = DEFAULT_LINKS, showBack = true }: Page
         <div style={linksScrollStyle}>
           {links.map((link) => {
             const isActive = location.pathname === link.to;
+            const isHighlight = link.to === HIGHLIGHT_LINK;
             return (
               <button
                 key={link.to}
                 type="button"
                 onClick={() => navigate(link.to)}
-                style={{ ...linkPillStyle, ...(isActive ? activeLinkStyle : null) }}
+                style={{
+                  ...linkPillStyle,
+                  ...(isActive ? activeLinkStyle : null),
+                  ...(isHighlight && !isActive
+                    ? {
+                        border: '1px solid rgba(255,159,2,0.35)',
+                        background: 'rgba(255,159,2,0.10)',
+                        color: '#FFD48A',
+                      }
+                    : null),
+                }}
               >
                 {link.icon ? <span style={{ fontSize: 13 }}>{link.icon}</span> : null}
                 <span>{link.label}</span>
