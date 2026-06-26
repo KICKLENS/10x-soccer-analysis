@@ -343,7 +343,7 @@ def train_roboflow(
     gpu="A10G",
     timeout=24 * 3600,
     volumes={"/models": volume},
-    secrets=[modal.Secret.from_name("roboflow-api", required=False)],
+    secrets=[],
 )
 def train_from_universe(
     epochs: int = 50,

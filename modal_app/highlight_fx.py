@@ -729,6 +729,30 @@ def _normalize(video_path: str, out_path: str):
           "-crf", "22", out_path])
 
 
+def _add_watermark(in_path: str, out_path: str):
+    """완성된 하이라이트 영상 우측 하단에 '10x.ai.kr' 워터마크를 삽입한다."""
+    font_path = FONT_BOLD if __import__("os").path.exists(FONT_BOLD) else ""
+    # ffmpeg drawtext: 우측 하단, 반투명 흰색, 작은 글씨
+    fontfile_opt = f":fontfile={font_path}" if font_path else ""
+    watermark_filter = (
+        f"drawtext=text='10x.ai.kr'"
+        f"{fontfile_opt}"
+        f":fontsize=28"
+        f":fontcolor=white@0.55"
+        f":x=w-tw-20"
+        f":y=h-th-16"
+        f":shadowcolor=black@0.4"
+        f":shadowx=1:shadowy=1"
+    )
+    _run([
+        "ffmpeg", "-y", "-i", in_path,
+        "-vf", watermark_filter,
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-preset", "veryfast", "-crf", "21",
+        "-movflags", "+faststart", out_path,
+    ])
+
+
 def _concat_video(paths, out_path: str):
     args = ["ffmpeg", "-y"]
     for p in paths:
@@ -809,7 +833,17 @@ def render_highlights(req: dict):
 
     out = "/tmp/reel.mp4"
     _make_reel(paths, profile, out, style=style, with_card=False)
-    data = open(out, "rb").read()
+
+    # 워터마크 삽입 (10x.ai.kr)
+    out_wm = "/tmp/reel_wm.mp4"
+    try:
+        _add_watermark(out, out_wm)
+        final = out_wm
+    except Exception as e:
+        print(f"[watermark] 워터마크 삽입 실패 (원본 사용): {e}")
+        final = out
+
+    data = open(final, "rb").read()
     return Response(content=data, media_type="video/mp4",
                     headers={"X-Clip-Count": str(len(paths))})
 

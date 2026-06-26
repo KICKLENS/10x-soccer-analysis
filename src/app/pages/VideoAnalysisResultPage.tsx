@@ -390,7 +390,7 @@ function FinalHighlightCard({
       </div>
 
       {videoUrl && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="rounded-xl bg-slate-900 overflow-hidden">
             <video
               key={videoUrl}
@@ -400,8 +400,81 @@ function FinalHighlightCard({
               crossOrigin="anonymous"
             />
           </div>
-          <div className="text-xs text-slate-400">
-            파일: {renderResult.outputFileName || 'unknown'}
+
+          {/* SNS 공유 버튼 */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+            <p className="mb-3 text-xs font-semibold text-slate-500">공유하기</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+              {/* 다운로드 */}
+              <a
+                href={videoUrl}
+                download={renderResult.outputFileName || 'highlight.mp4'}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-white py-3 px-2 text-center transition hover:bg-slate-100"
+              >
+                <span className="text-xl">⬇️</span>
+                <span className="text-xs font-medium text-slate-700">저장</span>
+              </a>
+
+              {/* 링크 복사 */}
+              <button
+                onClick={() => {
+                  const fullUrl = window.location.origin + videoUrl;
+                  navigator.clipboard.writeText(fullUrl).then(() => {
+                    alert('링크가 복사되었습니다!');
+                  });
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-white py-3 px-2 text-center transition hover:bg-slate-100"
+              >
+                <span className="text-xl">🔗</span>
+                <span className="text-xs font-medium text-slate-700">링크 복사</span>
+              </button>
+
+              {/* 카카오톡 공유 */}
+              <button
+                onClick={() => {
+                  const fullUrl = window.location.origin + videoUrl;
+                  const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?app_key=KAKAO_APP_KEY&validation_action=default&validation_params=%7B%7D`;
+                  // 카카오 SDK 미설치 시 Web Share API 폴백
+                  if (navigator.share) {
+                    navigator.share({
+                      title: '하이라이트 영상 🔥',
+                      text: '우리 아이 축구 하이라이트 영상이에요!',
+                      url: fullUrl,
+                    });
+                  } else {
+                    window.open(`https://sharer.kakao.com/talk/friends/picker/easylink?app_key=none&url=${encodeURIComponent(fullUrl)}`, '_blank');
+                  }
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-yellow-200 bg-[#FEE500] py-3 px-2 text-center transition hover:bg-yellow-300"
+              >
+                <span className="text-xl">💬</span>
+                <span className="text-xs font-medium text-yellow-900">카카오톡</span>
+              </button>
+
+              {/* 인스타그램 / 기타 */}
+              <button
+                onClick={() => {
+                  const fullUrl = window.location.origin + videoUrl;
+                  if (navigator.share) {
+                    navigator.share({
+                      title: '하이라이트 영상 🔥',
+                      text: '우리 아이 축구 하이라이트 영상이에요! #축구 #유소년축구 #10xai',
+                      url: fullUrl,
+                    });
+                  } else {
+                    navigator.clipboard.writeText(fullUrl).then(() => {
+                      alert('링크가 복사됐어요. 인스타그램에 붙여넣기 해주세요!');
+                    });
+                  }
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-pink-200 bg-gradient-to-br from-purple-50 to-pink-50 py-3 px-2 text-center transition hover:from-purple-100 hover:to-pink-100"
+              >
+                <span className="text-xl">📸</span>
+                <span className="text-xs font-medium text-pink-700">인스타그램</span>
+              </button>
+            </div>
+            <p className="mt-2 text-center text-[10px] text-slate-400">영상에는 10x.ai.kr 워터마크가 포함되어 있습니다</p>
           </div>
         </div>
       )}
