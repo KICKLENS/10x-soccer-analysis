@@ -724,6 +724,139 @@ export default function MobileCapturePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordedFile, selectedPlayer?.name, isRecording]);
 
+  // PC에서는 모바일 안내 페이지 표시
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+  const [_isDesktop] = React.useState(isDesktop);
+
+  if (_isDesktop) {
+    return (
+      <div style={pageStyle}>
+        <div style={containerStyle}>
+          <PageNav />
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column' as const,
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '70vh',
+            gap: 0,
+          }}>
+            {/* PC 안내 카드 - 좌우 2컬럼 */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 32,
+              width: '100%',
+              maxWidth: 960,
+              padding: '48px 32px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 32,
+              backdropFilter: 'blur(10px)',
+            }}>
+              {/* 왼쪽: 설명 */}
+              <div style={{ display: 'flex', flexDirection: 'column' as const, justifyContent: 'center', gap: 24 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#FF9F02', letterSpacing: 2, marginBottom: 12 }}>MOBILE CAPTURE</div>
+                  <h1 style={{ margin: 0, fontSize: 36, fontWeight: 900, lineHeight: 1.2, color: '#fff' }}>
+                    경기 촬영은<br />모바일에서
+                  </h1>
+                  <p style={{ marginTop: 16, fontSize: 15, lineHeight: 1.8, color: 'rgba(255,255,255,0.65)' }}>
+                    실시간 경기 촬영 기능은 스마트폰에 최적화되어 있어요.<br />
+                    모바일 브라우저에서 같은 주소로 접속하면 바로 촬영할 수 있어요.
+                  </p>
+                </div>
+
+                {/* URL 복사 */}
+                <div style={{
+                  background: 'rgba(255,159,2,0.10)',
+                  border: '1px solid rgba(255,159,2,0.30)',
+                  borderRadius: 16,
+                  padding: '16px 20px',
+                }}>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>모바일에서 접속할 주소</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#FFB648', letterSpacing: 0.5, wordBreak: 'break-all' as const }}>
+                    {window.location.origin}/mobile-capture
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/mobile-capture`);
+                      alert('주소가 복사되었습니다!');
+                    }}
+                    style={{
+                      marginTop: 12,
+                      padding: '8px 18px',
+                      borderRadius: 999,
+                      border: '1px solid rgba(255,159,2,0.5)',
+                      background: 'rgba(255,159,2,0.15)',
+                      color: '#FF9F02',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🔗 주소 복사
+                  </button>
+                </div>
+
+                {/* 영상 분석 페이지로 이동 */}
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>PC에서는 이미 촬영된 영상을 업로드해서 분석할 수 있어요.</div>
+                  <button
+                    onClick={() => navigate('/video-analysis')}
+                    style={{
+                      padding: '14px 24px',
+                      borderRadius: 16,
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #FF9F02, #FF6B00)',
+                      color: '#fff',
+                      fontSize: 15,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textAlign: 'left' as const,
+                    }}
+                  >
+                    🎬 영상 업로드·분석 하러 가기 →
+                  </button>
+                </div>
+              </div>
+
+              {/* 오른쪽: 촬영 가이드 */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 24,
+                padding: '28px 24px',
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 20, letterSpacing: 1 }}>📹 촬영 가이드</div>
+                {[
+                  { icon: '①', title: '처음 3초', desc: '분석할 선수를 화면 가운데에 크게 잡아주세요' },
+                  { icon: '②', title: '촬영 거리', desc: '선수와 공이 함께 보일 정도로 적당히 멀리서 찍어요' },
+                  { icon: '③', title: '가로 촬영', desc: '스마트폰을 가로로 돌려서 찍으면 더 정확해요' },
+                  { icon: '④', title: '최소 5분', desc: '공을 다루는 장면이 많을수록 분석 정확도가 올라가요' },
+                  { icon: '⑤', title: '안정적으로', desc: '너무 빠른 패닝이나 흔들림은 추적 정확도를 낮춰요' },
+                ].map(item => (
+                  <div key={item.icon} style={{
+                    display: 'flex',
+                    gap: 14,
+                    padding: '14px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <div style={{ fontSize: 18, color: '#FF9F02', fontWeight: 900, flexShrink: 0, width: 24 }}>{item.icon}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>{item.title}</div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={pageStyle}>
       <style>{'@keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }'}</style>
