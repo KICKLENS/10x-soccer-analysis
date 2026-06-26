@@ -608,6 +608,22 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* 클럽 전용 포털 — 메인 페이지 우측 상단 고정 */}
+            <button
+              type="button"
+              onClick={() => goToPage('/club')}
+              className="group flex shrink-0 items-center gap-2 rounded-2xl border-2 border-indigo-400/70 bg-gradient-to-br from-indigo-600/90 to-violet-700/90 px-3 py-2 shadow-[0_4px_24px_rgba(99,102,241,0.45)] transition hover:border-indigo-300 hover:from-indigo-500 hover:to-violet-600 md:px-4 md:py-2.5"
+              aria-label="클럽·감독·코치 전용 포털"
+            >
+              <span className="text-lg md:text-xl leading-none">🏟️</span>
+              <span className="flex flex-col items-start leading-tight">
+                <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-100 md:text-[10px]">
+                  감독 · 코치 전용
+                </span>
+                <span className="text-xs font-black text-white md:text-sm">클럽 포털</span>
+              </span>
+            </button>
+
             <div className="hidden sm:block">
               <MetallicButton variant="outline" onClick={() => scrollToId('showcase')}>
                 쇼케이스 보기
