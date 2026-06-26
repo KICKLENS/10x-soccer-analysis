@@ -731,7 +731,7 @@ export default function MobileCapturePage() {
   if (_isDesktop) {
     return (
       <div style={pageStyle}>
-        <div style={containerStyle}>
+        <div style={{ ...containerStyle, maxWidth: 1400, padding: '0 40px' }}>
           <PageNav />
           <div style={{
             display: 'flex',
