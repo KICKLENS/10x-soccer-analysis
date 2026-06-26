@@ -46,11 +46,6 @@ export default function ClubPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white">{CLUB_DEMO.name}</h1>
-              <div className="flex items-center gap-3 mt-1 text-sm text-white/50 flex-wrap">
-                <span>👨‍💼 {CLUB_DEMO.coach}</span>
-                <span>📍 {CLUB_DEMO.location}</span>
-                <span>🗓️ {CLUB_DEMO.founded}년 창단</span>
-              </div>
             </div>
           </div>
           <span className="rounded-xl border border-[#FF9F02]/30 bg-[#FF9F02]/10 px-4 py-2 text-xs font-semibold text-[#FF9F02]">
@@ -107,7 +102,7 @@ export default function ClubPage() {
         {/* 통계 요약 */}
         <div className="mt-5 grid grid-cols-3 gap-4">
           {[
-            { label: '전체 선수', value: CLUB_DEMO.stats.totalPlayers, unit: '명', icon: '👥' },
+            { label: '전체 선수', value: allPlayers.length, unit: '명', icon: '👥' },
             { label: 'AI 분석 완료', value: CLUB_DEMO.stats.totalAnalysis, unit: '회', icon: '🧠' },
             { label: '하이라이트', value: CLUB_DEMO.stats.totalHighlights, unit: '개', icon: '🎬' },
           ].map((s) => (
