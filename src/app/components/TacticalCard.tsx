@@ -420,6 +420,128 @@ const TACTICS: TacticData[] = [
     explanation: '가짜 9번은 메시, 피르미누 같은 선수들이 많이 써요! 9번이 내려오면 상대 수비수는 딜레마에 빠져요. "따라가면" 수비 뒤 공간이 열리고, "안 따라가면" 9번이 자유롭게 공을 받아요. 어느 쪽이든 공격팀에게 유리해져요.',
     xp: 45,
   },
+
+  // ── 골키퍼 전술 ──────────────────────────────────────────────
+  {
+    id: 'gk_sweeper_keeper',
+    title: '스위퍼 키퍼',
+    subtitle: '🧤 골키퍼 전술',
+    concept: '골키퍼가 페널티박스 밖으로 나와 수비 뒤 공간을 커버한다',
+    description: '상대가 수비 뒤로 롱볼을 보낼 때, 골키퍼가 빠르게 나와서 공을 먼저 잡아요. 골키퍼가 11번째 필드플레이어처럼 움직이는 거예요.',
+    players: [
+      { x: 50, y: 85, team: 'blue', label: 'GK' },
+      { x: 50, y: 70, team: 'blue', label: 'CB' },
+      { x: 50, y: 55, team: 'red', label: 'FW' },
+    ],
+    arrows: [
+      { from: [50, 85], to: [50, 65], color: '#60D394' },
+      { from: [50, 55], to: [50, 68], color: '#EF4444', dashed: true },
+    ],
+    quizQuestion: '상대가 수비 뒤 공간으로 롱볼을 찼어요. 스위퍼 키퍼라면?',
+    options: [
+      { id: 'a', label: '골대 앞에서 기다린다', correct: false },
+      { id: 'b', label: '빠르게 나와서 공을 먼저 잡는다', correct: true },
+      { id: 'c', label: '수비수에게 소리쳐서 잡으라고 한다', correct: false },
+    ],
+    explanation: '스위퍼 키퍼는 노이어, 에데르송 같은 현대 골키퍼의 핵심 역할이에요! 골키퍼가 수비 뒤 공간을 커버하면 수비수들은 더 높이 올라가서 압박할 수 있어요. 단, 무조건 나오면 위험하니까 판단이 중요해요.',
+    xp: 40,
+  },
+  {
+    id: 'gk_distribution',
+    title: '골킥 빌드업',
+    subtitle: '🧤 골키퍼 전술',
+    concept: '골킥을 무조건 멀리 차지 말고 가까운 수비수에게 짧게 연결한다',
+    description: '골키퍼가 골킥을 멀리 차면 상대에게 공이 넘어갈 확률이 높아요. 짧게 수비수에게 연결하면 우리 팀이 공을 안전하게 가져갈 수 있어요.',
+    players: [
+      { x: 50, y: 90, team: 'blue', label: 'GK' },
+      { x: 30, y: 78, team: 'blue', label: 'CB' },
+      { x: 70, y: 78, team: 'blue', label: 'CB' },
+      { x: 50, y: 60, team: 'red', label: 'FW' },
+    ],
+    arrows: [
+      { from: [50, 90], to: [32, 79], color: '#60D394' },
+      { from: [32, 79], to: [25, 68], color: '#60D394' },
+    ],
+    quizQuestion: '골킥 상황! 상대 공격수 2명이 앞에 있어요. 어떻게 할까요?',
+    options: [
+      { id: 'a', label: '힘껏 멀리 차서 상대 진영으로 보낸다', correct: false },
+      { id: 'b', label: '옆에 있는 수비수에게 짧게 패스한다', correct: true },
+      { id: 'c', label: '공을 들고 페널티박스 안에서 기다린다', correct: false },
+    ],
+    explanation: '현대 축구에서 골킥 빌드업은 필수예요! 바르셀로나, 맨시티처럼 강팀들은 골키퍼부터 빌드업을 시작해요. 짧은 패스로 연결하면 상대 압박을 무력화할 수 있어요. 골키퍼는 팀의 첫 번째 공격수예요.',
+    xp: 35,
+  },
+  {
+    id: 'gk_angle_play',
+    title: '각도 줄이기',
+    subtitle: '🧤 골키퍼 전술',
+    concept: '1대1 상황에서 앞으로 나와 슈팅 각도를 좁힌다',
+    description: '상대 공격수가 단독으로 골대를 향해 달려올 때, 골키퍼가 앞으로 나오면 공격수가 슈팅할 수 있는 공간(각도)이 줄어들어요.',
+    players: [
+      { x: 50, y: 88, team: 'blue', label: 'GK' },
+      { x: 50, y: 65, team: 'red', label: 'FW' },
+    ],
+    arrows: [
+      { from: [50, 88], to: [50, 75], color: '#60D394' },
+    ],
+    quizQuestion: '상대 공격수가 1대1로 달려오고 있어요! 골키퍼는?',
+    options: [
+      { id: 'a', label: '골대 라인에서 기다린다', correct: false },
+      { id: 'b', label: '앞으로 나가서 각도를 줄인다', correct: true },
+      { id: 'c', label: '옆으로 움직여서 혼란을 준다', correct: false },
+    ],
+    explanation: '골키퍼가 앞으로 나올수록 공격수가 슈팅할 골문이 작아 보여요! 단, 너무 멀리 나오면 칩슛에 당할 수 있어요. 공격수와의 거리, 공 속도, 각도를 모두 계산해야 해요. 1대1은 골키퍼의 가장 중요한 기술이에요.',
+    xp: 40,
+  },
+  {
+    id: 'gk_communication',
+    title: '수비 조율 (코칭)',
+    subtitle: '🧤 골키퍼 전술',
+    concept: '골키퍼는 필드 전체를 보며 수비수에게 지시해야 한다',
+    description: '골키퍼는 팀에서 가장 뒤에 서 있어서 필드 전체가 보여요. 그래서 수비수들에게 "왼쪽!", "마크!", "나간다!" 같은 지시를 끊임없이 해줘야 해요.',
+    players: [
+      { x: 50, y: 90, team: 'blue', label: 'GK' },
+      { x: 30, y: 72, team: 'blue', label: 'CB' },
+      { x: 70, y: 72, team: 'blue', label: 'CB' },
+      { x: 20, y: 72, team: 'blue', label: 'LB' },
+      { x: 45, y: 58, team: 'red', label: 'FW' },
+    ],
+    arrows: [
+      { from: [50, 90], to: [32, 73], color: '#FACC15', dashed: true },
+      { from: [50, 90], to: [68, 73], color: '#FACC15', dashed: true },
+    ],
+    quizQuestion: '크로스가 들어오는 상황! 골키퍼가 잡을 수 있어요. 뭐라고 외쳐야 할까요?',
+    options: [
+      { id: 'a', label: '조용히 있는다', correct: false },
+      { id: 'b', label: '"키퍼!" 라고 크게 외쳐서 내 공임을 알린다', correct: true },
+      { id: 'c', label: '"수비수가 처리해!" 라고 말한다', correct: false },
+    ],
+    explanation: '"키퍼!" 는 골키퍼의 가장 중요한 말이에요! 크게 외쳐야 수비수들이 비켜줘서 충돌을 막을 수 있어요. 골키퍼는 항상 크고 명확하게 소통해야 해요. 카시야스, 노이어 같은 레전드 골키퍼들은 항상 큰 소리로 팀을 이끌었어요.',
+    xp: 30,
+  },
+  {
+    id: 'gk_penalty_save',
+    title: '페널티킥 선방',
+    subtitle: '🧤 골키퍼 전술',
+    concept: '심리전으로 키커를 압박하고 방향을 읽어 막는다',
+    description: '페널티킥은 통계적으로 키커가 유리해요. 하지만 골키퍼가 침착하게 심리전을 펼치고 방향을 잘 읽으면 막을 수 있어요.',
+    players: [
+      { x: 50, y: 88, team: 'blue', label: 'GK' },
+      { x: 50, y: 72, team: 'red', label: 'PK' },
+    ],
+    arrows: [
+      { from: [50, 88], to: [25, 85], color: '#60D394' },
+      { from: [50, 72], to: [30, 88], color: '#EF4444', dashed: true },
+    ],
+    quizQuestion: '페널티킥 상황! 골키퍼로서 가장 좋은 전략은?',
+    options: [
+      { id: 'a', label: '가만히 서서 공이 오는 방향으로 몸을 날린다', correct: false },
+      { id: 'b', label: '키커의 도움닫기, 발 방향, 눈동자를 관찰하고 방향을 읽는다', correct: true },
+      { id: 'c', label: '무조건 오른쪽으로 뛴다', correct: false },
+    ],
+    explanation: '페널티킥 선방은 준비가 절반이에요! 상대 키커의 습관을 미리 파악하고, 도움닫기 각도와 발끝 방향을 보면 어느 쪽으로 찰지 예측할 수 있어요. 알리송, 부폰 같은 골키퍼들은 데이터와 경험으로 방향을 읽어요.',
+    xp: 45,
+  },
 ];
 
 // 날짜 기반으로 오늘의 전술 선택
