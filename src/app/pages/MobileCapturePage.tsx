@@ -326,29 +326,20 @@ function getSupportedMimeType() {
   return '';
 }
 
+function detectDesktopCaptureGuide(): boolean {
+  if (typeof window === 'undefined') return true;
+  const ua = navigator.userAgent || '';
+  const isPhone = /iPhone|iPod|Android.*Mobile/i.test(ua);
+  const finePointer = window.matchMedia('(pointer: fine)').matches;
+  return finePointer && !isPhone;
+}
+
 /** PC(마우스)에서는 창 너비와 관계없이 모바일 안내+가이드 화면을 보여준다. */
 function useShowDesktopCaptureGuide(): boolean {
-  const [showGuide, setShowGuide] = React.useState(true);
+  const [showGuide, setShowGuide] = React.useState(() => detectDesktopCaptureGuide());
 
   React.useEffect(() => {
-    const evaluate = () => {
-      const ua = navigator.userAgent || '';
-      const isPhone = /iPhone|iPod|Android.*Mobile/i.test(ua);
-      const isTablet =
-        /iPad|Android(?!.*Mobile)/i.test(ua) ||
-        (navigator.maxTouchPoints > 1 && /Mac/i.test(ua));
-      const isTouchDevice = isPhone || isTablet;
-      const finePointer = window.matchMedia('(pointer: fine)').matches;
-
-      // Mac/PC + 마우스: 좁은 창이어도 안내+가이드 페이지
-      if (finePointer && !isTouchDevice) {
-        setShowGuide(true);
-        return;
-      }
-      // 휴대폰·태블릿: 카메라 촬영 UI
-      setShowGuide(false);
-    };
-
+    const evaluate = () => setShowGuide(detectDesktopCaptureGuide());
     evaluate();
     window.addEventListener('resize', evaluate);
     return () => window.removeEventListener('resize', evaluate);
@@ -420,14 +411,17 @@ export default function MobileCapturePage() {
 
   useEffect(() => {
     const player = loadSelectedPlayer();
-    if (!player?.name) {
+    // PC 안내 화면은 선수 등록 없이도 가이드를 볼 수 있게 유지
+    if (!player?.name && !detectDesktopCaptureGuide()) {
       navigate('/player-registration', { replace: true });
       return;
     }
-    setSelectedPlayer(player);
+    if (player?.name) {
+      setSelectedPlayer(player);
 
-    const savedUniform = safeReadJSON<string>(sessionStorage, MATCH_UNIFORM_KEY, '');
-    setTodayUniform(savedUniform || player.uniformColor || '');
+      const savedUniform = safeReadJSON<string>(sessionStorage, MATCH_UNIFORM_KEY, '');
+      setTodayUniform(savedUniform || player.uniformColor || '');
+    }
   }, [navigate]);
 
   const handleTodayUniformChange = (value: string) => {
