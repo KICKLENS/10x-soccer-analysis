@@ -826,6 +826,7 @@ ${JSON.stringify(candidates, null, 2)}
 - 순수 JSON만 출력 (마크다운·코드블록 금지)
 - keyMoments의 startSec/endSec는 후보 JSON 값을 우선 사용
 - 확실하지 않은 스코어·선수 이름은 추정임을 명시
+- **첨부된 실제 영상 프레임을 반드시 참고**하고, 프레임에 보이지 않는 내용은 지어내지 마세요
 
 [출력 형식]
 {
@@ -874,22 +875,58 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
     throw new Error(`영상 파일을 찾을 수 없습니다: ${savedFilename}`);
   }
 
-  report('경기 장면 탐지 중', 12);
+  const videoUrl = `${PUBLIC_BASE}/uploads/${savedFilename}`;
   const emptyPlayer = {};
-  let yoloResult = await runYoloDetection(fullPath, emptyPlayer, 20, { minScore: 0.42, conf: 0.14, imgsz: 768 });
-  if (!yoloResult.clips?.length) {
-    console.warn('[match] 1차 장면 탐지 실패, 완화 조건 재시도');
-    yoloResult = await runYoloDetection(fullPath, emptyPlayer, 24, { minScore: 0.32, conf: 0.12, imgsz: 768 });
+  let yoloResult = { fileName: savedFilename, clips: [], summary: {} };
+  let rawClips = [];
+  let detectionSource = 'cpu';
+
+  report('경기 장면 탐지 중 (GPU)', 12);
+  if (MODAL_ENABLED) {
+    console.log('[match] Modal GPU(파인튜닝 모델) 후보 탐지 시도...');
+    const gpuCand = await runGpuCandidates(videoUrl, emptyPlayer, null);
+    const gpuClips = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
+    if (gpuClips.length) {
+      rawClips = gpuClips
+        .filter((clip) => Number(clip.interactionFrames) >= 1 || Number(clip.avgBallConfidence) >= 0.22)
+        .sort((a, b) => {
+          const scoreA = (Number(a.isGoalAreaMoment) ? 50 : 0) + (Number(a.score) || 0) * 10 + (Number(a.interactionFrames) || 0);
+          const scoreB = (Number(b.isGoalAreaMoment) ? 50 : 0) + (Number(b.score) || 0) * 10 + (Number(b.interactionFrames) || 0);
+          return scoreB - scoreA;
+        })
+        .slice(0, 15);
+      yoloResult = {
+        fileName: savedFilename,
+        clips: rawClips,
+        summary: {
+          durationSec: gpuCand?.candidates?.durationSec,
+          ballDetectedFrames: gpuCand?.candidates?.ballSeenFrames,
+          sampledFrames: gpuCand?.candidates?.sampledFrames,
+          source: 'modal-gpu',
+        },
+      };
+      detectionSource = 'modal-gpu';
+      console.log(`[match] GPU 후보 ${rawClips.length}개 사용`);
+    }
   }
 
-  const rawClips = (yoloResult.clips || [])
-    .filter((clip) => Number(clip.interactionFrames) >= 1 || Number(clip.avgBallConfidence) >= 0.28)
-    .sort((a, b) => {
-      const scoreA = (Number(a.isGoalAreaMoment) ? 50 : 0) + (Number(a.score) || 0) * 10 + (Number(a.interactionFrames) || 0);
-      const scoreB = (Number(b.isGoalAreaMoment) ? 50 : 0) + (Number(b.score) || 0) * 10 + (Number(b.interactionFrames) || 0);
-      return scoreB - scoreA;
-    })
-    .slice(0, 15);
+  if (!rawClips.length) {
+    report('경기 장면 탐지 중 (CPU)', 18);
+    yoloResult = await runYoloDetection(fullPath, emptyPlayer, 20, { minScore: 0.42, conf: 0.14, imgsz: 768 });
+    if (!yoloResult.clips?.length) {
+      console.warn('[match] 1차 장면 탐지 실패, 완화 조건 재시도');
+      yoloResult = await runYoloDetection(fullPath, emptyPlayer, 24, { minScore: 0.32, conf: 0.12, imgsz: 768 });
+    }
+    rawClips = (yoloResult.clips || [])
+      .filter((clip) => Number(clip.interactionFrames) >= 1 || Number(clip.avgBallConfidence) >= 0.28)
+      .sort((a, b) => {
+        const scoreA = (Number(a.isGoalAreaMoment) ? 50 : 0) + (Number(a.score) || 0) * 10 + (Number(a.interactionFrames) || 0);
+        const scoreB = (Number(b.isGoalAreaMoment) ? 50 : 0) + (Number(b.score) || 0) * 10 + (Number(b.interactionFrames) || 0);
+        return scoreB - scoreA;
+      })
+      .slice(0, 15);
+    detectionSource = 'cpu-yolo';
+  }
 
   if (!rawClips.length) {
     throw new Error(
@@ -900,10 +937,30 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
   report('주요 장면 클립 생성 중', 35);
   const clipsWithVideos = await renderClipVideos(fullPath, rawClips);
 
-  report('AI 경기 분석 중', 65);
+  report('AI 경기 분석 중 (영상 프레임 확인)', 65);
   const genAI = new GoogleGenerativeAI(apiKey);
   const prompt = buildMatchAnalysisPrompt(yoloResult, meta, rawClips);
-  const text = await generateContentWithFallback(genAI, prompt);
+  const frameClips = rawClips.slice(0, 8);
+  const parts = [{ text: `${prompt}\n\n[첨부] 아래 ${frameClips.length}개 장면의 실제 영상 프레임을 보고 분석하세요. 프레임에 없는 득점·선수·전술은 추측하지 마세요.` }];
+
+  for (const clip of frameClips) {
+    const startSec = Number(clip.startSec) || 0;
+    const endSec = Number(clip.endSec) || startSec + 3;
+    const midSec = startSec + Math.max(0.4, (endSec - startSec) / 2);
+    parts.push({
+      text: `\n[장면 ${clip.id} ${clip.startTime || secToMmss(startSec)} ~ ${clip.endTime || secToMmss(endSec)} | ${clip.label || ''}]`,
+    });
+    try {
+      parts.push({ inlineData: { mimeType: 'image/jpeg', data: await extractClipFrameBase64(fullPath, startSec + 0.5) } });
+      parts.push({ inlineData: { mimeType: 'image/jpeg', data: await extractClipFrameBase64(fullPath, midSec) } });
+    } catch (err) {
+      console.warn(`[match] 프레임 추출 실패 ${clip.id}:`, err.message);
+    }
+  }
+
+  const text = parts.length > 1
+    ? await generateMultimodalWithFallback(genAI, parts)
+    : await generateContentWithFallback(genAI, prompt);
   const parsed = robustParse(text);
 
   report('분석 리포트 정리 중', 92);
@@ -932,7 +989,7 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
     coachingRecommendations: Array.isArray(parsed.coachingRecommendations) ? parsed.coachingRecommendations : [],
     nextMatchFocus: parsed.nextMatchFocus || '',
     clips: adaptClipsForMainSite(clipsWithVideos),
-    yoloSummary: yoloResult.summary || null,
+    yoloSummary: { ...(yoloResult.summary || {}), detectionSource },
     savedFilename,
   };
 }
