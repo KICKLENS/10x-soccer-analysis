@@ -50,6 +50,65 @@ const QC_FRAME_WIDTH = Number(process.env.QC_FRAME_WIDTH) || 768;
 const QC_FRAMES_PER_CLIP = Math.max(1, Math.min(2, Number(process.env.QC_FRAMES_PER_CLIP) || 2));
 const QC_MAX_CLIPS = Math.max(1, Number(process.env.QC_MAX_CLIPS) || 8);
 
+// ── 분석 정책: 속도보다 정확도. AI 추측·짐작·전망 절대 금지 ─────────────────
+const ANALYSIS_ZERO_SPECULATION = String(process.env.ANALYSIS_ZERO_SPECULATION ?? '1') === '1';
+const QC_FRAMES_STRICT = Math.max(QC_FRAMES_PER_CLIP, ANALYSIS_ZERO_SPECULATION ? 3 : QC_FRAMES_PER_CLIP);
+
+const ANALYSIS_ZERO_SPECULATION_POLICY = `
+[10x.ai.kr 분석 절대 규칙 — 위반 시 해당 문장 무효]
+1. 추측·짐작·가능성·전망·확률·"~할 것""~인 듯""아마""추정""보이는 것 같" 표현 금지
+2. 영상·프레임·탐지 JSON에 없는 사실 서술 금지
+3. 확실하지 않으면 "확인 불가" 또는 빈 문자열/빈 배열 — 지어내지 말 것
+4. 등록 선수가 아닌 다른 선수의 플레이를 대상 선수 것처럼 쓰지 말 것
+5. 장점·단점·훈련 포인트는 확인된 장면 근거 필수 — 근거 없으면 쓰지 말 것
+`.trim();
+
+const SPECULATIVE_TEXT_RE = /(확률|가능성|짐작|추측|추정|~?\s*할\s*(것|듯|거)|~?\s*인\s*(듯|것|거)|아마|보\s*이(?:는\s*것\s*)?같|~?\s*일\s*(것|듯)|먼저\s*골|이길|질\s*것|우위|열세|~?\s*듯\s*하)/i;
+
+function wrapAnalysisPrompt(prompt) {
+  return ANALYSIS_ZERO_SPECULATION ? `${ANALYSIS_ZERO_SPECULATION_POLICY}\n\n${prompt}` : prompt;
+}
+
+function stripSpeculativeSentences(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .split(/(?<=[.!?。])\s+/)
+    .filter((s) => s.trim() && !SPECULATIVE_TEXT_RE.test(s))
+    .join(' ')
+    .trim();
+}
+
+function sanitizeAnalysisField(value) {
+  if (typeof value === 'string') return stripSpeculativeSentences(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? stripSpeculativeSentences(item) : item))
+      .filter((item) => (typeof item === 'string' ? item.length > 0 : true));
+  }
+  return value;
+}
+
+function sanitizePlayerSummary(summary = {}) {
+  if (!summary || typeof summary !== 'object') return summary;
+  return {
+    ...summary,
+    noticeableScene: sanitizeAnalysisField(summary.noticeableScene || ''),
+    strength: sanitizeAnalysisField(summary.strength || ''),
+    weakness: sanitizeAnalysisField(summary.weakness || ''),
+    trainingPoint: sanitizeAnalysisField(summary.trainingPoint || ''),
+    nextTrainingPoint: sanitizeAnalysisField(summary.nextTrainingPoint || ''),
+  };
+}
+
+function sanitizeCoachClips(clips = []) {
+  return clips.map((clip) => ({
+    ...clip,
+    label: sanitizeAnalysisField(clip.label || ''),
+    reason: sanitizeAnalysisField(clip.reason || ''),
+    coachComment: sanitizeAnalysisField(clip.coachComment || ''),
+  }));
+}
+
 // Cloudflare R2 (훈련일지 영상 저장용) 설정
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
@@ -477,7 +536,7 @@ function buildGpuPromptSection(gpu) {
 }
 
 async function generateContentWithFallback(genAI, prompt) {
-  return generateMultimodalWithFallback(genAI, [{ text: prompt }]);
+  return generateMultimodalWithFallback(genAI, [{ text: wrapAnalysisPrompt(prompt) }]);
 }
 
 async function generateMultimodalWithFallback(genAI, parts) {
@@ -487,7 +546,13 @@ async function generateMultimodalWithFallback(genAI, parts) {
     try {
       console.log(`[Gemini] 모델 시도: ${modelName}`);
       const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(parts);
+      const wrappedParts = parts.map((part) => {
+        if (part.text && ANALYSIS_ZERO_SPECULATION && !part.text.includes('[10x.ai.kr 분석 절대 규칙')) {
+          return { text: wrapAnalysisPrompt(part.text) };
+        }
+        return part;
+      });
+      const result = await model.generateContent(wrappedParts);
       return result.response.text();
     } catch (err) {
       console.warn(`[Gemini] ${modelName} 실패: ${err.message}`);
@@ -733,7 +798,9 @@ ${isGk ? '골키퍼: 선방·캐치·펀칭·1대1·실점 상황에서 위치·
 - 순수 JSON만 출력 (마크도운, 코드블록, 설명 금지)
 - startSec/endSec는 후보 값 유지 또는 ±1초 이내 미세 조정
 - id는 후보 id 그대로 사용
-- 확신이 없으면 해당 clip은 제외
+- **확신이 없으면 해당 clip은 제외** — 추측·짐작으로 coachComment 작성 금지
+- coachComment·summary는 **탐지 JSON에서 확인된 동작만** 서술. "~인 듯", "아마" 금지
+- strength/weakness는 clips 장면 근거만. 근거 없으면 "확인 불가"
 
 [출력 형식]
 {
@@ -761,6 +828,107 @@ ${isGk ? '골키퍼: 선방·캐치·펀칭·1대1·실점 상황에서 위치·
     "nextTrainingPoint": "..."
   }
 }`;
+}
+
+function buildPlayerClipFactPrompt(clip, player = {}) {
+  const playerName = player.name || '분석 대상 선수';
+  const jerseyNumber = player.jerseyNumber || '-';
+  const uniformColor = player.uniformColor || '-';
+  const position = player.position || '미지정';
+  const startSec = Number(clip.startSec) || 0;
+  const endSec = Number(clip.endSec) || startSec + 3;
+
+  return `축구 영상 **관찰 기록**만 작성. 코치 해설·추측·짐작·전망 금지.
+
+[대상 선수 — 이 선수만 기록]
+- 이름: ${playerName} / 등번호: ${jerseyNumber} / 유니폼: ${uniformColor} / 포지션: ${position}
+
+[구간] ${clip.startTime || secToMmss(startSec)} ~ ${clip.endTime || secToMmss(endSec)}
+
+첨부 프레임 3장에서 **보이는 사실만** JSON:
+{
+  "id": "${clip.id}",
+  "playerSeen": true | false | "unclear",
+  "isTargetPlayer": true | false | "unclear",
+  "actionType": "패스|슛|드리블|선방|블록|빌드업|확인 불가",
+  "ballInvolvement": "direct|indirect|none|unclear",
+  "visibleFacts": ["프레임에서 확인된 사실"],
+  "cannotDetermine": "알 수 없는 것"
+}`;
+}
+
+function buildCoachPromptFromFacts(yoloResult, player = {}, gpu = null, clipFacts = []) {
+  const playerName = player.name || '분석 대상 선수';
+  const position = player.position || '미지정';
+  const jerseyNumber = player.jerseyNumber || '-';
+  const uniformColor = player.uniformColor || '-';
+
+  const verifiedFacts = (clipFacts || []).filter(
+    (f) => f.playerSeen === true && f.isTargetPlayer !== false && (f.visibleFacts?.length || f.actionType),
+  );
+
+  return `선수 분석 리포트 작성. **장면 관찰 기록만** 근거로 사용. 추측·짐작·전망 절대 금지.
+
+[대상 선수] ${playerName} (${jerseyNumber}번, ${position}, ${uniformColor})
+
+[영상 장면별 관찰 기록 — 이 JSON만 근거]
+${JSON.stringify(verifiedFacts, null, 2)}
+${buildGpuPromptSection(gpu)}
+
+★ 규칙 ★
+- clips: isTargetPlayer=true이고 visibleFacts 있는 장면만. coachComment는 visibleFacts만 반복·정리 (새로운 사실 추가 금지)
+- 관찰에 없는 장면은 clips에 넣지 않음
+- summary.strength/weakness/trainingPoint: **2개 이상 장면에서 반복 확인된 것만**. 없으면 "확인 불가"
+- noticeableScene: 관찰된 장면 요약만
+
+순수 JSON:
+{
+  "clips": [{"id":"","startSec":0,"endSec":0,"label":"","reason":"","coachComment":"","importanceScore":80,"approved":true,"ballInvolvement":"direct","yoloScore":0.8}],
+  "summary": {"noticeableScene":"","strength":"","weakness":"","trainingPoint":"","nextTrainingPoint":""}
+}`;
+}
+
+async function describePlayerClipFacts(genAI, videoPath, clips, player = {}) {
+  if (!clips.length) return [];
+  const facts = [];
+  const batchSize = 2;
+  const framesPerClip = QC_FRAMES_STRICT;
+
+  for (let i = 0; i < clips.length; i += batchSize) {
+    const batch = clips.slice(i, i + batchSize);
+    const parts = [{ text: '각 장면 프레임 관찰 → JSON {"facts":[...]} 만. 추측 금지.' }];
+
+    for (const clip of batch) {
+      const startSec = Number(clip.startSec) || 0;
+      const endSec = Number(clip.endSec) || startSec + 3;
+      const span = Math.max(0.5, endSec - startSec);
+      parts.push({ text: buildPlayerClipFactPrompt(clip, player) });
+      const offsets = [0.3, span * 0.5, Math.max(span - 0.3, span * 0.85)];
+      for (const off of offsets.slice(0, framesPerClip)) {
+        try {
+          parts.push({
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: await extractClipFrameBase64(videoPath, startSec + off),
+            },
+          });
+        } catch (err) {
+          console.warn(`[player-fact] 프레임 실패 ${clip.id}:`, err.message);
+        }
+      }
+    }
+
+    try {
+      const text = await generateMultimodalWithFallback(genAI, parts);
+      const parsed = robustParse(text);
+      const batchFacts = parsed.facts || (Array.isArray(parsed) ? parsed : [parsed]);
+      facts.push(...batchFacts.filter((f) => f && f.id));
+    } catch (err) {
+      console.warn('[player-fact] 장면 관찰 실패:', err.message);
+    }
+  }
+
+  return facts;
 }
 
 function buildMatchClipFactPrompt(clip, meta = {}) {
@@ -922,26 +1090,7 @@ function applyCoverageToReport(parsed, sections) {
   return out;
 }
 
-const MATCH_SPECULATIVE_RE = /(확률|가능성|~?\s*할\s*(것|듯|거)|아마|추정|먼저\s*골|이길\s|질\s*것|우위|열세|~?\s*일\s*것|~?\s*일\s*듯|~?\s*일\s*거)/;
-
-function stripSpeculativeSentences(text) {
-  if (!text || typeof text !== 'string') return text;
-  return text
-    .split(/(?<=[.!?。])\s+/)
-    .filter((s) => s.trim() && !MATCH_SPECULATIVE_RE.test(s))
-    .join(' ')
-    .trim();
-}
-
-function sanitizeMatchReportField(value) {
-  if (typeof value === 'string') return stripSpeculativeSentences(value);
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => (typeof item === 'string' ? stripSpeculativeSentences(item) : item))
-      .filter((item) => (typeof item === 'string' ? item.length > 0 : true));
-  }
-  return value;
-}
+const sanitizeMatchReportField = sanitizeAnalysisField;
 
 function sanitizeMatchReport(parsed, meta = {}, sections = null) {
   const scoreFlow = meta.matchResult
@@ -1239,7 +1388,8 @@ function buildVisualVerificationPrompt(clips, player = {}) {
     location: clip.location || null,
   }));
 
-  return `당신은 축구 하이라이트 품질 검수관(QA)입니다. 각 장면에 첨부된 **실제 영상 프레임 ${QC_FRAMES_PER_CLIP}장**을 보고 하이라이트 적합 여부를 판정하세요.
+  return `당신은 축구 하이라이트 품질 검수관(QA)입니다. 각 장면에 첨부된 **실제 영상 프레임 ${QC_FRAMES_STRICT}장**을 보고 하이라이트 적합 여부를 판정하세요.
+추측·짐작 금지 — 프레임에 보이지 않으면 rejected.
 
 축구는 **공을 골대에 넣는** 스포츠입니다. 골대 앞·페널티박스에서의 슛·선방·수비·패스 연결·득점 시도 장면은 **특히 중요**합니다. isGoalAreaMoment=true 이거나 골대/박스 상황이 보이면, 선수가 관여했다면 우선 approved 하세요.
 
@@ -1251,7 +1401,7 @@ function buildVisualVerificationPrompt(clips, player = {}) {
 [검수 대상 장면]
 ${JSON.stringify(clipList, null, 2)}
 
-각 장면 이미지는 순서대로 [장면 id] 라벨 뒤 ${QC_FRAMES_PER_CLIP}장씩 제공됩니다.
+각 장면 이미지는 순서대로 [장면 id] 라벨 뒤 ${QC_FRAMES_STRICT}장씩 제공됩니다.
 
 [반드시 rejected 처리]
 - 선수가 공을 직접 다루지 않고 가만히 서 있거나 대기만 하는 장면
@@ -1298,9 +1448,13 @@ async function verifyClipsVisually(genAI, videoPath, clips, player = {}) {
       try {
         const frameA = await extractClipFrameBase64(videoPath, startSec + 0.4);
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: frameA } });
-        if (QC_FRAMES_PER_CLIP >= 2) {
+        if (QC_FRAMES_STRICT >= 2) {
           const frameB = await extractClipFrameBase64(videoPath, midSec);
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: frameB } });
+        }
+        if (QC_FRAMES_STRICT >= 3) {
+          const frameC = await extractClipFrameBase64(videoPath, Math.max(startSec + 0.2, endSec - 0.5));
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: frameC } });
         }
       } catch (err) {
         console.warn(`[QC] 프레임 추출 실패 ${clip.id}:`, err.message);
@@ -1703,13 +1857,37 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   }
 
   report('AI 코치가 장면 선정 중', 60);
-  const prompt = buildCoachPrompt(yoloResult, player, gpuAnalysis);
+  let clipFacts = [];
+  let prompt;
+  if (ANALYSIS_ZERO_SPECULATION) {
+    report('선수 장면 영상 관찰 중 (정확도 우선)', 58);
+    clipFacts = await describePlayerClipFacts(
+      genAI,
+      fullPath,
+      coachCandidates.slice(0, QC_MAX_CLIPS),
+      player,
+    );
+    const factById = new Map(clipFacts.map((f) => [f.id, f]));
+    coachCandidates = coachCandidates.filter((c) => {
+      const f = factById.get(c.id);
+      return f && f.playerSeen === true && f.isTargetPlayer !== false;
+    });
+    if (!coachCandidates.length) {
+      throw new Error(
+        '영상에서 지정한 선수가 명확히 보이는 장면을 찾지 못했습니다. 선수를 화면 중앙에 크게 두고 촬영하거나, 유니폼 색·등번호를 확인해 주세요.',
+      );
+    }
+    yoloResult.clips = coachCandidates;
+    prompt = buildCoachPromptFromFacts(yoloResult, player, gpuAnalysis, clipFacts);
+  } else {
+    prompt = buildCoachPrompt(yoloResult, player, gpuAnalysis);
+  }
   const text = await generateContentWithFallback(genAI, prompt);
   const parsed = robustParse(text);
-  const coachSelected = (parsed.clips || []).filter((clip) => clip.approved !== false);
+  const coachSelected = sanitizeCoachClips((parsed.clips || []).filter((clip) => clip.approved !== false));
   let mergedClips = mergeYoloAndCoachClips(yoloResult.clips, coachSelected.length ? coachSelected : parsed.clips);
 
-  if (rescued) {
+  if (rescued && !ANALYSIS_ZERO_SPECULATION) {
     // GPU 구제 경로: 야간/원거리라 프레임 시각검수가 과하게 탈락시키므로 생략하고 상위 후보를 사용
     mergedClips = (mergedClips || []).filter((clip) => clip.included !== false);
     if (!mergedClips.length) mergedClips = yoloResult.clips;
@@ -1744,7 +1922,9 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   return {
     savedFilename,
     clipsWithVideos,
-    summary: parsed.summary,
+    summary: sanitizePlayerSummary(parsed.summary),
+    clipFacts: clipFacts.length ? clipFacts : undefined,
+    analysisMode: ANALYSIS_ZERO_SPECULATION ? 'fact-only-player' : 'standard',
     yoloSummary: yoloResult.summary,
     gpuAnalysis,
     finalHighlight,
