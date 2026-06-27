@@ -71,11 +71,17 @@ function MatchReportView({ report }: { report: ClubMatchAnalysisResult }) {
       <div className="rounded-2xl border border-[#FF9F02]/25 bg-[#FF9F02]/8 p-4 md:p-5">
         <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
           {gradeLabel ? <span className="rounded-full bg-white/10 px-2.5 py-1">{gradeLabel}</span> : null}
+          {meta.ourTeamColor ? (
+            <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-sky-200">우리팀 {meta.ourTeamColor}</span>
+          ) : null}
           {meta.matchDate ? <span>{meta.matchDate}</span> : null}
           {meta.matchResult ? (
             <span className="font-bold text-[#FFB648]">{meta.matchResult}</span>
           ) : null}
         </div>
+        <p className="mt-2 text-[11px] text-white/40">
+          영상에서 확인된 내용만 표시 · 추측·예측 문구는 자동 제외됩니다
+        </p>
         <h2 className="mt-2 text-lg font-black text-white md:text-xl">
           vs {meta.opponent || '상대팀'}
         </h2>
@@ -176,7 +182,7 @@ export default function ClubMatchAnalysisPage() {
   const [matchDate, setMatchDate] = useState(prefill.matchDate || '');
   const [matchResult, setMatchResult] = useState(prefill.matchResult || '');
   const [grade, setGrade] = useState('u12');
-  const [ourTeamColor, setOurTeamColor] = useState('주황');
+  const [ourTeamColor, setOurTeamColor] = useState('하늘색');
 
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -199,6 +205,14 @@ export default function ClubMatchAnalysisPage() {
     }
     if (!opponent.trim()) {
       setError('상대팀 이름을 입력해 주세요.');
+      return;
+    }
+    if (!ourTeamColor.trim()) {
+      setError('우리팀 유니폼 색을 입력해 주세요.');
+      return;
+    }
+    if (!matchResult.trim()) {
+      setError('스코어를 입력해 주세요. AI는 스코어를 추측하지 않습니다.');
       return;
     }
 
@@ -287,9 +301,9 @@ export default function ClubMatchAnalysisPage() {
             </p>
             <h1 className="mt-2 text-2xl font-black md:text-3xl">경기 전체 분석</h1>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-white/55">
-              VEO·드림캠 등 멀리서 찍은 경기 영상도 괜찮습니다. 특정 선수 추적 없이 AI가
-              <strong className="text-white"> 경기 흐름·팀 전술·주요 장면</strong>을 정리해
-              감독·코치진이 빠르게 복기할 수 있게 합니다.
+              VEO·드림캠 등 멀리서 찍은 경기 영상도 괜찮습니다. AI가
+              <strong className="text-white"> 영상에서 확인된 장면만</strong> 기록하고,
+              추측·예측 없이 코치진 복기용 리포트를 만듭니다.
             </p>
           </div>
           <button
@@ -327,8 +341,8 @@ export default function ClubMatchAnalysisPage() {
                   <input className={inputClass} value={matchDate} onChange={(e) => setMatchDate(e.target.value)} placeholder="2026.06.21" />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-white/45">스코어</span>
-                  <input className={inputClass} value={matchResult} onChange={(e) => setMatchResult(e.target.value)} placeholder="3-1 승" />
+                  <span className="mb-1 block text-xs text-white/45">스코어 * (AI가 추측하지 않음)</span>
+                  <input className={inputClass} value={matchResult} onChange={(e) => setMatchResult(e.target.value)} placeholder="2-1 승 (우리팀 먼저 득점)" />
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-xs text-white/45">학년/연령</span>
@@ -341,8 +355,8 @@ export default function ClubMatchAnalysisPage() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-white/45">우리팀 유니폼 색</span>
-                  <input className={inputClass} value={ourTeamColor} onChange={(e) => setOurTeamColor(e.target.value)} placeholder="주황" />
+                  <span className="mb-1 block text-xs text-white/45">우리팀 유니폼 색 *</span>
+                  <input className={inputClass} value={ourTeamColor} onChange={(e) => setOurTeamColor(e.target.value)} placeholder="하늘색" />
                 </label>
                 <label className="block sm:col-span-2">
                   <span className="mb-1 block text-xs text-white/45">경기 영상 *</span>
@@ -375,10 +389,10 @@ export default function ClubMatchAnalysisPage() {
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="text-sm font-bold text-white">분석에 포함되는 내용</div>
                 <ul className="mt-3 space-y-2 text-xs leading-6 text-white/55">
-                  <li>· 경기 요약 · 전반/후반 흐름</li>
-                  <li>· 팀 강점 · 보완점 · 전술 관찰</li>
-                  <li>· 주요 장면(클립) · 코칭 제안</li>
-                  <li>· 등번호/색상으로 보이는 선수 코멘트</li>
+                  <li>· 입력한 스코어·유니폼 색 기준</li>
+                  <li>· 장면별 관찰 (공격/수비/빌드업 등)</li>
+                  <li>· 주요 장면 클립 · 확인된 사실만</li>
+                  <li>· 추측·확률·전망 문구 없음</li>
                 </ul>
               </div>
               {history.length ? (

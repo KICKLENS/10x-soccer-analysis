@@ -763,101 +763,182 @@ ${isGk ? '골키퍼: 선방·캐치·펀칭·1대1·실점 상황에서 위치·
 }`;
 }
 
-function buildMatchAnalysisPrompt(yoloResult, meta = {}, clips = []) {
-  const LOCATION_KR = {
-    penalty_box: '페널티 박스 안',
-    center_circle: '센터서클 근처',
-    unknown: null,
-  };
+function buildMatchClipFactPrompt(clip, meta = {}) {
+  const clubName = meta.clubName || '우리 팀';
+  const ourColor = meta.ourTeamColor || '미입력';
+  const opponent = meta.opponent || '상대 팀';
+  const startSec = Number(clip.startSec) || 0;
+  const endSec = Number(clip.endSec) || startSec + 3;
 
-  const candidates = (clips || []).slice(0, 18).map((clip, index) => ({
-    rank: index + 1,
-    id: clip.id,
-    startSec: clip.startSec,
-    endSec: clip.endSec,
-    startTime: clip.startTime || secToMmss(clip.startSec),
-    endTime: clip.endTime || secToMmss(clip.endSec),
-    label: clip.label,
-    yoloScore: clip.score,
-    interactionFrames: clip.interactionFrames,
-    avgBallConfidence: clip.avgBallConfidence,
-    location: LOCATION_KR[clip.location] || null,
-    goalMomentScore: clip.goalMomentScore ?? null,
-    isGoalAreaMoment: clip.isGoalAreaMoment ?? false,
-  }));
+  return `당신은 축구 영상 **관찰 기록자**입니다. 코치·해설가처럼 말하지 마세요.
 
+★ 절대 금지 ★
+- "~할 확률", "~일 것", "가능성", "아마", "추정", "우위/열세", 득점·스코어 예측
+- 프레임에 없는 전술·감정·결과 평가
+- 공격/수빈을 단정할 수 없으면 반드시 "확인 불가"
+
+★ 반드시 할 일 ★
+- 첨부 프레임 **3장**만 보고 사실만 기록
+- ${clubName} 유니폼 색: **${ourColor}** — 프레임에서 이 색 유니폼이 보이는지, 어느 쪽(왼쪽/오른쪽/화면 아래)인지
+- 상대(${opponent})는 ${ourColor}가 아닌 유니폼
+- 공 위치, 패스/슛/빌드업/세트피스 등 **눈에 보이는 동작**만
+- 수비 3rd / 중원 / 공격 3rd — **확실할 때만** (골대·페널티박스 위치로 판단)
+
+[구간] ${clip.startTime || secToMmss(startSec)} ~ ${clip.endTime || secToMmss(endSec)}
+
+순수 JSON만:
+{
+  "id": "${clip.id}",
+  "ourTeamColorSeen": true | false | "unclear",
+  "ourTeamSide": "화면 왼쪽|화면 오른쪽|중앙|확인 불가",
+  "ourTeamZone": "수비 진영|중원|공격 진영|확인 불가",
+  "ballAction": "패스|슛|빌드업|세트피스|공중볼|확인 불가",
+  "phase": "공격|수비|전환|확인 불가",
+  "visibleFacts": ["프레임에서 보이는 사실만"],
+  "cannotDetermine": "이 구간만으로 알 수 없는 것"
+}`;
+}
+
+function buildMatchSynthesisPrompt(yoloResult, meta = {}, clipFacts = []) {
   const clubName = meta.clubName || '우리 팀';
   const opponent = meta.opponent || '상대 팀';
   const grade = meta.grade || '미지정';
   const matchDate = meta.matchDate || '';
   const matchResult = meta.matchResult || '';
   const ourTeamColor = meta.ourTeamColor || '';
+  const durationSec = yoloResult.summary?.durationSec || null;
+  const halfSec = durationSec ? durationSec / 2 : null;
 
-  return `당신은 유소년 축구 클럽의 수석 코치이자 경기 분석 전문가입니다.
-감독·코치진이 **경기 전체**를 빠르게 파악할 수 있도록, 특정 선수 추적 없이 **팀 단위 경기 분석**을 작성합니다.
+  return `당신은 유소년 축구 경기 **관찰 리포트 작성자**입니다. 코치 해설·전망·추측 금지.
 
-[경기 정보]
-- 클럽/팀: ${clubName}
+[경기 정보 — 사용자 입력 (사실로 취급)]
+- 우리팀: ${clubName}
+- 우리팀 유니폼: ${ourTeamColor || '미입력'} ← 모든 "우리팀" 판단에 이 색 사용
 - 상대: ${opponent}
-- 학년/연령: ${grade}
+- 학년: ${grade}
 - 경기일: ${matchDate || '미입력'}
-- 스코어(입력값): ${matchResult || '미입력'}
-- 우리팀 유니폼 색(참고): ${ourTeamColor || '미입력'}
+- **입력 스코어/결과: ${matchResult || '미입력'}** ← 스코어·득점 순서는 여기만 인용. 영상과 다르면 "입력값 기준"이라고 명시. **절대 AI가 스코어·득점 순서를 새로 만들지 마세요.**
 
-[영상 메타]
-- 파일: ${yoloResult.fileName || '경기 영상'}
-- 길이: ${yoloResult.summary?.durationSec || '?'}초
-- 공 탐지 프레임: ${yoloResult.summary?.ballDetectedFrames || '?'}
-- 후보 장면 수: ${candidates.length}
+[영상 길이] ${durationSec ? `${Math.round(durationSec)}초` : '미상'}${halfSec ? ` (전반 추정 ~${secToMmss(halfSec)}까지)` : ''}
 
-[후보 장면 JSON — 공·골대 주변 활동이 많은 구간]
-${JSON.stringify(candidates, null, 2)}
+[장면별 관찰 기록 — 아래 JSON만 근거로 리포트 작성]
+${JSON.stringify(clipFacts, null, 2)}
 
-[분석 방향 — 선수 개인 추적 X, 경기 전체 O]
-1. 경기 흐름(전반/후반), 득점·실점 맥락, 공격/수비 전환을 설명하세요.
-2. 우리 팀(${clubName})의 **팀 전술·조직·강점·약점**을 중심으로 분석하세요.
-3. 후보 JSON의 시간대를 활용해 **주요 장면(keyMoments)** 을 4~8개 선정하세요.
-4. 등번호·유니폼 색으로 특정 가능한 선수가 보이면 playerStandouts에 언급하되, **확실하지 않으면 "N번 추정" 등으로 표기**하고 과장하지 마세요.
-5. 멀리 찍힌 영상이므로 개인 기술 세부보다 **팀 패턴·위치·압박·빌드업·수비 라인** 위주로 작성하세요.
-6. 지도진이 다음 훈련·다음 경기에 쓸 **coachingRecommendations** 3~5개를 제시하세요.
+★ 절대 금지 ★
+- "확률", "~할 것", "가능성", "아마", "먼저 골", "이길/질", "우위/열세" 등 **모든 추측·예측**
+- 관찰 기록에 없는 전술·득점·선수 이름
+- 빌드업·패스 장면을 "위협적 공격"으로 과장
+- ${ourTeamColor || '우리팀'} 유니폼과 무관한 팀을 우리팀으로 서술
 
-[규칙]
-- 반드시 한국어
-- 순수 JSON만 출력 (마크다운·코드블록 금지)
-- keyMoments의 startSec/endSec는 후보 JSON 값을 우선 사용
-- 확실하지 않은 스코어·선수 이름은 추정임을 명시
-- **첨부된 실제 영상 프레임을 반드시 참고**하고, 프레임에 보이지 않는 내용은 지어내지 마세요
+★ 작성 규칙 ★
+1. matchSummary: 관찰된 장면들만 한 줄 요약 (추측 0)
+2. scoreFlow: **입력 스코어가 있으면 그대로 인용** + "영상에서 득점 장면 확인 여부: 확인됨/미확인". 입력 없으면 "스코어: 영상만으로 확인 불가"
+3. firstHalf/secondHalf: 해당 시간대 관찰 기록만 요약. 기록 없으면 "해당 구간 관찰 데이터 없음"
+4. teamStrengths/teamWeaknesses: visibleFacts에서 **반복 확인된 것만**. 없으면 빈 배열 []
+5. keyMoments: 관찰 기록 각 1개씩. description은 visibleFacts만. phase가 "수비"면 공격 표현 금지
+6. tacticalNotes: 관찰 기록의 ourTeamZone·phase만 종합. 추론 금지
+7. playerStandouts: 등번호·이름 **확실할 때만**. 없으면 []
+8. coachingRecommendations: "관찰된 ○○ 장면 기준"으로만. 훈련 제안도 관찰 근거 필수
+9. nextMatchFocus: 관찰에서 확인된 보완점 1개만, 없으면 ""
 
-[출력 형식]
+순수 JSON만:
 {
-  "matchSummary": "경기 한 줄 요약",
-  "scoreFlow": "득점·실점 흐름 설명",
-  "firstHalf": "전반 경기 내용",
-  "secondHalf": "후반 경기 내용",
-  "teamStrengths": ["팀 강점1", "팀 강점2"],
-  "teamWeaknesses": ["팀 약점1", "팀 약점2"],
-  "keyMoments": [
-    {
-      "id": "clip-000120",
-      "startSec": 120,
-      "endSec": 132,
-      "label": "장면 제목",
-      "description": "무슨 일이 있었는지",
-      "impact": "high|medium|low"
-    }
-  ],
-  "tacticalNotes": "전술·포메이션·압박·빌드업 관찰",
-  "playerStandouts": [
-    {
-      "hint": "7번·주황 유니폼 등",
-      "description": "어떤 활약",
-      "positives": "잘한 점",
-      "improvements": "보완점"
-    }
-  ],
-  "coachingRecommendations": ["훈련·지도 제안1", "제안2"],
-  "nextMatchFocus": "다음 경기 전 집중 포인트"
+  "matchSummary": "",
+  "scoreFlow": "",
+  "firstHalf": "",
+  "secondHalf": "",
+  "teamStrengths": [],
+  "teamWeaknesses": [],
+  "keyMoments": [{"id":"","startSec":0,"endSec":0,"label":"","description":"","impact":"low|medium|high"}],
+  "tacticalNotes": "",
+  "playerStandouts": [],
+  "coachingRecommendations": [],
+  "nextMatchFocus": ""
 }`;
+}
+
+const MATCH_SPECULATIVE_RE = /(확률|가능성|~?\s*할\s*(것|듯|거)|아마|추정|먼저\s*골|이길\s|질\s*것|우위|열세|~?\s*일\s*것|~?\s*일\s*듯|~?\s*일\s*거)/;
+
+function stripSpeculativeSentences(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .split(/(?<=[.!?。])\s+/)
+    .filter((s) => s.trim() && !MATCH_SPECULATIVE_RE.test(s))
+    .join(' ')
+    .trim();
+}
+
+function sanitizeMatchReportField(value) {
+  if (typeof value === 'string') return stripSpeculativeSentences(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? stripSpeculativeSentences(item) : item))
+      .filter((item) => (typeof item === 'string' ? item.length > 0 : true));
+  }
+  return value;
+}
+
+function sanitizeMatchReport(parsed, meta = {}) {
+  const scoreFlow = meta.matchResult
+    ? `입력 경기 결과: ${meta.matchResult}. (영상 클립 기준 득점 장면 ${parsed.keyMoments?.length ? '일부 확인' : '미확인'})`
+    : stripSpeculativeSentences(parsed.scoreFlow || '') || '스코어: 영상만으로 확인 불가';
+
+  return {
+    matchSummary: sanitizeMatchReportField(parsed.matchSummary || ''),
+    scoreFlow,
+    firstHalf: sanitizeMatchReportField(parsed.firstHalf || ''),
+    secondHalf: sanitizeMatchReportField(parsed.secondHalf || ''),
+    teamStrengths: sanitizeMatchReportField(Array.isArray(parsed.teamStrengths) ? parsed.teamStrengths : []),
+    teamWeaknesses: sanitizeMatchReportField(Array.isArray(parsed.teamWeaknesses) ? parsed.teamWeaknesses : []),
+    tacticalNotes: sanitizeMatchReportField(parsed.tacticalNotes || ''),
+    coachingRecommendations: sanitizeMatchReportField(Array.isArray(parsed.coachingRecommendations) ? parsed.coachingRecommendations : []),
+    nextMatchFocus: sanitizeMatchReportField(parsed.nextMatchFocus || ''),
+    playerStandouts: Array.isArray(parsed.playerStandouts) ? parsed.playerStandouts : [],
+    keyMoments: Array.isArray(parsed.keyMoments) ? parsed.keyMoments.map((km) => ({
+      ...km,
+      label: sanitizeMatchReportField(km.label || ''),
+      description: sanitizeMatchReportField(km.description || ''),
+    })) : [],
+  };
+}
+
+async function describeMatchClipFacts(genAI, videoPath, clips, meta = {}) {
+  if (!clips.length) return [];
+  const facts = [];
+  const batchSize = 3;
+  const framesPerClip = 3;
+
+  for (let i = 0; i < clips.length; i += batchSize) {
+    const batch = clips.slice(i, i + batchSize);
+    const parts = [{ text: '아래 각 장면의 프레임을 보고 JSON 배열로 fact 기록만 출력하세요. 추측 금지.\n{"facts":[...]}' }];
+
+    for (const clip of batch) {
+      const startSec = Number(clip.startSec) || 0;
+      const endSec = Number(clip.endSec) || startSec + 3;
+      const span = Math.max(0.5, endSec - startSec);
+      parts.push({ text: buildMatchClipFactPrompt(clip, meta) });
+      const offsets = [0.3, span * 0.5, Math.max(span - 0.3, span * 0.85)];
+      for (const off of offsets.slice(0, framesPerClip)) {
+        try {
+          const sec = startSec + off;
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: await extractClipFrameBase64(videoPath, sec) } });
+        } catch (err) {
+          console.warn(`[match-fact] 프레임 실패 ${clip.id}:`, err.message);
+        }
+      }
+    }
+
+    try {
+      const text = await generateMultimodalWithFallback(genAI, parts);
+      const parsed = robustParse(text);
+      const batchFacts = parsed.facts || (Array.isArray(parsed) ? parsed : [parsed]);
+      facts.push(...batchFacts.filter((f) => f && f.id));
+    } catch (err) {
+      console.warn('[match-fact] 장면 관찰 실패:', err.message);
+    }
+  }
+
+  return facts;
 }
 
 async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress } = {}) {
@@ -876,15 +957,19 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
   }
 
   const videoUrl = `${PUBLIC_BASE}/uploads/${savedFilename}`;
-  const emptyPlayer = {};
+  const teamCtx = {
+    teamName: meta.clubName || '',
+    uniformColor: meta.ourTeamColor || '',
+    traits: meta.ourTeamColor ? `유니폼 ${meta.ourTeamColor}` : '',
+  };
   let yoloResult = { fileName: savedFilename, clips: [], summary: {} };
   let rawClips = [];
   let detectionSource = 'cpu';
 
   report('경기 장면 탐지 중 (GPU)', 12);
   if (MODAL_ENABLED) {
-    console.log('[match] Modal GPU(파인튜닝 모델) 후보 탐지 시도...');
-    const gpuCand = await runGpuCandidates(videoUrl, emptyPlayer, null);
+    console.log('[match] Modal GPU 후보 탐지...', meta.ourTeamColor ? `유니폼=${meta.ourTeamColor}` : '');
+    const gpuCand = await runGpuCandidates(videoUrl, teamCtx, null);
     const gpuClips = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
     if (gpuClips.length) {
       rawClips = gpuClips
@@ -912,10 +997,10 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
 
   if (!rawClips.length) {
     report('경기 장면 탐지 중 (CPU)', 18);
-    yoloResult = await runYoloDetection(fullPath, emptyPlayer, 20, { minScore: 0.42, conf: 0.14, imgsz: 768 });
+    yoloResult = await runYoloDetection(fullPath, teamCtx, 20, { minScore: 0.42, conf: 0.14, imgsz: 768 });
     if (!yoloResult.clips?.length) {
       console.warn('[match] 1차 장면 탐지 실패, 완화 조건 재시도');
-      yoloResult = await runYoloDetection(fullPath, emptyPlayer, 24, { minScore: 0.32, conf: 0.12, imgsz: 768 });
+      yoloResult = await runYoloDetection(fullPath, teamCtx, 24, { minScore: 0.32, conf: 0.12, imgsz: 768 });
     }
     rawClips = (yoloResult.clips || [])
       .filter((clip) => Number(clip.interactionFrames) >= 1 || Number(clip.avgBallConfidence) >= 0.28)
@@ -937,35 +1022,34 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
   report('주요 장면 클립 생성 중', 35);
   const clipsWithVideos = await renderClipVideos(fullPath, rawClips);
 
-  report('AI 경기 분석 중 (영상 프레임 확인)', 65);
   const genAI = new GoogleGenerativeAI(apiKey);
-  const prompt = buildMatchAnalysisPrompt(yoloResult, meta, rawClips);
-  const frameClips = rawClips.slice(0, 8);
-  const parts = [{ text: `${prompt}\n\n[첨부] 아래 ${frameClips.length}개 장면의 실제 영상 프레임을 보고 분석하세요. 프레임에 없는 득점·선수·전술은 추측하지 마세요.` }];
+  const factClips = rawClips.slice(0, 10);
 
-  for (const clip of frameClips) {
-    const startSec = Number(clip.startSec) || 0;
-    const endSec = Number(clip.endSec) || startSec + 3;
-    const midSec = startSec + Math.max(0.4, (endSec - startSec) / 2);
-    parts.push({
-      text: `\n[장면 ${clip.id} ${clip.startTime || secToMmss(startSec)} ~ ${clip.endTime || secToMmss(endSec)} | ${clip.label || ''}]`,
-    });
-    try {
-      parts.push({ inlineData: { mimeType: 'image/jpeg', data: await extractClipFrameBase64(fullPath, startSec + 0.5) } });
-      parts.push({ inlineData: { mimeType: 'image/jpeg', data: await extractClipFrameBase64(fullPath, midSec) } });
-    } catch (err) {
-      console.warn(`[match] 프레임 추출 실패 ${clip.id}:`, err.message);
-    }
+  report('장면별 영상 관찰 기록 중', 50);
+  const clipFacts = await describeMatchClipFacts(genAI, fullPath, factClips, meta);
+  if (!clipFacts.length) {
+    console.warn('[match] 장면 관찰 기록 없음 — 클립 메타만 사용');
   }
 
-  const text = parts.length > 1
-    ? await generateMultimodalWithFallback(genAI, parts)
-    : await generateContentWithFallback(genAI, prompt);
-  const parsed = robustParse(text);
+  report('관찰 기록 기반 리포트 작성 중', 72);
+  const synthPrompt = buildMatchSynthesisPrompt(yoloResult, meta, clipFacts.length ? clipFacts : factClips.map((c) => ({
+    id: c.id,
+    startSec: c.startSec,
+    endSec: c.endSec,
+    visibleFacts: [c.label || '공 활동 구간 (자동 탐지)'],
+    phase: '확인 불가',
+    ourTeamZone: '확인 불가',
+  })));
+  const text = await generateContentWithFallback(genAI, synthPrompt);
+  const parsedRaw = robustParse(text);
+  const parsed = sanitizeMatchReport(parsedRaw, meta);
 
   report('분석 리포트 정리 중', 92);
   const keyMoments = Array.isArray(parsed.keyMoments) ? parsed.keyMoments : [];
   const clipMap = new Map(clipsWithVideos.map((c) => [c.id, c]));
+
+  // keyMoments: 관찰 기록과 클립 id 매칭 보강
+  const factById = new Map((clipFacts || []).map((f) => [f.id, f]));
 
   return {
     meta,
@@ -973,21 +1057,40 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
     scoreFlow: parsed.scoreFlow || '',
     firstHalf: parsed.firstHalf || '',
     secondHalf: parsed.secondHalf || '',
-    teamStrengths: Array.isArray(parsed.teamStrengths) ? parsed.teamStrengths : [],
-    teamWeaknesses: Array.isArray(parsed.teamWeaknesses) ? parsed.teamWeaknesses : [],
-    keyMoments: keyMoments.map((km, i) => {
+    teamStrengths: parsed.teamStrengths || [],
+    teamWeaknesses: parsed.teamWeaknesses || [],
+    keyMoments: (keyMoments.length ? keyMoments : factClips.map((c, i) => {
+      const f = factById.get(c.id);
+      return {
+        id: c.id,
+        startSec: c.startSec,
+        endSec: c.endSec,
+        label: f?.ballAction || c.label || `장면 ${i + 1}`,
+        description: (f?.visibleFacts || []).join(' ') || '관찰 기록 없음',
+        impact: 'medium',
+      };
+    })).map((km, i) => {
       const clip = clipMap.get(km.id) || clipsWithVideos[i];
+      const fact = factById.get(km.id);
+      const desc = fact?.visibleFacts?.length
+        ? fact.visibleFacts.join(' ')
+        : km.description;
+      const phaseLabel = fact?.phase && fact.phase !== '확인 불가' ? `[${fact.phase}] ` : '';
       return {
         ...km,
+        label: km.label || fact?.ballAction || clip?.label,
+        description: phaseLabel + (desc || ''),
         url: clip?.url || clip?.videoUrl || clip?.outputUrl || '',
         startSec: km.startSec ?? clip?.startSec,
         endSec: km.endSec ?? clip?.endSec,
       };
     }),
     tacticalNotes: parsed.tacticalNotes || '',
-    playerStandouts: Array.isArray(parsed.playerStandouts) ? parsed.playerStandouts : [],
-    coachingRecommendations: Array.isArray(parsed.coachingRecommendations) ? parsed.coachingRecommendations : [],
+    playerStandouts: parsed.playerStandouts || [],
+    coachingRecommendations: parsed.coachingRecommendations || [],
     nextMatchFocus: parsed.nextMatchFocus || '',
+    clipFacts,
+    analysisMode: 'fact-only',
     clips: adaptClipsForMainSite(clipsWithVideos),
     yoloSummary: { ...(yoloResult.summary || {}), detectionSource },
     savedFilename,
