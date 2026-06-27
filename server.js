@@ -806,10 +806,32 @@ function buildMatchSynthesisPrompt(yoloResult, meta = {}, clipFacts = []) {
   const matchDate = meta.matchDate || '';
   const matchResult = meta.matchResult || '';
   const ourTeamColor = meta.ourTeamColor || '';
-  const durationSec = yoloResult.summary?.durationSec || null;
-  const halfSec = durationSec ? durationSec / 2 : null;
+  const durationSec = yoloResult.summary?.durationSec || meta.videoDurationSec || null;
+  const videoMin = durationSec ? Math.round(durationSec / 60) : null;
+  const matchTotalMin = Number(meta.matchTotalMinutes) || 40;
+  const coverage = meta.videoCoverage || 'segment';
+  const sections = deriveMatchReportSectionsServer(meta);
+  const coverageLabel = buildCoverageLabelServer(meta);
+
+  const coverageRules = sections.isPartial
+    ? `[★ 영상 범위 — 일부 구간 ★]
+- 분석 범위: ${coverageLabel}
+- 경기 총 ${matchTotalMin}분 중 **이 영상(${videoMin ?? '?'}분)만** 분석. 전반·후반·경기 전체로 확대 금지.
+- firstHalf, secondHalf: **반드시 빈 문자열 ""**
+- teamStrengths, teamWeaknesses: **반드시 빈 배열 []** (짧은 구간으로 팀 전체 평가 불가)
+- tacticalNotes: 이 구간 관찰만 1~2문장. 없으면 ""
+- segmentSummary: **필수** — 이 영상 구간에서 확인된 것만 2~4문장
+- matchSummary: segmentSummary와 같은 범위만 한 줄 요약
+- coachingRecommendations: 관찰된 장면 근거 0~2개만. 없으면 []`
+    : `[★ 영상 범위 — 경기 전체 ★]
+- 분석 범위: ${coverageLabel} (유소년 ${matchTotalMin}분 경기)
+- firstHalf/secondHalf: 관찰 기록 시간대로 전·후반 요약 (없으면 "해당 구간 관찰 데이터 없음")
+- segmentSummary: "" (빈 문자열)
+- teamStrengths/teamWeaknesses: 관찰에서 **반복 확인된 것만**. 없으면 []`;
 
   return `당신은 유소년 축구 경기 **관찰 리포트 작성자**입니다. 코치 해설·전망·추측 금지.
+
+${coverageRules}
 
 [경기 정보 — 사용자 입력 (사실로 취급)]
 - 우리팀: ${clubName}
@@ -817,33 +839,29 @@ function buildMatchSynthesisPrompt(yoloResult, meta = {}, clipFacts = []) {
 - 상대: ${opponent}
 - 학년: ${grade}
 - 경기일: ${matchDate || '미입력'}
-- **입력 스코어/결과: ${matchResult || '미입력'}** ← 스코어·득점 순서는 여기만 인용. 영상과 다르면 "입력값 기준"이라고 명시. **절대 AI가 스코어·득점 순서를 새로 만들지 마세요.**
+- **입력 스코어/결과: ${matchResult || '미입력'}** ← 스코어는 여기만 인용. **영상에 없는 전반/후반 득점 흐름을 지어내지 마세요.**
 
-[영상 길이] ${durationSec ? `${Math.round(durationSec)}초` : '미상'}${halfSec ? ` (전반 추정 ~${secToMmss(halfSec)}까지)` : ''}
+[업로드 영상 길이] ${videoMin != null ? `${videoMin}분 (${Math.round(durationSec)}초)` : '미상'}
 
 [장면별 관찰 기록 — 아래 JSON만 근거로 리포트 작성]
 ${JSON.stringify(clipFacts, null, 2)}
 
 ★ 절대 금지 ★
 - "확률", "~할 것", "가능성", "아마", "먼저 골", "이길/질", "우위/열세" 등 **모든 추측·예측**
+- **영상에 없는 전반/후반·팀 전체 강약점** 서술 (${sections.isPartial ? '현재: 일부 구간 영상' : '현재: 전체 영상'})
 - 관찰 기록에 없는 전술·득점·선수 이름
 - 빌드업·패스 장면을 "위협적 공격"으로 과장
-- ${ourTeamColor || '우리팀'} 유니폼과 무관한 팀을 우리팀으로 서술
 
 ★ 작성 규칙 ★
-1. matchSummary: 관찰된 장면들만 한 줄 요약 (추측 0)
-2. scoreFlow: **입력 스코어가 있으면 그대로 인용** + "영상에서 득점 장면 확인 여부: 확인됨/미확인". 입력 없으면 "스코어: 영상만으로 확인 불가"
-3. firstHalf/secondHalf: 해당 시간대 관찰 기록만 요약. 기록 없으면 "해당 구간 관찰 데이터 없음"
-4. teamStrengths/teamWeaknesses: visibleFacts에서 **반복 확인된 것만**. 없으면 빈 배열 []
-5. keyMoments: 관찰 기록 각 1개씩. description은 visibleFacts만. phase가 "수비"면 공격 표현 금지
-6. tacticalNotes: 관찰 기록의 ourTeamZone·phase만 종합. 추론 금지
-7. playerStandouts: 등번호·이름 **확실할 때만**. 없으면 []
-8. coachingRecommendations: "관찰된 ○○ 장면 기준"으로만. 훈련 제안도 관찰 근거 필수
-9. nextMatchFocus: 관찰에서 확인된 보완점 1개만, 없으면 ""
+1. scoreFlow: 입력 스코어 인용 + "이 영상 구간에서 득점 장면: 확인됨/미확인"만
+2. keyMoments: 관찰 기록 각 1개. description은 visibleFacts만
+3. playerStandouts: 등번호 확실할 때만. 없으면 []
+4. nextMatchFocus: 관찰 보완점 1개, 없으면 ""
 
 순수 JSON만:
 {
   "matchSummary": "",
+  "segmentSummary": "",
   "scoreFlow": "",
   "firstHalf": "",
   "secondHalf": "",
@@ -855,6 +873,53 @@ ${JSON.stringify(clipFacts, null, 2)}
   "coachingRecommendations": [],
   "nextMatchFocus": ""
 }`;
+}
+
+function buildCoverageLabelServer(meta = {}) {
+  const videoMin = meta.videoDurationSec != null ? Math.round(meta.videoDurationSec / 60) : null;
+  const labels = { full: '경기 전체', first_half: '전반', second_half: '후반', segment: '일부 구간' };
+  if (meta.segmentNote?.trim()) {
+    return `${meta.segmentNote.trim()}${videoMin != null ? ` · 영상 ${videoMin}분` : ''}`;
+  }
+  if (meta.segmentStartMin != null && meta.segmentEndMin != null) {
+    const half = meta.videoCoverage === 'first_half' ? '전반 ' : meta.videoCoverage === 'second_half' ? '후반 ' : '';
+    return `${half}${meta.segmentStartMin}~${meta.segmentEndMin}분${videoMin != null ? ` · 영상 ${videoMin}분` : ''}`;
+  }
+  const base = labels[meta.videoCoverage] || '일부 구간';
+  return `${base}${videoMin != null ? ` · 영상 ${videoMin}분` : ''}`;
+}
+
+function deriveMatchReportSectionsServer(meta = {}) {
+  const coverage = meta.videoCoverage || 'segment';
+  const videoMin = meta.videoDurationSec != null ? meta.videoDurationSec / 60 : 0;
+  const matchTotal = Number(meta.matchTotalMinutes) || 40;
+  const fullThreshold = matchTotal * 0.72;
+  const isFullVideo = coverage === 'full' && videoMin >= fullThreshold;
+  const isPartial = !isFullVideo;
+
+  return {
+    isPartial,
+    isFullVideo,
+    coverageLabel: buildCoverageLabelServer(meta),
+    showFirstHalf: isFullVideo,
+    showSecondHalf: isFullVideo,
+    showSegmentSummary: isPartial,
+    showTeamStrengths: isFullVideo,
+    showTeamWeaknesses: isFullVideo,
+    showTacticalNotes: isFullVideo,
+    showCoaching: true,
+  };
+}
+
+function applyCoverageToReport(parsed, sections) {
+  const out = { ...parsed };
+  if (!sections.showFirstHalf) out.firstHalf = '';
+  if (!sections.showSecondHalf) out.secondHalf = '';
+  if (!sections.showTeamStrengths) out.teamStrengths = [];
+  if (!sections.showTeamWeaknesses) out.teamWeaknesses = [];
+  if (!sections.showTacticalNotes) out.tacticalNotes = '';
+  if (!sections.showSegmentSummary) out.segmentSummary = '';
+  return out;
 }
 
 const MATCH_SPECULATIVE_RE = /(확률|가능성|~?\s*할\s*(것|듯|거)|아마|추정|먼저\s*골|이길\s|질\s*것|우위|열세|~?\s*일\s*것|~?\s*일\s*듯|~?\s*일\s*거)/;
@@ -878,13 +943,14 @@ function sanitizeMatchReportField(value) {
   return value;
 }
 
-function sanitizeMatchReport(parsed, meta = {}) {
+function sanitizeMatchReport(parsed, meta = {}, sections = null) {
   const scoreFlow = meta.matchResult
-    ? `입력 경기 결과: ${meta.matchResult}. (영상 클립 기준 득점 장면 ${parsed.keyMoments?.length ? '일부 확인' : '미확인'})`
+    ? `입력 경기 결과: ${meta.matchResult}. (이 영상 구간에서 득점 장면 ${parsed.keyMoments?.length ? '일부 확인' : '미확인'})`
     : stripSpeculativeSentences(parsed.scoreFlow || '') || '스코어: 영상만으로 확인 불가';
 
-  return {
+  const base = {
     matchSummary: sanitizeMatchReportField(parsed.matchSummary || ''),
+    segmentSummary: sanitizeMatchReportField(parsed.segmentSummary || ''),
     scoreFlow,
     firstHalf: sanitizeMatchReportField(parsed.firstHalf || ''),
     secondHalf: sanitizeMatchReportField(parsed.secondHalf || ''),
@@ -900,6 +966,8 @@ function sanitizeMatchReport(parsed, meta = {}) {
       description: sanitizeMatchReportField(km.description || ''),
     })) : [],
   };
+
+  return sections ? applyCoverageToReport(base, sections) : base;
 }
 
 async function describeMatchClipFacts(genAI, videoPath, clips, meta = {}) {
@@ -956,6 +1024,15 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
     throw new Error(`영상 파일을 찾을 수 없습니다: ${savedFilename}`);
   }
 
+  const videoDurationSec = await ffprobeDuration(fullPath);
+  meta = {
+    ...meta,
+    videoDurationSec,
+    videoCoverage: meta.videoCoverage || 'segment',
+    matchTotalMinutes: Number(meta.matchTotalMinutes) || 40,
+  };
+  const reportSections = deriveMatchReportSectionsServer(meta);
+
   const videoUrl = `${PUBLIC_BASE}/uploads/${savedFilename}`;
   const teamCtx = {
     teamName: meta.clubName || '',
@@ -984,7 +1061,7 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
         fileName: savedFilename,
         clips: rawClips,
         summary: {
-          durationSec: gpuCand?.candidates?.durationSec,
+          durationSec: gpuCand?.candidates?.durationSec ?? videoDurationSec,
           ballDetectedFrames: gpuCand?.candidates?.ballSeenFrames,
           sampledFrames: gpuCand?.candidates?.sampledFrames,
           source: 'modal-gpu',
@@ -1011,6 +1088,10 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
       })
       .slice(0, 15);
     detectionSource = 'cpu-yolo';
+  }
+
+  if (!yoloResult.summary?.durationSec) {
+    yoloResult.summary = { ...(yoloResult.summary || {}), durationSec: videoDurationSec };
   }
 
   if (!rawClips.length) {
@@ -1042,7 +1123,7 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
   })));
   const text = await generateContentWithFallback(genAI, synthPrompt);
   const parsedRaw = robustParse(text);
-  const parsed = sanitizeMatchReport(parsedRaw, meta);
+  const parsed = sanitizeMatchReport(parsedRaw, meta, reportSections);
 
   report('분석 리포트 정리 중', 92);
   const keyMoments = Array.isArray(parsed.keyMoments) ? parsed.keyMoments : [];
@@ -1053,7 +1134,9 @@ async function runMatchAnalysisPipeline(savedFilename, meta = {}, { onProgress }
 
   return {
     meta,
+    reportSections,
     matchSummary: parsed.matchSummary || '',
+    segmentSummary: parsed.segmentSummary || '',
     scoreFlow: parsed.scoreFlow || '',
     firstHalf: parsed.firstHalf || '',
     secondHalf: parsed.secondHalf || '',
@@ -2430,6 +2513,11 @@ app.post('/api/jobs/match-analysis', (req, res) => {
     grade,
     ourTeamColor,
     matchResult,
+    videoCoverage,
+    matchTotalMinutes,
+    segmentStartMin,
+    segmentEndMin,
+    segmentNote,
   } = req.body || {};
   const filename = savedFilename || fileName;
   if (!filename) {
@@ -2449,6 +2537,11 @@ app.post('/api/jobs/match-analysis', (req, res) => {
     grade: grade || '',
     ourTeamColor: ourTeamColor || '',
     matchResult: matchResult || '',
+    videoCoverage: videoCoverage || 'segment',
+    matchTotalMinutes: Number(matchTotalMinutes) || 40,
+    segmentStartMin: segmentStartMin != null && segmentStartMin !== '' ? Number(segmentStartMin) : undefined,
+    segmentEndMin: segmentEndMin != null && segmentEndMin !== '' ? Number(segmentEndMin) : undefined,
+    segmentNote: segmentNote || '',
   };
 
   const job = createJob('match-analysis', { filename, matchMeta, srcKey: null });

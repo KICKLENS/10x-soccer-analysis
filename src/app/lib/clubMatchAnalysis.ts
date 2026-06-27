@@ -17,6 +17,8 @@ export type MatchPlayerStandout = {
   improvements?: string;
 };
 
+export type MatchVideoCoverage = 'full' | 'first_half' | 'second_half' | 'segment';
+
 export type ClubMatchAnalysisResult = {
   id: string;
   createdAt: string;
@@ -27,9 +29,20 @@ export type ClubMatchAnalysisResult = {
     grade?: string;
     ourTeamColor?: string;
     matchResult?: string;
+    /** 업로드 영상이 경기의 어느 부분인지 */
+    videoCoverage?: MatchVideoCoverage;
+    /** 유소년 경기 총 시간(분). 기본 40 (20+5+20) */
+    matchTotalMinutes?: number;
+    /** segment일 때 경기 시각(분) — 예: 전반 5~12분 */
+    segmentStartMin?: number;
+    segmentEndMin?: number;
+    segmentNote?: string;
+    videoDurationSec?: number;
   };
   matchSummary?: string;
   scoreFlow?: string;
+  /** 일부 구간 영상일 때 이 구간만 요약 */
+  segmentSummary?: string;
   firstHalf?: string;
   secondHalf?: string;
   teamStrengths?: string[];
@@ -40,7 +53,97 @@ export type ClubMatchAnalysisResult = {
   coachingRecommendations?: string[];
   nextMatchFocus?: string;
   clips?: Array<{ id?: string; url?: string; label?: string; start?: number; end?: number }>;
+  /** 리포트 UI에서 어떤 섹션을 보여줄지 */
+  reportSections?: MatchReportSections;
 };
+
+export type MatchReportSections = {
+  isPartial: boolean;
+  coverageLabel: string;
+  showFirstHalf: boolean;
+  showSecondHalf: boolean;
+  showSegmentSummary: boolean;
+  showTeamStrengths: boolean;
+  showTeamWeaknesses: boolean;
+  showTacticalNotes: boolean;
+  showCoaching: boolean;
+};
+
+export const VIDEO_COVERAGE_OPTIONS: { id: MatchVideoCoverage; label: string; hint: string }[] = [
+  { id: 'segment', label: '일부 구간', hint: '7분 클립, 하이라이트 등 짧은 영상' },
+  { id: 'first_half', label: '전반 전체', hint: '약 20분, 전반만 담긴 영상' },
+  { id: 'second_half', label: '후반 전체', hint: '약 20분, 후반만 담긴 영상' },
+  { id: 'full', label: '경기 전체', hint: '40~50분 풀영상' },
+];
+
+export const MATCH_LENGTH_OPTIONS = [
+  { minutes: 40, label: '40분 (전20+휴5+후20)' },
+  { minutes: 45, label: '45분' },
+  { minutes: 50, label: '50분' },
+];
+
+export function buildCoverageLabel(meta: ClubMatchAnalysisResult['meta']): string {
+  const videoMin =
+    meta.videoDurationSec != null ? Math.round(meta.videoDurationSec / 60) : null;
+  const opt = VIDEO_COVERAGE_OPTIONS.find((o) => o.id === meta.videoCoverage);
+
+  if (meta.segmentNote?.trim()) {
+    return `${meta.segmentNote.trim()}${videoMin != null ? ` · 영상 ${videoMin}분` : ''}`;
+  }
+  if (meta.segmentStartMin != null && meta.segmentEndMin != null) {
+    const half =
+      meta.videoCoverage === 'first_half'
+        ? '전반 '
+        : meta.videoCoverage === 'second_half'
+          ? '후반 '
+          : '';
+    return `${half}${meta.segmentStartMin}~${meta.segmentEndMin}분${videoMin != null ? ` · 영상 ${videoMin}분` : ''}`;
+  }
+  return `${opt?.label || '일부 구간'}${videoMin != null ? ` · 영상 ${videoMin}분` : ''}`;
+}
+
+/** 영상 길이·구간 입력에 따라 전반/후반·팀 강약점 등 표시 여부 결정 */
+export function deriveMatchReportSections(
+  meta: ClubMatchAnalysisResult['meta'] = {},
+): MatchReportSections {
+  const coverage = meta.videoCoverage || 'segment';
+  const videoMin = meta.videoDurationSec != null ? meta.videoDurationSec / 60 : 0;
+  const matchTotal = meta.matchTotalMinutes ?? 40;
+  const fullThreshold = matchTotal * 0.72;
+
+  const isFullVideo = coverage === 'full' && videoMin >= fullThreshold;
+  const isPartial = !isFullVideo;
+
+  return {
+    isPartial,
+    coverageLabel: buildCoverageLabel(meta),
+    showFirstHalf: isFullVideo,
+    showSecondHalf: isFullVideo,
+    showSegmentSummary: isPartial,
+    showTeamStrengths: isFullVideo,
+    showTeamWeaknesses: isFullVideo,
+    showTacticalNotes: isFullVideo,
+    showCoaching: true,
+  };
+}
+
+export function validateVideoCoverage(
+  coverage: MatchVideoCoverage,
+  videoDurationSec: number,
+  matchTotalMinutes: number,
+): string | null {
+  const videoMin = videoDurationSec / 60;
+  if (coverage === 'full' && videoMin < matchTotalMinutes * 0.72) {
+    return `영상이 ${Math.round(videoMin)}분뿐입니다. 경기 전체(${matchTotalMinutes}분)가 아니면 「일부 구간」 또는 「전반/후반」을 선택해 주세요.`;
+  }
+  if (coverage === 'first_half' && videoMin > 28) {
+    return null;
+  }
+  if ((coverage === 'first_half' || coverage === 'second_half') && videoMin < 8) {
+    return `영상이 ${Math.round(videoMin)}분으로 짧습니다. 「일부 구간」을 선택하고 경기 시간대(예: 전반 5~12분)를 입력해 주세요.`;
+  }
+  return null;
+}
 
 const STORAGE_KEY = 'club-match-analyses-v1';
 
@@ -84,22 +187,24 @@ export const DEMO_MATCH_ANALYSIS: ClubMatchAnalysisResult = {
     matchDate: '2026.06.21',
     grade: 'U-12',
     matchResult: '3-1 승',
-    ourTeamColor: '주황',
+    ourTeamColor: '하늘색',
+    videoCoverage: 'segment',
+    matchTotalMinutes: 40,
+    segmentStartMin: 5,
+    segmentEndMin: 12,
+    segmentNote: '전반 5~12분',
+    videoDurationSec: 420,
   },
-  matchSummary: '전반 압박과 측면 전개가 좋았고, 후반 실점 이후 빌드업 안정성을 회복하며 3-1 승리.',
-  scoreFlow: '전반 2-0 리드 → 후반 초반 실점 2-1 → 후반 중반 추가 득점 3-1 마무리.',
-  firstHalf: '전반에는 상대를 높은 위치에서 압박하며 공을 빠르게 탈취했습니다. 좌측 측면에서 크로스와 컷백 연결로 두 번의 득점 기회를 만들었고, 세트피스 상황에서도 박스 안 침투가 적시에 이뤄졌습니다.',
-  secondHalf: '후반 시작 후 체력 저하로 수비 라인 간격이 벌어지며 실점했습니다. 이후 감독 지시에 따라 빌드업 속도를 줄이고 안정적인 패스 연결로 경기를 통제했고, 역습 상황에서 세 번째 골을 넣으며 승리를 확정했습니다.',
-  teamStrengths: [
-    '전반 높은 압박과 빠른 공 탈취 후 전환',
-    '측면 크로스·컷백을 통한 박스 침투',
-    '실점 후 경기 운영을 안정화하는 팀 대응',
-  ],
-  teamWeaknesses: [
-    '후반 체력 저하 시 수비 라인 간격 관리',
-    '빌드업 시 압박 받을 때 옵션 부족',
-    '세트피스 수비 시 2차 볼 처리',
-  ],
+  reportSections: deriveMatchReportSections({
+    videoCoverage: 'segment',
+    matchTotalMinutes: 40,
+    segmentNote: '전반 5~12분',
+    videoDurationSec: 420,
+  }),
+  matchSummary: '전반 5~12분 구간: 하늘색 유니폼 팀의 중원 패스 연결과 수비 라인 빌드업 장면이 관찰됨.',
+  segmentSummary:
+    '해당 7분 영상에서는 수비 진영에서 키퍼·수비수 간 패스 빌드업, 중원 전환 패스가 반복됨. 득점 장면은 이 구간에 포함되지 않음.',
+  scoreFlow: '입력 경기 결과: 3-1 승. (이 영상 구간에서는 득점 장면 미확인)',
   keyMoments: [
     {
       label: '전반 첫 득점 빌드업',
@@ -116,28 +221,16 @@ export const DEMO_MATCH_ANALYSIS: ClubMatchAnalysisResult = {
       impact: 'high',
     },
   ],
-  tacticalNotes:
-    '4-3-3에 가까운 형태로 전반 압박, 후반에는 4-4-2에 가깝게 낮춰 수비 안정화. 미드필더와 풀백 간 간격 유지가 핵심.',
-  playerStandouts: [
-    {
-      hint: '7번 · 주황 유니폼',
-      description: '전반 좌측 측면에서 돌파와 크로스를 반복적으로 성공.',
-      positives: '1대1 돌파, 크로스 타이밍',
-      improvements: '수비 가담·역추적',
-    },
-    {
-      hint: '4번 · 수비수',
-      description: '후반 실점 장면 이후 수비 라인 조율에 기여.',
-      positives: '커뮤니케이션, 클리어',
-      improvements: '역패스 상황 대응',
-    },
-  ],
+  tacticalNotes: '이 구간: 수비 3rd에서 키퍼 포함 빌드업 패턴이 반복됨.',
+  playerStandouts: [],
   coachingRecommendations: [
-    '후반 체력 구간(60~75분) 수비 라인 간격 유지 훈련',
-    '압박 받을 때 미드필더 3각 패스 패턴 반복',
-    '세트피스 수비 시 마킹·2차 볼 담당 역할 명확화',
+    '관찰된 빌드업 장면 기준: 키퍼·센터백 패스 각도 훈련',
   ],
-  nextMatchFocus: '실점 후 빌드업 안정성과 후반 수비 조직력',
+  nextMatchFocus: '',
+  firstHalf: '',
+  secondHalf: '',
+  teamStrengths: [],
+  teamWeaknesses: [],
 };
 
 export const GRADE_OPTIONS = Object.entries(GRADE_INFO).map(([id, g]) => ({

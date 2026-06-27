@@ -8,9 +8,14 @@ import { CLUB_DEMO, GRADE_INFO } from '../lib/clubData';
 import {
   DEMO_MATCH_ANALYSIS,
   GRADE_OPTIONS,
+  MATCH_LENGTH_OPTIONS,
+  VIDEO_COVERAGE_OPTIONS,
+  deriveMatchReportSections,
   listClubMatchAnalyses,
   saveClubMatchAnalysis,
+  validateVideoCoverage,
   type ClubMatchAnalysisResult,
+  type MatchVideoCoverage,
 } from '../lib/clubMatchAnalysis';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -65,6 +70,7 @@ function BulletList({ items, tone = 'default' }: { items?: string[]; tone?: 'def
 function MatchReportView({ report }: { report: ClubMatchAnalysisResult }) {
   const meta = report.meta || {};
   const gradeLabel = meta.grade ? GRADE_INFO[meta.grade]?.label || meta.grade : '';
+  const sections = report.reportSections || deriveMatchReportSections(meta);
 
   return (
     <div className="space-y-4 md:space-y-5">
@@ -74,13 +80,18 @@ function MatchReportView({ report }: { report: ClubMatchAnalysisResult }) {
           {meta.ourTeamColor ? (
             <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-sky-200">우리팀 {meta.ourTeamColor}</span>
           ) : null}
+          <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-100">
+            {sections.coverageLabel}
+          </span>
           {meta.matchDate ? <span>{meta.matchDate}</span> : null}
           {meta.matchResult ? (
             <span className="font-bold text-[#FFB648]">{meta.matchResult}</span>
           ) : null}
         </div>
         <p className="mt-2 text-[11px] text-white/40">
-          영상에서 확인된 내용만 표시 · 추측·예측 문구는 자동 제외됩니다
+          {sections.isPartial
+            ? '일부 구간 영상 — 전반/후반·팀 전체 평가는 표시하지 않습니다'
+            : '경기 전체 영상 — 확인된 내용만 표시'}
         </p>
         <h2 className="mt-2 text-lg font-black text-white md:text-xl">
           vs {meta.opponent || '상대팀'}
@@ -91,27 +102,47 @@ function MatchReportView({ report }: { report: ClubMatchAnalysisResult }) {
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section title="전반">
-          <p className="text-sm leading-7 text-white/75">{report.firstHalf || '—'}</p>
+      {sections.showSegmentSummary && report.segmentSummary ? (
+        <Section title="이 영상 구간 관찰">
+          <p className="text-sm leading-7 text-white/75">{report.segmentSummary}</p>
         </Section>
-        <Section title="후반">
-          <p className="text-sm leading-7 text-white/75">{report.secondHalf || '—'}</p>
-        </Section>
-      </div>
+      ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section title="팀 강점">
-          <BulletList items={report.teamStrengths} tone="green" />
-        </Section>
-        <Section title="팀 보완점">
-          <BulletList items={report.teamWeaknesses} tone="amber" />
-        </Section>
-      </div>
+      {sections.showFirstHalf || sections.showSecondHalf ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {sections.showFirstHalf ? (
+            <Section title="전반">
+              <p className="text-sm leading-7 text-white/75">{report.firstHalf || '—'}</p>
+            </Section>
+          ) : null}
+          {sections.showSecondHalf ? (
+            <Section title="후반">
+              <p className="text-sm leading-7 text-white/75">{report.secondHalf || '—'}</p>
+            </Section>
+          ) : null}
+        </div>
+      ) : null}
 
-      <Section title="전술·조직 관찰">
-        <p className="text-sm leading-7 text-white/75">{report.tacticalNotes || '—'}</p>
-      </Section>
+      {sections.showTeamStrengths || sections.showTeamWeaknesses ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {sections.showTeamStrengths ? (
+            <Section title="팀 강점">
+              <BulletList items={report.teamStrengths} tone="green" />
+            </Section>
+          ) : null}
+          {sections.showTeamWeaknesses ? (
+            <Section title="팀 보완점">
+              <BulletList items={report.teamWeaknesses} tone="amber" />
+            </Section>
+          ) : null}
+        </div>
+      ) : null}
+
+      {sections.showTacticalNotes && report.tacticalNotes ? (
+        <Section title="전술·조직 관찰">
+          <p className="text-sm leading-7 text-white/75">{report.tacticalNotes}</p>
+        </Section>
+      ) : null}
 
       {report.keyMoments?.length ? (
         <Section title="주요 장면">
@@ -160,14 +191,16 @@ function MatchReportView({ report }: { report: ClubMatchAnalysisResult }) {
         </Section>
       ) : null}
 
-      <Section title="코칭 스태프 제안">
-        <BulletList items={report.coachingRecommendations} />
-        {report.nextMatchFocus ? (
-          <p className="mt-4 rounded-xl border border-indigo-400/20 bg-indigo-400/10 px-3 py-2 text-sm text-indigo-100">
-            다음 경기 집중: {report.nextMatchFocus}
-          </p>
-        ) : null}
-      </Section>
+      {sections.showCoaching && (report.coachingRecommendations?.length || report.nextMatchFocus) ? (
+        <Section title="코칭 스태프 제안 (관찰 근거)">
+          <BulletList items={report.coachingRecommendations} />
+          {report.nextMatchFocus ? (
+            <p className="mt-4 rounded-xl border border-indigo-400/20 bg-indigo-400/10 px-3 py-2 text-sm text-indigo-100">
+              다음 경기 집중: {report.nextMatchFocus}
+            </p>
+          ) : null}
+        </Section>
+      ) : null}
     </div>
   );
 }
@@ -183,6 +216,28 @@ export default function ClubMatchAnalysisPage() {
   const [matchResult, setMatchResult] = useState(prefill.matchResult || '');
   const [grade, setGrade] = useState('u12');
   const [ourTeamColor, setOurTeamColor] = useState('하늘색');
+  const [videoCoverage, setVideoCoverage] = useState<MatchVideoCoverage>('segment');
+  const [matchTotalMinutes, setMatchTotalMinutes] = useState(40);
+  const [segmentStartMin, setSegmentStartMin] = useState('');
+  const [segmentEndMin, setSegmentEndMin] = useState('');
+  const [segmentNote, setSegmentNote] = useState('');
+  const [fileDurationSec, setFileDurationSec] = useState<number | null>(null);
+
+  const readVideoDuration = (f: File) => {
+    const url = URL.createObjectURL(f);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        setFileDurationSec(video.duration);
+      }
+    };
+    video.onerror = () => URL.revokeObjectURL(url);
+    video.src = url;
+  };
+
+  const fileDurationMin = fileDurationSec != null ? Math.round(fileDurationSec / 60) : null;
 
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -215,6 +270,17 @@ export default function ClubMatchAnalysisPage() {
       setError('스코어를 입력해 주세요. AI는 스코어를 추측하지 않습니다.');
       return;
     }
+    if (fileDurationSec != null) {
+      const coverageErr = validateVideoCoverage(videoCoverage, fileDurationSec, matchTotalMinutes);
+      if (coverageErr) {
+        setError(coverageErr);
+        return;
+      }
+    }
+    if (videoCoverage === 'segment' && !segmentNote.trim() && (!segmentStartMin || !segmentEndMin)) {
+      setError('일부 구간 영상은 경기 시간대(예: 전반 5~12분) 또는 구간 설명을 입력해 주세요.');
+      return;
+    }
 
     setError('');
     setIsUploading(true);
@@ -239,6 +305,11 @@ export default function ClubMatchAnalysisPage() {
           grade: GRADE_INFO[grade]?.label || grade,
           ourTeamColor: ourTeamColor.trim(),
           matchResult: matchResult.trim(),
+          videoCoverage,
+          matchTotalMinutes,
+          segmentStartMin: segmentStartMin ? Number(segmentStartMin) : undefined,
+          segmentEndMin: segmentEndMin ? Number(segmentEndMin) : undefined,
+          segmentNote: segmentNote.trim(),
         }),
       });
 
@@ -258,6 +329,12 @@ export default function ClubMatchAnalysisPage() {
           grade: GRADE_INFO[grade]?.label || grade,
           ourTeamColor: ourTeamColor.trim(),
           matchResult: matchResult.trim(),
+          videoCoverage,
+          matchTotalMinutes,
+          segmentStartMin: segmentStartMin ? Number(segmentStartMin) : undefined,
+          segmentEndMin: segmentEndMin ? Number(segmentEndMin) : undefined,
+          segmentNote: segmentNote.trim(),
+          videoDurationSec: fileDurationSec ?? undefined,
         },
         ...result,
       });
@@ -358,17 +435,91 @@ export default function ClubMatchAnalysisPage() {
                   <span className="mb-1 block text-xs text-white/45">우리팀 유니폼 색 *</span>
                   <input className={inputClass} value={ourTeamColor} onChange={(e) => setOurTeamColor(e.target.value)} placeholder="하늘색" />
                 </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs text-white/45">경기 총 시간</span>
+                  <select
+                    className={inputClass}
+                    value={matchTotalMinutes}
+                    onChange={(e) => setMatchTotalMinutes(Number(e.target.value))}
+                  >
+                    {MATCH_LENGTH_OPTIONS.map((o) => (
+                      <option key={o.minutes} value={o.minutes} className="bg-[#1a1a1a]">
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block sm:col-span-2">
+                  <span className="mb-1 block text-xs text-white/45">업로드 영상 범위 *</span>
+                  <select
+                    className={inputClass}
+                    value={videoCoverage}
+                    onChange={(e) => setVideoCoverage(e.target.value as MatchVideoCoverage)}
+                  >
+                    {VIDEO_COVERAGE_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id} className="bg-[#1a1a1a]">
+                        {o.label} — {o.hint}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {videoCoverage === 'segment' ? (
+                  <>
+                    <label className="block">
+                      <span className="mb-1 block text-xs text-white/45">경기 시작 분</span>
+                      <input
+                        className={inputClass}
+                        type="number"
+                        min={0}
+                        value={segmentStartMin}
+                        onChange={(e) => setSegmentStartMin(e.target.value)}
+                        placeholder="5"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs text-white/45">경기 끝 분</span>
+                      <input
+                        className={inputClass}
+                        type="number"
+                        min={0}
+                        value={segmentEndMin}
+                        onChange={(e) => setSegmentEndMin(e.target.value)}
+                        placeholder="12"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1 block text-xs text-white/45">구간 설명 (선택)</span>
+                      <input
+                        className={inputClass}
+                        value={segmentNote}
+                        onChange={(e) => setSegmentNote(e.target.value)}
+                        placeholder="전반 5~12분"
+                      />
+                    </label>
+                  </>
+                ) : null}
                 <label className="block sm:col-span-2">
                   <span className="mb-1 block text-xs text-white/45">경기 영상 *</span>
                   <input
                     type="file"
                     accept="video/*"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setFile(f);
+                      if (f) readVideoDuration(f);
+                      else setFileDurationSec(null);
+                    }}
                     className="block w-full text-sm text-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#FF9F02] file:px-3 file:py-2 file:text-sm file:font-bold file:text-black"
                   />
                   {file ? (
                     <p className="mt-2 text-xs text-white/45">
                       {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
+                      {fileDurationMin != null ? ` · 영상 ${fileDurationMin}분` : ''}
+                      {fileDurationSec != null && videoCoverage === 'full' && fileDurationMin != null && fileDurationMin < matchTotalMinutes * 0.72 ? (
+                        <span className="block mt-1 text-amber-400/90">
+                          ⚠ 경기 전체({matchTotalMinutes}분)보다 짧습니다. 「일부 구간」을 선택하세요.
+                        </span>
+                      ) : null}
                     </p>
                   ) : null}
                 </label>
@@ -389,10 +540,10 @@ export default function ClubMatchAnalysisPage() {
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="text-sm font-bold text-white">분석에 포함되는 내용</div>
                 <ul className="mt-3 space-y-2 text-xs leading-6 text-white/55">
-                  <li>· 입력한 스코어·유니폼 색 기준</li>
-                  <li>· 장면별 관찰 (공격/수비/빌드업 등)</li>
-                  <li>· 주요 장면 클립 · 확인된 사실만</li>
-                  <li>· 추측·확률·전망 문구 없음</li>
+                  <li>· 영상 구간에 맞는 항목만 표시</li>
+                  <li>· 7분 클립 → 전반/후반·팀 강약점 숨김</li>
+                  <li>· 주요 장면 클립 · 구간 관찰만</li>
+                  <li>· 추측·확률 문구 없음</li>
                 </ul>
               </div>
               {history.length ? (
