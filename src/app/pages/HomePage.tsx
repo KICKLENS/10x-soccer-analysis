@@ -745,7 +745,7 @@ export default function HomePage() {
               align="center"
               title={
                 <>
-                  지금보다 <span style={{ color: POINT_COLOR }}>10배</span> 빠르게 성장하는 길
+                  Grow <span style={{ color: POINT_COLOR }}>10X</span>. step by step
                 </>
               }
               description="촬영 → 업로드 → 하이라이트 → 보관 → AI 분석 → 훈련일지. 원하는 단계를 눌러 지금 시작하세요."
