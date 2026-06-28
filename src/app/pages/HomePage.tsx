@@ -946,9 +946,9 @@ export default function HomePage() {
               <h2 className="mt-4 text-[26px] font-extrabold leading-[1.12] text-white md:mt-6 md:text-5xl lg:text-[60px]">
                 경기를 기록으로,
                 <br />
-                훈련을 방향으로.
+                훈련을 방향으로,
                 <br />
-                <span style={{ color: POINT_COLOR }}>10X</span>와 함께 하세요
+                <span style={{ color: POINT_COLOR }}>10X</span>와 함께 하세요.
               </h2>
 
               <p className="mt-4 text-[14px] leading-7 md:mt-7 md:text-[17px] md:leading-8" style={{ color: TEXT_SUB }}>
