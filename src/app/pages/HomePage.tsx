@@ -796,7 +796,7 @@ export default function HomePage() {
           <div className="mt-5 flex justify-center">
             <SectionHeading
               align="center"
-              title="실제 쓰임이 바로 보이는 서비스"
+              title="Highlight · Analysis · Journal"
               description="촬영·분석·기록이 어떻게 이어지는지, 한눈에 보이도록 정리했습니다."
             />
           </div>
