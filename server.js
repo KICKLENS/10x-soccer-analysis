@@ -362,7 +362,7 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
     sampleFps: MODAL_SAMPLE_FPS,
     sahi: true,
     centerSeed: !hasManualSeed(seed),
-    seedSeconds: 3.0,
+    seedSeconds: 5.0,
   };
 
   // 업로드 영상: 사용자가 직접 지정(탭)한 선수를 시드로 전달 (다중 우선)
@@ -1710,6 +1710,12 @@ function buildPlayerTraits(player = {}) {
   return parts.join(', ');
 }
 
+function gpuTargetLocked(gpuAnalysis) {
+  const tracking = gpuAnalysis?.tracking;
+  if (!tracking?.available) return false;
+  return ['center_seed', 'manual_seed'].includes(tracking.targetSelectedBy);
+}
+
 // 업로드 영상에서 사용자가 직접 지정(탭)한 선수 시드 정규화. 유효하지 않으면 null.
 function normalizeSeedInput(seed) {
   if (!seed || typeof seed !== 'object') return null;
@@ -1861,6 +1867,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   let prompt;
   if (ANALYSIS_ZERO_SPECULATION) {
     report('선수 장면 영상 관찰 중 (정확도 우선)', 58);
+    const candidatesBeforeFacts = coachCandidates.slice();
     clipFacts = await describePlayerClipFacts(
       genAI,
       fullPath,
@@ -1868,10 +1875,18 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
       player,
     );
     const factById = new Map(clipFacts.map((f) => [f.id, f]));
+    const targetLocked = gpuTargetLocked(gpuAnalysis);
     coachCandidates = coachCandidates.filter((c) => {
       const f = factById.get(c.id);
-      return f && f.playerSeen === true && f.isTargetPlayer !== false;
+      if (!f) return targetLocked || rescued;
+      if (f.isTargetPlayer === false) return false;
+      if (f.playerSeen === true) return true;
+      return targetLocked && f.playerSeen !== false;
     });
+    if (!coachCandidates.length && targetLocked && candidatesBeforeFacts.length) {
+      console.warn('[QC] Gemini 장면 확인 실패 → GPU 추적 확정으로 후보 유지');
+      coachCandidates = candidatesBeforeFacts;
+    }
     if (!coachCandidates.length) {
       throw new Error(
         '영상에서 지정한 선수가 명확히 보이는 장면을 찾지 못했습니다. 선수를 화면 중앙에 크게 두고 촬영하거나, 유니폼 색·등번호를 확인해 주세요.',
@@ -2659,7 +2674,7 @@ app.post('/api/jobs/extract', (req, res) => {
   const normalizedSeeds = normalizeSeedsArray(bodySeeds);
   const seedWithMulti = buildSeedPayload(bodySeed, bodySeeds);
   if (normalizedSeeds.length > 0) {
-    console.log(`[extract] 수동 시드 ${normalizedSeeds.length}개 수신`);
+    console.log(`[extract] 수동 시드 ${normalizedSeeds.length}개 수신${rest.captureMode ? ` (${rest.captureMode})` : ''}`);
   }
   const job = createJob('extract', { filename, player, seed: seedWithMulti, srcKey: null });
   res.json({ success: true, jobId: job.id });

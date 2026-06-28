@@ -1201,25 +1201,17 @@ export default function MobileCapturePage() {
             />
 
             <div style={cameraOverlayStyle}>
-              {guidePhase === 'idle' ? (
-                <div style={topHintPillStyle}>
-                  선수를 중앙 가이드 안에 맞춰 주세요
-                </div>
-              ) : (
-                <div style={captureGuideStyle}>
+              {guidePhase !== 'idle' && (
+                <div style={overlayTopZoneStyle}>
                   {guidePhase === 'fullbody' ? (
-                    <>
-                      <div style={captureGuideTitleStyle}>선수 전신을 5초간 촬영해 주세요</div>
-                      <div style={captureGuideCountStyle}>{guideCount}</div>
-                      <div style={captureGuideSubStyle}>중앙에 선수가 잘 보이도록 잡아 주세요</div>
-                    </>
+                    <div style={captureGuideCompactStyle}>
+                      <span>선수 전신 {guideCount > 0 ? `${guideCount}초` : '완료'}</span>
+                      {guideCount > 0 && <span style={captureGuideCountCompactStyle}>{guideCount}</span>}
+                    </div>
                   ) : (
-                    <>
-                      <div style={captureGuideTitleStyle}>이제 아주 천천히 줌아웃하세요</div>
-                      <div style={captureGuideSubStyle}>
-                        가운데 선수를 포커싱한 채로 경기 흐름까지 함께 촬영해 주세요
-                      </div>
-                    </>
+                    <div style={captureGuideCompactStyle}>
+                      천천히 줌아웃 · 선수 중앙 유지
+                    </div>
                   )}
                 </div>
               )}
@@ -1265,49 +1257,52 @@ export default function MobileCapturePage() {
                 </div>
               )}
 
-              <div style={guideFrameStyle}>
-                <div style={guideLabelStyle}>분석할 선수를 중앙에</div>
-              </div>
-
-              <div style={bottomStackStyle}>
-                {isCameraReady && zoomSupported && (
-                  <div style={zoomControlStyle}>
-                    <button
-                      type="button"
-                      onClick={() => applyZoom(zoom - zoomRange.step * 2)}
-                      style={zoomButtonStyle}
-                      aria-label="줌 아웃"
-                    >
-                      −
-                    </button>
-                    <input
-                      type="range"
-                      min={zoomRange.min}
-                      max={zoomRange.max}
-                      step={zoomRange.step}
-                      value={zoom}
-                      onChange={(event) => applyZoom(Number(event.target.value))}
-                      style={zoomSliderStyle}
-                      aria-label="카메라 줌"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => applyZoom(zoom + zoomRange.step * 2)}
-                      style={zoomButtonStyle}
-                      aria-label="줌 인"
-                    >
-                      +
-                    </button>
-                    <span style={zoomLabelStyle}>{zoom.toFixed(1)}×</span>
-                  </div>
-                )}
-
-                <div style={bottomGuideTextStyle}>
-                  시작할 때 분석할 선수를 중앙에 두세요 · 너무 당기지 말고 공이 오가는 흐름까지 함께
-                </div>
-              </div>
+              <div style={guideFrameStyle} />
             </div>
           </div>
+
+          {(isCameraReady || guidePhase !== 'idle') && (
+            <div style={cameraToolbarStyle}>
+              <span style={cameraToolbarHintStyle}>
+                {guidePhase === 'fullbody'
+                  ? `선수 전신 ${guideCount > 0 ? `${guideCount}초` : '완료'}`
+                  : guidePhase === 'zoomout'
+                    ? '천천히 줌아웃 · 선수 중앙 유지'
+                    : '가이드 안에 선수 맞추기 · 줌은 적당히'}
+              </span>
+              {isCameraReady && zoomSupported && (
+                <div style={zoomControlStyle}>
+                  <button
+                    type="button"
+                    onClick={() => applyZoom(zoom - zoomRange.step * 2)}
+                    style={zoomButtonStyle}
+                    aria-label="줌 아웃"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="range"
+                    min={zoomRange.min}
+                    max={zoomRange.max}
+                    step={zoomRange.step}
+                    value={zoom}
+                    onChange={(event) => applyZoom(Number(event.target.value))}
+                    style={zoomSliderStyle}
+                    aria-label="카메라 줌"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => applyZoom(zoom + zoomRange.step * 2)}
+                    style={zoomButtonStyle}
+                    aria-label="줌 인"
+                  >
+                    +
+                  </button>
+                  <span style={zoomLabelStyle}>{zoom.toFixed(1)}×</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={controlRowStyle}>
             <button
@@ -1803,38 +1798,53 @@ const cameraOverlayStyle: CSSProperties = {
   position: 'absolute',
   inset: 0,
   pointerEvents: 'none',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-  padding: 16,
 };
 
-const bottomStackStyle: CSSProperties = {
-  alignSelf: 'center',
+const overlayTopZoneStyle: CSSProperties = {
+  position: 'absolute',
+  top: 8,
+  left: 8,
+  right: 8,
   display: 'flex',
-  flexDirection: 'column',
+  justifyContent: 'center',
+  zIndex: 2,
+};
+
+const cameraToolbarStyle: CSSProperties = {
+  display: 'flex',
   alignItems: 'center',
+  justifyContent: 'space-between',
   gap: 10,
-  width: '100%',
-  maxWidth: 'min(92vw, 460px)',
+  marginTop: 10,
+  padding: '10px 12px',
+  borderRadius: 14,
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+};
+
+const cameraToolbarHintStyle: CSSProperties = {
+  flex: '1 1 auto',
+  fontSize: 12,
+  fontWeight: 600,
+  color: 'rgba(255,255,255,0.78)',
+  lineHeight: 1.4,
+  minWidth: 0,
 };
 
 const zoomControlStyle: CSSProperties = {
-  pointerEvents: 'auto',
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 10,
-  padding: '8px 14px',
+  gap: 6,
+  flexShrink: 0,
+  padding: '4px 8px',
   borderRadius: 999,
-  background: 'rgba(0,0,0,0.55)',
-  border: '1px solid rgba(255,255,255,0.24)',
-  backdropFilter: 'blur(8px)',
-  maxWidth: 'min(86vw, 420px)',
+  background: 'rgba(0,0,0,0.35)',
+  border: '1px solid rgba(255,255,255,0.16)',
 };
 
 const zoomButtonStyle: CSSProperties = {
-  width: 34,
-  height: 34,
+  width: 26,
+  height: 26,
   flexShrink: 0,
   borderRadius: '50%',
   border: '1px solid rgba(255,255,255,0.3)',
@@ -1847,70 +1857,41 @@ const zoomButtonStyle: CSSProperties = {
 };
 
 const zoomSliderStyle: CSSProperties = {
-  width: 'clamp(120px, 40vw, 260px)',
+  width: 'clamp(72px, 22vw, 140px)',
   accentColor: '#FF9F02',
   cursor: 'pointer',
 };
 
 const zoomLabelStyle: CSSProperties = {
-  minWidth: 42,
+  minWidth: 38,
   textAlign: 'center',
   color: '#fff',
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 800,
 };
 
-const topHintPillStyle: CSSProperties = {
-  alignSelf: 'center',
-  minHeight: 38,
+const captureGuideCompactStyle: CSSProperties = {
+  pointerEvents: 'none',
   display: 'inline-flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0 14px',
+  gap: 10,
+  padding: '7px 14px',
   borderRadius: 999,
-  background: 'rgba(0,0,0,0.52)',
-  border: '1px solid rgba(255,255,255,0.14)',
+  background: 'rgba(0,0,0,0.28)',
+  border: '1px solid rgba(255,159,2,0.42)',
   color: '#fff',
   fontSize: 13,
   fontWeight: 700,
-  backdropFilter: 'blur(8px)',
+  backdropFilter: 'blur(4px)',
 };
 
-const captureGuideStyle: CSSProperties = {
-  alignSelf: 'center',
-  pointerEvents: 'none',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 6,
-  padding: '14px 22px',
-  borderRadius: 18,
-  background: 'rgba(0,0,0,0.62)',
-  border: '1px solid rgba(255,159,2,0.5)',
-  backdropFilter: 'blur(8px)',
-  textAlign: 'center',
-  maxWidth: 'min(88vw, 460px)',
-};
-
-const captureGuideTitleStyle: CSSProperties = {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: 800,
-  lineHeight: 1.4,
-};
-
-const captureGuideCountStyle: CSSProperties = {
+const captureGuideCountCompactStyle: CSSProperties = {
   color: '#FF9F02',
-  fontSize: 52,
+  fontSize: 22,
   fontWeight: 900,
-  lineHeight: 1.05,
-};
-
-const captureGuideSubStyle: CSSProperties = {
-  color: 'rgba(255,255,255,0.82)',
-  fontSize: 13,
-  fontWeight: 600,
-  lineHeight: 1.5,
+  lineHeight: 1,
+  minWidth: 22,
+  textAlign: 'center',
 };
 
 const landscapeExitButtonStyle: CSSProperties = {
@@ -2007,49 +1988,16 @@ const guideFrameStyle: CSSProperties = {
   left: '50%',
   top: '50%',
   transform: 'translate(-50%, -50%)',
-  // 선수만 작게 잡도록 가이드를 줄여 주변 경기 공간(흐름)이 충분히 보이게 함
-  width: '20%',
-  height: '50%',
-  minWidth: 84,
-  maxWidth: 180,
-  minHeight: 150,
-  borderRadius: 18,
-  border: '2px dashed rgba(255,159,2,0.75)',
-  boxShadow: '0 0 0 1px rgba(255,255,255,0.06) inset',
-};
-
-const guideLabelStyle: CSSProperties = {
-  position: 'absolute',
-  left: '50%',
-  bottom: -18,
-  transform: 'translateX(-50%)',
-  minHeight: 32,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0 12px',
-  borderRadius: 999,
-  background: 'rgba(255,159,2,0.96)',
-  color: '#171717',
-  fontSize: 12,
-  fontWeight: 800,
-  whiteSpace: 'nowrap',
-};
-
-const bottomGuideTextStyle: CSSProperties = {
-  alignSelf: 'center',
-  minHeight: 34,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0 14px',
-  borderRadius: 999,
-  background: 'rgba(0,0,0,0.52)',
-  border: '1px solid rgba(255,255,255,0.14)',
-  color: '#fff',
-  fontSize: 12,
-  fontWeight: 700,
-  backdropFilter: 'blur(8px)',
+  width: '26%',
+  height: '36%',
+  minWidth: 68,
+  maxWidth: 130,
+  minHeight: 88,
+  borderRadius: 16,
+  border: '2px dashed rgba(255,159,2,0.8)',
+  boxShadow: 'none',
+  background: 'transparent',
+  pointerEvents: 'none',
 };
 
 const controlRowStyle: CSSProperties = {

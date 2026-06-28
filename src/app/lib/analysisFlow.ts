@@ -248,19 +248,34 @@ export async function extractHighlightsForPlayer(
   fileName: string,
   player?: SelectedPlayer,
   onStage?: (stage: string, progress?: number) => void,
+  extras?: Record<string, string>,
 ): Promise<ExtractResponse> {
   const resolvedPlayer = player ?? readSelectedPlayer();
+
+  const body: Record<string, unknown> = {
+    fileName,
+    savedFilename: fileName,
+    ...resolvedPlayer,
+    player: resolvedPlayer,
+  };
+
+  // 모바일 촬영: 시작 5초간 화면 중앙에 둔 선수를 GPU 추적 시드로 전달
+  if (extras?.captureMode === 'landscape-player-focus') {
+    const seeds = [0.5, 1.5, 2.5, 3.5, 4.5].map((timeSec) => ({
+      timeSec,
+      nx: 0.5,
+      ny: 0.5,
+    }));
+    body.seeds = seeds;
+    body.seed = seeds[2];
+    body.captureMode = extras.captureMode;
+  }
 
   // 비동기 잡 시작
   const start = await fetchJson<{ jobId?: string; success?: boolean }>('/api/jobs/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fileName,
-      savedFilename: fileName,
-      ...resolvedPlayer,
-      player: resolvedPlayer,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!start.jobId) throw new Error('주요 장면 추출 작업을 시작하지 못했습니다.');
@@ -314,7 +329,7 @@ export async function runMobileAnalysisPipeline(
   const upload = await uploadVideoFile(file, player, extras, onUploadProgress);
 
   onStep?.('analyzing');
-  const extract = await extractHighlightsForPlayer(upload.fileName, player, onAnalysisStage);
+  const extract = await extractHighlightsForPlayer(upload.fileName, player, onAnalysisStage, extras);
 
   const clips = Array.isArray(extract.clips) ? extract.clips : [];
 
