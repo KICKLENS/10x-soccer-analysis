@@ -846,7 +846,7 @@ export default function HomePage() {
               <SectionBadge>AI Analysis</SectionBadge>
               <div className="mt-5">
                 <SectionHeading
-                  title="AI 코치가 짚어주는 진짜 포인트"
+                  title="See it. Get it."
                   description="단순 이벤트 나열이 아니라, 어느 흐름에서 어떤 장면이 중요했는지 읽기 쉽게 보여줍니다."
                 />
               </div>
