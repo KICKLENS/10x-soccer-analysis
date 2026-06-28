@@ -1257,7 +1257,12 @@ export default function MobileCapturePage() {
                 </div>
               )}
 
-              <div style={guideFrameStyle} />
+              <div
+                style={{
+                  ...guideFrameBaseStyle,
+                  ...(isLandscape ? guideFrameLandscapeStyle : guideFramePortraitStyle),
+                }}
+              />
             </div>
           </div>
 
@@ -1983,21 +1988,36 @@ const rotateDescStyle: CSSProperties = {
   color: 'rgba(255,255,255,0.72)',
 };
 
-const guideFrameStyle: CSSProperties = {
+const guideFrameBaseStyle: CSSProperties = {
   position: 'absolute',
   left: '50%',
   top: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '26%',
-  height: '36%',
-  minWidth: 68,
-  maxWidth: 130,
-  minHeight: 88,
+  boxSizing: 'border-box',
   borderRadius: 16,
   border: '2px dashed rgba(255,159,2,0.8)',
-  boxShadow: 'none',
   background: 'transparent',
   pointerEvents: 'none',
+};
+
+// 가로 촬영: 화면은 landscape지만 전신 가이드는 항상 세로(위·아래) 비율
+const guideFrameLandscapeStyle: CSSProperties = {
+  height: '74%',
+  width: 'auto',
+  aspectRatio: '3 / 5',
+  maxWidth: '20%',
+  minHeight: 100,
+  minWidth: 48,
+};
+
+// 세로 촬영 허용 시에도 전신용 세로 비율 유지
+const guideFramePortraitStyle: CSSProperties = {
+  height: '68%',
+  width: 'auto',
+  aspectRatio: '3 / 5',
+  maxWidth: '34%',
+  minHeight: 88,
+  minWidth: 52,
 };
 
 const controlRowStyle: CSSProperties = {
