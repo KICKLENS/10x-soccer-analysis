@@ -457,7 +457,8 @@ async function runGpuCandidates(videoUrl, player = {}, seed = null) {
       return null;
     }
     const count = data.candidates?.candidates?.length || 0;
-    console.log(`[GPU] SAHI 후보 ${count}개 탐지 (공검출 프레임 ${data.candidates?.ballSeenFrames ?? '?'})`);
+    const tSel = data.tracking?.targetSelectedBy || '-';
+    console.log(`[GPU] SAHI 후보 ${count}개 · detector=${data.detector || '?'} · track=${tSel} · ballFrames=${data.candidates?.ballSeenFrames ?? '?'}`);
     return data;
   } catch (err) {
     console.warn('[GPU] 후보 탐지 예외(건너뜀):', err.message);
@@ -1716,6 +1717,81 @@ function gpuTargetLocked(gpuAnalysis) {
   return ['center_seed', 'manual_seed'].includes(tracking.targetSelectedBy);
 }
 
+/** Modal GPU(파인튜닝 soccer_best.pt)를 CPU yolo11n보다 먼저 사용할지 */
+function shouldPreferGpuFirst(seed, captureMode) {
+  if (!MODAL_ENABLED) return false;
+  if (process.env.PLAYER_GPU_FIRST === '0') return false;
+  if (hasManualSeed(seed)) return true;
+  if (captureMode === 'landscape-player-focus') return true;
+  // Modal 연결 시 기본 GPU 우선 (PLAYER_GPU_FIRST=0 으로 CPU 1차 복귀)
+  return true;
+}
+
+function initPipelineDiagnostics(captureMode, seed) {
+  const multi = normalizeSeedsArray(seed?.seeds);
+  return {
+    captureMode: captureMode || null,
+    modalEnabled: MODAL_ENABLED,
+    detectionSource: null,
+    cpuYoloSkipped: false,
+    gpuFirstAttempted: false,
+    seedPointCount: multi.length || (hasManualSeed(seed) ? 1 : 0),
+    detector: null,
+    trackingAvailable: null,
+    targetSelectedBy: null,
+    trackingReason: null,
+    matchConfidence: null,
+    ballSeenFrames: null,
+    sampledFrames: null,
+    candidateCount: 0,
+    cpuFallbackUsed: false,
+    gpuRescued: false,
+    factFilterDropped: null,
+    finalClipCount: null,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function applyGpuToDiagnostics(diag, gpuCand, gpuAnalysis) {
+  if (!diag) return;
+  const tracking = gpuAnalysis?.tracking || gpuCand?.tracking || null;
+  const candMeta = gpuCand?.candidates || {};
+  diag.detector = gpuCand?.detector || gpuAnalysis?.detector || diag.detector;
+  if (tracking) {
+    diag.trackingAvailable = tracking.available ?? null;
+    diag.targetSelectedBy = tracking.targetSelectedBy ?? null;
+    diag.trackingReason = tracking.reason ?? null;
+    diag.matchConfidence = tracking.matchConfidence ?? null;
+  }
+  if (candMeta.ballSeenFrames != null) diag.ballSeenFrames = candMeta.ballSeenFrames;
+  if (candMeta.sampledFrames != null) diag.sampledFrames = candMeta.sampledFrames;
+  if (Array.isArray(candMeta.candidates)) diag.candidateCount = candMeta.candidates.length;
+}
+
+function buildGpuYoloSummary(gpuCand, clipCount) {
+  const meta = gpuCand?.candidates || {};
+  return {
+    source: 'modal-gpu',
+    durationSec: meta.durationSec,
+    ballDetectedFrames: meta.ballSeenFrames,
+    sampledFrames: meta.sampledFrames,
+    clipCount: clipCount || 0,
+    detector: gpuCand?.detector || null,
+  };
+}
+
+async function attemptGpuPlayerDetection(videoUrl, player, seed, report) {
+  report('정밀 추적·장면 탐지 중 (GPU)', 12);
+  const gpuCand = await runGpuCandidates(videoUrl, player, seed);
+  const mapped = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
+  let gpuAnalysis = null;
+  if (mapped.length) {
+    gpuAnalysis = await runGpuAnalysis(videoUrl, player, mapped, seed);
+    gpuAnalysis = gpuAnalysis || gpuCand;
+  }
+  return { gpuCand, mapped, gpuAnalysis };
+}
+
 // 업로드 영상에서 사용자가 직접 지정(탭)한 선수 시드 정규화. 유효하지 않으면 null.
 function normalizeSeedInput(seed) {
   if (!seed || typeof seed !== 'object') return null;
@@ -1766,12 +1842,16 @@ function normalizePlayerInput(body = {}) {
   };
 }
 
-async function runFullHighlightPipeline(savedFilename, player = {}, { renderFinal = false, onProgress, seed = null } = {}) {
+async function runFullHighlightPipeline(savedFilename, player = {}, {
+  renderFinal = false, onProgress, seed = null, captureMode = null,
+} = {}) {
   const report = (stage, progress) => {
     if (typeof onProgress === 'function') {
       try { onProgress(stage, progress); } catch { /* noop */ }
     }
   };
+
+  const pipelineDiagnostics = initPipelineDiagnostics(captureMode, seed);
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -1783,47 +1863,80 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     throw new Error(`영상 파일을 찾을 수 없습니다: ${savedFilename}`);
   }
 
-  report('영상에서 후보 장면 탐지 중', 8);
   const videoUrl = `${PUBLIC_BASE}/uploads/${savedFilename}`;
-  const yoloResult = await runYoloDetection(fullPath, player);
-  if (!yoloResult.clips?.length) {
-    console.warn('[YOLO] 1차 분석에서 클립 없음, 완화 조건으로 재시도...');
-    const relaxed = await runYoloDetection(fullPath, player, 15, { minScore: 0.45, conf: 0.15, imgsz: 768 });
-    if (relaxed.clips?.length) {
-      Object.assign(yoloResult, relaxed);
+  let yoloResult = { clips: [], summary: {} };
+  let coachCandidates = [];
+  let gpuAnalysis = null;
+  let rescued = false;
+  let gpuFirstAttempted = false;
+
+  const preferGpuFirst = shouldPreferGpuFirst(seed, captureMode);
+  if (preferGpuFirst) {
+    gpuFirstAttempted = true;
+    pipelineDiagnostics.gpuFirstAttempted = true;
+    pipelineDiagnostics.cpuYoloSkipped = true;
+    console.log(`[QC] GPU 우선 경로 (detector=soccer_best) capture=${captureMode || '-'} seeds=${pipelineDiagnostics.seedPointCount}`);
+    const gpuPath = await attemptGpuPlayerDetection(videoUrl, player, seed, report);
+    applyGpuToDiagnostics(pipelineDiagnostics, gpuPath.gpuCand, gpuPath.gpuAnalysis);
+    if (gpuPath.mapped.length) {
+      coachCandidates = gpuPath.mapped;
+      yoloResult = {
+        clips: gpuPath.mapped,
+        summary: buildGpuYoloSummary(gpuPath.gpuCand, gpuPath.mapped.length),
+      };
+      gpuAnalysis = gpuPath.gpuAnalysis;
+      rescued = true;
+      pipelineDiagnostics.detectionSource = 'modal-gpu-first';
+      pipelineDiagnostics.gpuRescued = true;
+      console.log(`[QC] GPU 우선 ${coachCandidates.length}개 후보 (ballSeen=${pipelineDiagnostics.ballSeenFrames ?? '?'})`);
+    } else {
+      console.warn('[QC] GPU 우선 경로 후보 없음 → CPU yolo11n 폴백');
+      pipelineDiagnostics.cpuFallbackUsed = true;
+    }
+  }
+
+  if (!coachCandidates.length) {
+    report('영상에서 후보 장면 탐지 중 (CPU)', 8);
+    yoloResult = await runYoloDetection(fullPath, player);
+    if (!yoloResult.clips?.length) {
+      console.warn('[YOLO] 1차 분석에서 클립 없음, 완화 조건으로 재시도...');
+      const relaxed = await runYoloDetection(fullPath, player, 15, { minScore: 0.45, conf: 0.15, imgsz: 768 });
+      if (relaxed.clips?.length) {
+        Object.assign(yoloResult, relaxed);
+      }
+    }
+    coachCandidates = yoloResult.clips?.length
+      ? prefilterYoloClipsForCoach(yoloResult.clips, player)
+      : [];
+    if (!pipelineDiagnostics.detectionSource) {
+      pipelineDiagnostics.detectionSource = 'cpu-yolo11n';
     }
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  let coachCandidates = yoloResult.clips?.length
-    ? prefilterYoloClipsForCoach(yoloResult.clips, player)
-    : [];
-  let gpuAnalysis = null;
-  let rescued = false;
 
-  // 수동 시드(사용자가 탭한 선수)가 있으면 CPU 타깃 추정 결과를 버리고 GPU만 사용
-  if (hasManualSeed(seed) && MODAL_ENABLED) {
+  // 수동 시드(탭) + CPU 후보만 있을 때: GPU 재탐색 (GPU 우선을 이미 시도했으면 생략)
+  if (hasManualSeed(seed) && MODAL_ENABLED && !gpuFirstAttempted) {
     if (coachCandidates.length) {
       console.log('[QC] 수동 시드 있음 → CPU 후보 무시, GPU 탭 추적으로 교체');
     }
     coachCandidates = [];
   }
 
-  // CPU가 대상 선수를 특정하지 못하거나(원거리·작게 찍힘) 후보가 없으면
-  // → GPU 구제: SAHI로 공 장면을 찾고, center-seed 추적으로 '시작 시 중앙에 둔 선수'를 잠가 분석.
-  if (!coachCandidates.length && MODAL_ENABLED) {
+  if (!coachCandidates.length && MODAL_ENABLED && !gpuFirstAttempted) {
     report('정밀 추적·이동 분석 중 (GPU 구제)', 40);
     console.warn('[QC] CPU가 대상-공 장면을 못 찾음 → GPU SAHI + seed 구제 시도');
-    const gpuCand = await runGpuCandidates(videoUrl, player, seed);
-    const mapped = mapGpuCandidatesToClips(gpuCand?.candidates?.candidates || []);
-    if (mapped.length) {
-      coachCandidates = mapped;
-      yoloResult.clips = mapped;
-      // center-seed(또는 수동 시드) 추적으로 대상-공 근접 정밀 분석(구제 경로에서도 수행)
-      const seedAnalysis = await runGpuAnalysis(videoUrl, player, mapped, seed);
-      gpuAnalysis = seedAnalysis || gpuCand;
+    const gpuPath = await attemptGpuPlayerDetection(videoUrl, player, seed, report);
+    applyGpuToDiagnostics(pipelineDiagnostics, gpuPath.gpuCand, gpuPath.gpuAnalysis);
+    if (gpuPath.mapped.length) {
+      coachCandidates = gpuPath.mapped;
+      yoloResult.clips = gpuPath.mapped;
+      yoloResult.summary = buildGpuYoloSummary(gpuPath.gpuCand, gpuPath.mapped.length);
+      gpuAnalysis = gpuPath.gpuAnalysis;
       rescued = true;
-      console.log(`[QC] GPU 구제 후보 ${mapped.length}개로 진행 (center-seed 추적 ${seedAnalysis ? '성공' : '생략'})`);
+      pipelineDiagnostics.detectionSource = 'modal-gpu-rescue';
+      pipelineDiagnostics.gpuRescued = true;
+      console.log(`[QC] GPU 구제 ${coachCandidates.length}개 (target=${pipelineDiagnostics.targetSelectedBy || '?'})`);
     }
   }
 
@@ -1831,21 +1944,24 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
     const summary = yoloResult.summary || {};
     const error = new Error(buildNoClipsError(summary, player));
     error.yoloSummary = summary;
+    error.pipelineDiagnostics = pipelineDiagnostics;
     throw error;
   }
 
   yoloResult.clips = coachCandidates;
-  console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개${rescued ? ' (GPU 구제)' : ''}`);
+  console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개${rescued ? ' (GPU)' : ' (CPU)'}`);
 
   report('정밀 추적·이동 분석 중', 40);
   if (!rescued && MODAL_ENABLED) {
     gpuAnalysis = await runGpuAnalysis(videoUrl, player, coachCandidates, seed);
+    applyGpuToDiagnostics(pipelineDiagnostics, gpuAnalysis, gpuAnalysis);
   }
 
   // ── 데이터 품질 검사: 불확실하면 엉터리 분석 대신 솔직한 안내 ──
   const dataQuality = assessDataQuality(coachCandidates, gpuAnalysis);
   if (dataQuality.insufficient) {
     console.log(`[QC] 데이터 품질 부족 → 엉터리 분석 방지: ${dataQuality.reason}`);
+    pipelineDiagnostics.finalClipCount = Math.min(coachCandidates.length, 3);
     return {
       clips: coachCandidates.slice(0, 3),
       summary: {
@@ -1859,6 +1975,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
         nextTrainingPoint: '더 좋은 영상으로 다시 분석해보세요.',
       },
       gpuAnalysis,
+      pipelineDiagnostics,
     };
   }
 
@@ -1883,6 +2000,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
       if (f.playerSeen === true) return true;
       return targetLocked && f.playerSeen !== false;
     });
+    pipelineDiagnostics.factFilterDropped = candidatesBeforeFacts.length - coachCandidates.length;
     if (!coachCandidates.length && targetLocked && candidatesBeforeFacts.length) {
       console.warn('[QC] Gemini 장면 확인 실패 → GPU 추적 확정으로 후보 유지');
       coachCandidates = candidatesBeforeFacts;
@@ -1922,6 +2040,8 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
   }
 
   console.log(`[QC] 최종 승인 ${mergedClips.length}개`);
+  pipelineDiagnostics.finalClipCount = mergedClips.length;
+  console.log('[QC] pipelineDiagnostics', JSON.stringify(pipelineDiagnostics));
 
   report('하이라이트 클립 렌더링 중', 88);
   console.log('[FFmpeg] 개별 클립 렌더링 시작...');
@@ -1948,6 +2068,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, { renderFina
       : `대상 선수 ${player.name || ''} · 후보 ${yoloResult.clips.length}개 → AI 코치 ${clipsWithVideos.length}개 → 클립 생성 완료`,
     targetPlayer: yoloResult.targetPlayer || null,
     player,
+    pipelineDiagnostics,
   };
 }
 
@@ -1980,6 +2101,12 @@ app.get('/api/health', (_req, res) => {
     yoloScript: fs.existsSync(YOLO_SCRIPT),
     r2Enabled: R2_ENABLED,
     modalEnabled: MODAL_ENABLED,
+    playerPipeline: {
+      gpuFirstDefault: MODAL_ENABLED && process.env.PLAYER_GPU_FIRST !== '0',
+      cpuDetector: 'yolo11n.pt (Railway)',
+      gpuDetector: 'soccer_best.pt (Modal volume)',
+      analysisZeroSpeculation: ANALYSIS_ZERO_SPECULATION,
+    },
     timestamp: new Date().toISOString(),
   });
 });
@@ -2477,6 +2604,7 @@ async function runExtractJob(job) {
     const result = await runFullHighlightPipeline(filename, player, {
       renderFinal: true,
       seed: job.seed || null,
+      captureMode: job.captureMode || null,
       onProgress: (stage, progress) => {
         job.stage = stage;
         if (typeof progress === 'number') job.progress = progress;
@@ -2503,6 +2631,7 @@ async function runExtractJob(job) {
       summary: result.summary,
       yoloSummary: result.yoloSummary,
       gpuAnalysis: result.gpuAnalysis || null,
+      pipelineDiagnostics: result.pipelineDiagnostics || null,
       targetPlayer: result.targetPlayer,
       player: result.player,
       message: result.message,
@@ -2520,6 +2649,7 @@ async function runExtractJob(job) {
     job.status = 'error';
     job.error = err.message;
     job.yoloSummary = err.yoloSummary;
+    job.pipelineDiagnostics = err.pipelineDiagnostics || null;
     setJob(job);
   } finally {
     // 작업이 끝나면(성공/실패) R2 원본 백업은 더 이상 필요 없음
@@ -2676,7 +2806,8 @@ app.post('/api/jobs/extract', (req, res) => {
   if (normalizedSeeds.length > 0) {
     console.log(`[extract] 수동 시드 ${normalizedSeeds.length}개 수신${rest.captureMode ? ` (${rest.captureMode})` : ''}`);
   }
-  const job = createJob('extract', { filename, player, seed: seedWithMulti, srcKey: null });
+  const captureMode = typeof rest.captureMode === 'string' ? rest.captureMode.trim() : null;
+  const job = createJob('extract', { filename, player, seed: seedWithMulti, captureMode, srcKey: null });
   res.json({ success: true, jobId: job.id });
 
   (async () => {
@@ -2818,6 +2949,7 @@ app.get('/api/jobs/:id', async (req, res) => {
     result: job.result,
     error: job.error,
     yoloSummary: job.yoloSummary,
+    pipelineDiagnostics: job.pipelineDiagnostics || job.result?.pipelineDiagnostics || null,
   });
 });
 

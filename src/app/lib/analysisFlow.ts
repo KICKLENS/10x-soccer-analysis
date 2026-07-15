@@ -43,6 +43,8 @@ export type GpuAnalysis = {
   tracking?: {
     available?: boolean;
     matchConfidence?: number;
+    targetSelectedBy?: string;
+    reason?: string;
     metrics?: GpuMetrics;
     heatmap?: GpuHeatmap;
     note?: string;
@@ -58,6 +60,28 @@ export type GpuAnalysis = {
   };
 };
 
+export type PipelineDiagnostics = {
+  captureMode?: string | null;
+  modalEnabled?: boolean;
+  detectionSource?: string | null;
+  cpuYoloSkipped?: boolean;
+  gpuFirstAttempted?: boolean;
+  seedPointCount?: number;
+  detector?: string | null;
+  trackingAvailable?: boolean | null;
+  targetSelectedBy?: string | null;
+  trackingReason?: string | null;
+  matchConfidence?: number | null;
+  ballSeenFrames?: number | null;
+  sampledFrames?: number | null;
+  candidateCount?: number;
+  cpuFallbackUsed?: boolean;
+  gpuRescued?: boolean;
+  factFilterDropped?: number | null;
+  finalClipCount?: number | null;
+  timestamp?: string;
+};
+
 export type ExtractResponse = {
   success?: boolean;
   clips?: HighlightClip[];
@@ -66,6 +90,7 @@ export type ExtractResponse = {
   jobId?: string;
   message?: string;
   gpuAnalysis?: GpuAnalysis | null;
+  pipelineDiagnostics?: PipelineDiagnostics | null;
   summary?: {
     noticeableScene?: string;
     strength?: string;
@@ -84,6 +109,7 @@ export type AiAnalysisPayload = {
   jobId?: string;
   summary?: ExtractResponse['summary'];
   gpuAnalysis?: GpuAnalysis | null;
+  pipelineDiagnostics?: PipelineDiagnostics | null;
   position?: string;
   player?: SelectedPlayer;
 };
@@ -218,7 +244,15 @@ async function pollExtractJob<T>(
   let notFound = 0;
   for (;;) {
     await new Promise((r) => setTimeout(r, POLL_MS));
-    let job: { success?: boolean; status?: string; stage?: string; progress?: number; result?: T; error?: string };
+    let job: {
+      success?: boolean;
+      status?: string;
+      stage?: string;
+      progress?: number;
+      result?: T;
+      error?: string;
+      pipelineDiagnostics?: PipelineDiagnostics | null;
+    };
     try {
       job = await fetchJson<typeof job>(`/api/jobs/${jobId}`);
       netFails = 0;
@@ -240,7 +274,12 @@ async function pollExtractJob<T>(
     }
     onStage?.(job.stage || '', job.progress);
     if (job.status === 'done') return job.result as T;
-    if (job.status === 'error') throw new Error(job.error || '분석 중 오류가 발생했습니다.');
+    if (job.status === 'error') {
+      const e = new Error(job.error || '분석 중 오류가 발생했습니다.');
+      (e as unknown as { pipelineDiagnostics?: PipelineDiagnostics | null }).pipelineDiagnostics =
+        job.pipelineDiagnostics ?? null;
+      throw e;
+    }
   }
 }
 
@@ -304,6 +343,7 @@ export function buildAiAnalysisPayload(input: {
     jobId: input.extract.jobId || '',
     summary: input.extract.summary,
     gpuAnalysis: input.extract.gpuAnalysis ?? null,
+    pipelineDiagnostics: input.extract.pipelineDiagnostics ?? null,
     position: player.position || '골키퍼',
     player,
   };

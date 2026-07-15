@@ -1139,6 +1139,7 @@ def analyze(req: "AnalyzeRequest"):
         # 추적엔 첫 번째 시드(시간순 정렬) 사용
         primary_seed = sorted(seed_points, key=lambda x: x[0])[0] if seed_points else seed_point
         print(f"[analyze] 시드 {len(seed_points)}개 사용 (primary={primary_seed})")
+        out["seedPointCount"] = len(seed_points)
 
         if req.detectCandidates:
             out["candidates"] = _detect_candidates(
