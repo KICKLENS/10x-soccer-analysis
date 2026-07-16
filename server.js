@@ -40,10 +40,13 @@ const MODAL_SAMPLE_FPS = Number(process.env.MODAL_SAMPLE_FPS) || 8;
 const MODAL_ENABLED = Boolean(MODAL_ANALYZE_URL);
 
 // Phase A: SoccerNet action spotting (T-DEED on Modal) — 슛/골 후보 시각 힌트
-const MODAL_ACTION_SPOT_URL = (process.env.MODAL_ACTION_SPOT_URL || '').trim();
+const MODAL_ACTION_SPOT_URL = (
+  process.env.MODAL_ACTION_SPOT_URL || 'https://kicklens--soccer-action-spot-spot.modal.run'
+).trim();
 const ACTION_SPOTTING_ENABLED = Boolean(MODAL_ACTION_SPOT_URL)
   && String(process.env.ACTION_SPOTTING_ENABLED ?? '1') === '1';
 const ACTION_SPOT_THRESHOLD = Number(process.env.ACTION_SPOT_THRESHOLD) || 0.25;
+const SERVER_BUILD_TAG = 'phase-a-action-spot-2026-07-16';
 const PLAYER_ACTION_HINT_LABELS = [
   'Shots on target', 'Shots off target', 'Goal', 'Clearance',
   'Direct free-kick', 'Corner', 'Penalty',
@@ -2228,6 +2231,7 @@ app.get('/api/health', (_req, res) => {
       urlConfigured: Boolean(MODAL_ACTION_SPOT_URL),
       threshold: ACTION_SPOT_THRESHOLD,
     },
+    buildTag: SERVER_BUILD_TAG,
     timestamp: new Date().toISOString(),
   });
 });
