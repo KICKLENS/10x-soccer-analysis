@@ -39,6 +39,16 @@ const MODAL_AUTH_TOKEN = (process.env.MODAL_AUTH_TOKEN || '').trim();
 const MODAL_SAMPLE_FPS = Number(process.env.MODAL_SAMPLE_FPS) || 8;
 const MODAL_ENABLED = Boolean(MODAL_ANALYZE_URL);
 
+// Phase A: SoccerNet action spotting (T-DEED on Modal) — 슛/골 후보 시각 힌트
+const MODAL_ACTION_SPOT_URL = (process.env.MODAL_ACTION_SPOT_URL || '').trim();
+const ACTION_SPOTTING_ENABLED = Boolean(MODAL_ACTION_SPOT_URL)
+  && String(process.env.ACTION_SPOTTING_ENABLED ?? '1') === '1';
+const ACTION_SPOT_THRESHOLD = Number(process.env.ACTION_SPOT_THRESHOLD) || 0.25;
+const PLAYER_ACTION_HINT_LABELS = [
+  'Shots on target', 'Shots off target', 'Goal', 'Clearance',
+  'Direct free-kick', 'Corner', 'Penalty',
+];
+
 // 하이라이트 효과 렌더(소개 카드 + 스포트라이트) — Modal 엔드포인트
 const MODAL_RENDER_URL = (
   process.env.MODAL_RENDER_URL || 'https://kicklens--soccer-fx-render-highlights.modal.run'
@@ -402,6 +412,87 @@ async function runGpuAnalysis(videoUrl, player = {}, clips = [], seed = null) {
     console.warn('[GPU] Modal 호출 예외(건너뜀):', err.message);
     return null;
   }
+}
+
+async function runActionSpotting(videoUrl) {
+  if (!ACTION_SPOTTING_ENABLED) return null;
+
+  const payload = {
+    videoUrl,
+    authToken: MODAL_AUTH_TOKEN,
+    threshold: ACTION_SPOT_THRESHOLD,
+    playerHintsOnly: true,
+  };
+
+  try {
+    console.log('[ActionSpot] SoccerNet T-DEED POC 요청...', videoUrl);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20 * 60 * 1000);
+    const resp = await fetch(MODAL_ACTION_SPOT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) {
+      console.warn(`[ActionSpot] 응답 오류 ${resp.status}`);
+      return { available: false, error: `http_${resp.status}` };
+    }
+    const data = await resp.json();
+    if (!data.success) {
+      console.warn('[ActionSpot] 실패:', data.error, data.hint || '');
+      return {
+        available: false,
+        error: data.error || 'spot_failed',
+        hint: data.hint || null,
+        checkpointPath: data.checkpointPath || null,
+      };
+    }
+    const count = data.events?.length || 0;
+    console.log(`[ActionSpot] 완료 (${data.elapsedSec || '?'}초) 이벤트 ${count}개`);
+    return {
+      available: true,
+      engine: data.engine || 't-deed-soccernet',
+      phase: data.phase || 'A-poc',
+      eventCount: count,
+      events: data.events || [],
+      disclaimer: data.disclaimer || null,
+      threshold: data.threshold,
+      elapsedSec: data.elapsedSec,
+    };
+  } catch (err) {
+    console.warn('[ActionSpot] 호출 예외(건너뜀):', err.message);
+    return { available: false, error: err.message };
+  }
+}
+
+/** Action spotting 시각과 겹치는 후보를 앞으로 (확정 사실 아님 — 순위 힌트만) */
+function boostCandidatesWithActionSpots(candidates, actionSpots, windowSec = 4) {
+  if (!actionSpots?.available || !actionSpots.events?.length || !candidates?.length) {
+    return candidates;
+  }
+  const hintLabels = new Set(PLAYER_ACTION_HINT_LABELS);
+  const events = actionSpots.events.filter((e) => hintLabels.has(e.label));
+
+  const overlapScore = (clip) => {
+    const mid = (Number(clip.startSec) + Number(clip.endSec)) / 2;
+    if (!Number.isFinite(mid)) return 0;
+    let best = 0;
+    for (const e of events) {
+      const dt = Math.abs(Number(e.timeSec) - mid);
+      if (dt <= windowSec) {
+        best = Math.max(best, Number(e.confidence) || 0.5);
+      }
+    }
+    return best;
+  };
+
+  return [...candidates].sort((a, b) => {
+    const diff = overlapScore(b) - overlapScore(a);
+    if (Math.abs(diff) > 0.001) return diff;
+    return (Number(b.score) || 0) - (Number(a.score) || 0);
+  });
 }
 
 async function runGpuCandidates(videoUrl, player = {}, seed = null) {
@@ -1748,6 +1839,9 @@ function initPipelineDiagnostics(captureMode, seed) {
     gpuRescued: false,
     factFilterDropped: null,
     finalClipCount: null,
+    actionSpottingEnabled: ACTION_SPOTTING_ENABLED,
+    actionSpotCount: null,
+    actionSpotError: null,
     timestamp: new Date().toISOString(),
   };
 }
@@ -1864,6 +1958,12 @@ async function runFullHighlightPipeline(savedFilename, player = {}, {
   }
 
   const videoUrl = `${PUBLIC_BASE}/uploads/${savedFilename}`;
+
+  // Phase A: GPU 탐지와 병렬로 SoccerNet action spotting (슛/골 후보 시각)
+  const actionSpotPromise = ACTION_SPOTTING_ENABLED
+    ? runActionSpotting(videoUrl)
+    : Promise.resolve(null);
+
   let yoloResult = { clips: [], summary: {} };
   let coachCandidates = [];
   let gpuAnalysis = null;
@@ -1949,6 +2049,19 @@ async function runFullHighlightPipeline(savedFilename, player = {}, {
   }
 
   yoloResult.clips = coachCandidates;
+
+  const actionSpots = await actionSpotPromise;
+  if (actionSpots?.available) {
+    pipelineDiagnostics.actionSpotCount = actionSpots.eventCount ?? actionSpots.events?.length ?? 0;
+    coachCandidates = boostCandidatesWithActionSpots(coachCandidates, actionSpots);
+    yoloResult.clips = coachCandidates;
+    console.log(
+      `[ActionSpot] 후보 ${coachCandidates.length}개 순위 힌트 적용 (events=${pipelineDiagnostics.actionSpotCount})`,
+    );
+  } else if (actionSpots?.error) {
+    pipelineDiagnostics.actionSpotError = actionSpots.error;
+  }
+
   console.log(`[QC] 1차 품질 필터 통과 ${coachCandidates.length}개${rescued ? ' (GPU)' : ' (CPU)'}`);
 
   report('정밀 추적·이동 분석 중', 40);
@@ -2062,6 +2175,7 @@ async function runFullHighlightPipeline(savedFilename, player = {}, {
     analysisMode: ANALYSIS_ZERO_SPECULATION ? 'fact-only-player' : 'standard',
     yoloSummary: yoloResult.summary,
     gpuAnalysis,
+    actionSpots: actionSpots?.available ? actionSpots : undefined,
     finalHighlight,
     message: renderFinal
       ? `대상 선수 ${player.name || ''} · 후보 ${yoloResult.clips.length}개 → AI 코치 ${clipsWithVideos.length}개 → 최종 하이라이트 완료`
@@ -2106,6 +2220,13 @@ app.get('/api/health', (_req, res) => {
       cpuDetector: 'yolo11n.pt (Railway)',
       gpuDetector: 'soccer_best.pt (Modal volume)',
       analysisZeroSpeculation: ANALYSIS_ZERO_SPECULATION,
+    },
+    actionSpotting: {
+      enabled: ACTION_SPOTTING_ENABLED,
+      phase: 'A-poc',
+      engine: 'T-DEED SoccerNet_small (Modal)',
+      urlConfigured: Boolean(MODAL_ACTION_SPOT_URL),
+      threshold: ACTION_SPOT_THRESHOLD,
     },
     timestamp: new Date().toISOString(),
   });
@@ -2632,6 +2753,7 @@ async function runExtractJob(job) {
       yoloSummary: result.yoloSummary,
       gpuAnalysis: result.gpuAnalysis || null,
       pipelineDiagnostics: result.pipelineDiagnostics || null,
+      actionSpots: result.actionSpots || null,
       targetPlayer: result.targetPlayer,
       player: result.player,
       message: result.message,

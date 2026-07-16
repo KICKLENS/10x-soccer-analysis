@@ -60,6 +60,23 @@ export type GpuAnalysis = {
   };
 };
 
+export type ActionSpotEvent = {
+  label: string;
+  timeSec: number;
+  confidence: number;
+  frameIndex?: number;
+};
+
+export type ActionSpottingResult = {
+  available?: boolean;
+  engine?: string;
+  phase?: string;
+  eventCount?: number;
+  events?: ActionSpotEvent[];
+  disclaimer?: string | null;
+  error?: string;
+};
+
 export type PipelineDiagnostics = {
   captureMode?: string | null;
   modalEnabled?: boolean;
@@ -79,6 +96,9 @@ export type PipelineDiagnostics = {
   gpuRescued?: boolean;
   factFilterDropped?: number | null;
   finalClipCount?: number | null;
+  actionSpottingEnabled?: boolean;
+  actionSpotCount?: number | null;
+  actionSpotError?: string | null;
   timestamp?: string;
 };
 
@@ -91,6 +111,7 @@ export type ExtractResponse = {
   message?: string;
   gpuAnalysis?: GpuAnalysis | null;
   pipelineDiagnostics?: PipelineDiagnostics | null;
+  actionSpots?: ActionSpottingResult | null;
   summary?: {
     noticeableScene?: string;
     strength?: string;
@@ -110,6 +131,7 @@ export type AiAnalysisPayload = {
   summary?: ExtractResponse['summary'];
   gpuAnalysis?: GpuAnalysis | null;
   pipelineDiagnostics?: PipelineDiagnostics | null;
+  actionSpots?: ActionSpottingResult | null;
   position?: string;
   player?: SelectedPlayer;
 };
@@ -344,6 +366,7 @@ export function buildAiAnalysisPayload(input: {
     summary: input.extract.summary,
     gpuAnalysis: input.extract.gpuAnalysis ?? null,
     pipelineDiagnostics: input.extract.pipelineDiagnostics ?? null,
+    actionSpots: input.extract.actionSpots ?? null,
     position: player.position || '골키퍼',
     player,
   };

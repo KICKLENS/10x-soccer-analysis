@@ -51,6 +51,33 @@ modal deploy modal_app/soccer_gpu.py
 
 ---
 
+## Phase A: SoccerNet Action Spotting (T-DEED POC)
+
+1인 선수 분석에서 **슛·골 후보 시각** 힌트를 추가합니다. 방송 중계(SoccerNet) 기준 학습 모델이라 휴대폰 영상에서는 오탐 가능 — **확정 사실이 아니라 후보 순위 힌트만** 사용합니다.
+
+### 배포 (최초 1회)
+
+```bash
+# soccer_gpu 와 동일 secret 재사용 가능
+modal run modal_app/action_spotting.py::download_checkpoint
+modal deploy modal_app/action_spotting.py
+```
+
+`hello` GET → `"checkpointReady": true` 확인.
+
+### Railway 환경변수
+
+| 변수 | 값 |
+| --- | --- |
+| `MODAL_ACTION_SPOT_URL` | `spot` POST 엔드포인트 URL |
+| `MODAL_AUTH_TOKEN` | soccer_gpu 와 동일 |
+| `ACTION_SPOTTING_ENABLED` | `1` (기본) |
+| `ACTION_SPOT_THRESHOLD` | (선택) 기본 0.25 |
+
+`/api/health` → `actionSpotting.enabled: true` 확인.
+
+---
+
 ## 비용 메모
 
 - T4 GPU, 20분 영상 기준 1회 약 $0.05~0.15 (사용한 시간만큼만 과금, 유휴 시 0원)
